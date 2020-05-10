@@ -1,0 +1,32 @@
+{
+    "haxecheckstyle.sourceFolders": [
+        "arcane",
+        "tools"
+    ],
+    "[haxe]": {
+        "editor.formatOnSave": false
+    },
+    "haxe.configurations": [
+        {
+            "label": "HL",
+            "args": [
+                "-lib",
+                "openfl",
+                "-lib",
+                "lime",
+                "-lib",
+                "hscript",
+                "-lib",
+                "hxp",
+                "-lib",
+                "flixel",
+                "-lib",
+                "flixel-tools",
+                "-hl",
+                "foo.hl",
+                "--remap",
+                "flash:openfl"
+            ]
+        }
+    ]
+}

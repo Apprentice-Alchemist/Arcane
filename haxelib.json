@@ -1,0 +1,14 @@
+{
+    "name": "Arcane",
+    "license": "MIT",
+    "tags": [],
+    "dependencies": {
+        "lime":"",
+        "openfl":""
+    },
+    "releasenote": "N/A",
+    "contributors": ["ApprenticeAlchemist"],
+    "description": "N/A",
+    "version": "0.0.1",
+    "main": "script.Run"
+}
