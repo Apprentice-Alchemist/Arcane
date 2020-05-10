@@ -1,8 +1,10 @@
 {
     "haxecheckstyle.sourceFolders": [
         "arcane",
-        "tools"
+        "script",
+        "tests"
     ],
+    "lime.projectFile": "tests/test/project.xml",
     "[haxe]": {
         "editor.formatOnSave": false
     },
