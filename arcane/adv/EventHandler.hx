@@ -10,7 +10,7 @@ class EventHandler {
 	public static var interp:Interp;
 	public static var parser:Parser;
 
-	public static function interpret(expr:Dynamic,?locals:Map<String,Dynamic>) {
+	public static function interpret(expr:Dynamic,?locals:Map<String,Dynamic>):Dynamic {
 		if (interp == null) {
 			interp = new Interp();
 			loadVars(interp.variables);
@@ -19,7 +19,7 @@ class EventHandler {
 			for(o in locals.keys()){
 				interp.variables.set(o,locals.get(o));
 			}
-		var tmp = interp.execute(expr);
+		var tmp:Dynamic = interp.execute(expr);
 		if (locals != null)
 			for (o in locals.keys()) {
 				interp.variables.remove(o);

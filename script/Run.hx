@@ -37,7 +37,7 @@ class Run {
   public function printInfo(){
     ColorUtils.print("Arcane",Color.Purple,Style.Bold);
     ColorUtils.print(" CLI Tools",Color.None,Style.Bold);
-    Sys.println("");
+    Sys.print("\n");
   }
 
     public function help(){
@@ -79,5 +79,6 @@ class Run {
       }
       Sys.setCwd(old);
       Sys.print("Alias set to "); ColorUtils.print("arcane",Color.None,Style.Bold); Sys.print("!");
+      
     }
 }

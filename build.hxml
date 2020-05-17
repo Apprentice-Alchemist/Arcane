@@ -1,0 +1,6 @@
+-hl bin/hl.hl
+--eval
+-lib openfl
+-lib lime
+-lib hscript
+-lib flixel

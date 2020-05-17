@@ -1,5 +1,6 @@
 package arcane;
 
+import haxe.Constraints.Function;
 import arcane.adv.sound.SoundHandler;
 import openfl.events.Event;
 import openfl.display.Stage;
@@ -18,17 +19,23 @@ class Engine{
     static function get_stage() return (Lib.current != null) ? (Lib.current.stage != null ? Lib.current.stage : null) : null;
     
 	public static var sound(get, never):SoundHandler;
-    static var _sound:SoundHandler;
-    public static function get_sound() return _sound == null ? _sound = new SoundHandler() : _sound;
+    public static function get_sound() return SoundHandler.instance;
+
     static function init() {
         Lib.current.stage.removeEventListener("enter_frame",enter_frame);
         Lib.current.stage.addEventListener("enter_frame",enter_frame);
         new Controls();
-        _sound = new SoundHandler();
+        new SoundHandler();
     }
-    static var frame_listeners:Array<Dynamic>;
-    static function enter_frame(e:Event){
+    static var frame_listeners:Array<Function>;
+    static var nframe_listeners:Array<Function>;
+    static function enter_frame(e:Event){}
+    public static function addEnterFrame(f:Function,time:Bool = true){
+        switch time {
+            case true : if(!(frame_listeners.indexOf(f) > -1)) frame_listeners.push(f);
+            case false : if(!(nframe_listeners.indexOf(f) > -1)) nframe_listeners.push(f);
+        }
+    }
 
-    }
 
 }
