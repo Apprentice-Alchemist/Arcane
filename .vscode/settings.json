@@ -4,7 +4,6 @@
         "script",
         "tests"
     ],
-    "lime.projectFile": "tests/test/project.xml",
     "[haxe]": {
         "editor.formatOnSave": false
     },

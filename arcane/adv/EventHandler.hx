@@ -46,8 +46,8 @@ class EventHandler {
 	public static function execute(str:String) {
 		try {
 			_execute(str);
-		} catch (e:Dynamic) {
-			trace("Script Error : " + e + Utils.makeCallStack());
+		} catch (e:haxe.Exception) {
+			trace("Script Error : " + e.details());
 		}
 	}
 

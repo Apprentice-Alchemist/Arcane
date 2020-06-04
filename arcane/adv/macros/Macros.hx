@@ -1,15 +1,14 @@
 package arcane.adv.macros;
 
+#if (macro || display)
+import haxe.macro.Context;
+import haxe.macro.CompilationServer;
 import haxe.macro.Compiler;
-
+import haxe.macro.PositionTools;
 
 class Macros{
-    #if macro
-    public static function runAll(){
-        makeDefines();
+    static function run(){
+        
     }
-    public static function makeDefines(){
-        if(!haxe.macro.Context.defined("hscriptPos")) Compiler.define("hscriptPos");
-    }
-	#end
 }
+#end

@@ -1,39 +1,29 @@
 package arcane.adv;
 
-import openfl.Lib;
-import openfl.events.Event;
-import openfl.display.Sprite;
-import openfl.net.SharedObject;
+import arcane.signal.*;
 
-class App extends Sprite {
-	public static var instance:App;
-	public static var saves:SharedObject;
-    public static var settings:SharedObject;
-	public var container:Container;
-	public var top:Sprite;
-	override public function new(?cw:Int = 256,?ch:Int = 144) {
+@:allow(arcane.Engine)
+class App extends hxd.App implements ISignalDispatcher {
+	override function new() {
+		__dispatcher = new SignalDispatcher(this);
 		super();
-		instance = this;
-		container = new Container(cw,ch);
-		addChild(container);
-		top = new Sprite();
-		addChild(top);
-		@:privateAccess Engine.init();
-		Engine.stage.addEventListener(Event.RESIZE,onResize);
-		// Engine.stage.addEventListener(Event.ENTER_FRAME,enter_frame);
-		// last_time = Lib.getTimer();
 	}
-	// var last_time:Float;
-	// function enter_frame(e){
-	// 	var elapsed = Lib.getTimer() - last_time;
-	// 	last_time = Lib.getTimer();
-	// 	for(o in 0...container.numChildren){
-	// 		if (container.getChildAt(o - 1).update != null)
-	// 			container.getChildAt(o - 1).update(elapsed);
-	// 	}
-	// }
-	public function onResize(e:Event){
-		var w = container._width;
-		var h = container._height;
+	@:noCompletion final __updates:Array<Float -> Void> = [];
+	override function update(dt:Float) {
+		for( u in __updates) u(dt);
 	}
+	override function onResize() dispatch(new Signal("resize"));
+
+	@:noCompletion var __dispatcher:SignalDispatcher;
+
+	public function dispatch(s:Signal):Void
+		return __dispatcher.dispatch(s);
+
+	public function listen(name:String, cb:Signal -> Void):Void
+		return __dispatcher.listen(name, cb);
+
+	public function hasListener(name):Bool
+		return __dispatcher.hasListener(name);
+	public function removeListener(cb:Signal -> Void):Void
+		return __dispatcher.removeListener(cb);
 }

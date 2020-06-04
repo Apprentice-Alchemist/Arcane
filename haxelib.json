@@ -3,12 +3,11 @@
     "license": "MIT",
     "tags": [],
     "dependencies": {
-        "lime":"",
-        "openfl":""
+        "heaps": ""
     },
     "releasenote": "N/A",
     "contributors": ["ApprenticeAlchemist"],
     "description": "N/A",
     "version": "0.0.1",
-    "main": "script.Run"
+    "main": "arcane.adv.script.Run"
 }

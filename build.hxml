@@ -1,6 +1,10 @@
--hl bin/hl.hl
---eval
--lib openfl
--lib lime
--lib hscript
--lib flixel
+-lib heaps
+-lib heeps
+-lib arcane
+-lib hlsdl
+# -lib lime
+
+-cp tests
+-main Test
+
+-hl tests/test.hl

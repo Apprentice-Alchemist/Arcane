@@ -1,7 +1,6 @@
 package script;
 
-import script.ColorUtils.Style;
-import script.ColorUtils.Color;
+import script.ColorUtils;
 import haxe.Json;
 import sys.io.File;
 import sys.FileSystem;
@@ -16,17 +15,20 @@ class Run {
     var path:String;
     var cmd:String;
     var haxelib_json:Dynamic;
-    var version:String;
+    var VERSION:Version;
     public function new(args:Array<String>){
       try{
       this.args = args;
       path = args.pop();
 			haxelib_json = Json.parse(File.getContent(ScriptUtils.getLibPath() + "\\haxelib.json"));
-			version = haxelib_json.version;
+			VERSION = haxelib_json.version;
       cmd = args.shift();
       switch cmd {
         case "help": help();
         case "setup": setup();
+        case "build": build();
+        case "run": run();
+        case "test": build(); run();
 				default: printInfo();
       }
       Sys.exit(0);
@@ -39,12 +41,20 @@ class Run {
     ColorUtils.print(" CLI Tools",Color.None,Style.Bold);
     Sys.print("\n");
   }
+    public function build(){
 
+    }
+    public function run(){
+        new JSRun(path + "bin/js/");
+    }
     public function help(){
-      var cmdlist = ["help","setup"];
+      var cmdlist = ["help","setup","build","run","test"];
       var cmdinfos = [
         "help" => "Print this informations",
-        "setup" => "Setup this library, the command line alias and install dependecies"
+        "setup" => "Setup this library, the command line alias and install dependecies",
+        "build" => "Build project",
+        "run" => "Run project",
+        "test" => "Build and Run"
       ];
       printInfo();
       Sys.println("");
