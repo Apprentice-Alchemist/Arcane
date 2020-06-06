@@ -1,28 +1,32 @@
 package arcane.signal;
+
 /**
  * A basic signal
  */
-class Signal implements ISignal{
+class Signal {
 	/**
 	 * Should be obvious
 	 */
-    public var name:String;
+	public var name:String;
+
 	/**
 	 * Wether the signal has been cancelled
 	 */
-    public var cancelled(default, null):Bool = false;
+	public var cancelled(default, null):Bool = false;
+
 	/**
 	 * The dispatcher that sent the signal
 	 */
-	public var target:Dynamic;
+	public final target:Null<T> = null;
 
-	public function new(name:String) {
+	public inline function new(name:String) {
 		this.name = name;
 	}
+
 	/**
 	 * Cancels the signal, so that it won't be propagated further
 	 */
-	public function cancel() {
+	public inline function cancel() {
 		cancelled = true;
 	}
 }

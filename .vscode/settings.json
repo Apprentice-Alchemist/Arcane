@@ -5,7 +5,7 @@
         "tests"
     ],
     "[haxe]": {
-        "editor.formatOnSave": false
+        "editor.formatOnSave": true
     },
     "haxe.configurations": [
         {

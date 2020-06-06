@@ -5,15 +5,18 @@ import arcane.adv.sound.SoundHandler;
 import arcane.adv.*;
 import arcane.controls.Controls;
 
-@:allow(hxd.App)
+@:allow(arcane.adv.App)
 class Engine {
-    
 	public static final version:String = haxe.macro.Compiler.getDefine("arcane");
-	public static var app(default, null):arcane.adv.App;
-	public static var physics(default, null) = null;
+	public static var app(get, null):Any;
+
+	static dynamic function get_app()
+		return app;
+
+	public static var physics(default, null) = new arcane.physics.Physics();
 	public static var sound(default, null):SoundHandler;
 
-	@:noCompletion static function __init(_app:arcane.adv.App) {
+	@:noCompletion static function __init(_app:App) {
 		app = _app;
 		sound = new SoundHandler();
 		#if debug
@@ -21,12 +24,11 @@ class Engine {
 		#end
 	}
 
-	public static function addUpdate(cb:Float->Void) {
+	public static function addUpdate(cb:Float->Void)
 		app.__updates.push(cb);
-	}
 
-	public static function removeUpdate(cb:Float->Void) {
-		if (app.__updates.indexOf(cb) > -1)
-			app.__updates.remove(cb);
-	}
+	public static function removeUpdate(cb:Float->Void)
+		app.__updates.remove(cb);
+
+	public static function closeConsole() #if hl return hl.UI.closeConsole() #else return; #end
 }

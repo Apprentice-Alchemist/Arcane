@@ -3,11 +3,11 @@ package arcane.signal;
 /**
  * A basic signal dispatcher
  */
-class SignalDispatcher implements ISignalDispatcher {
-	@:noCompletion var eventMap:Map<String, Array<Signal->Void>>;
-	@:noCompletion var __target:ISignalDispatcher;
+class SignalDispatcher {
+	private var eventMap:Map<String, Array<Signal->Void>>;
+	@:noCompletion var __target:Dynamic;
 
-	public function new(?customTarget:ISignalDispatcher) {
+	public function new(?customTarget) {
 		eventMap = new Map();
 		if (customTarget != null)
 			__target = customTarget;
@@ -25,12 +25,11 @@ class SignalDispatcher implements ISignalDispatcher {
 	public function dispatch(s:Signal) {
 		s.target = __target;
 		if (!eventMap.exists(s.name))
-			return;
-		for (o in eventMap.get(s.name)) {
-			if (s.cancelled)
-				break;
-			o(s);
-		}
+			for (o in eventMap.get(s.name)) {
+				if (s.cancelled)
+					break;
+				o(s);
+			}
 	}
 
 	/**
@@ -53,13 +52,11 @@ class SignalDispatcher implements ISignalDispatcher {
 	}
 
 	/**
-	 *
+	 * Removes a listener
 	 */
-	public function removeListener(cb:Signal->Void) {
-		for (o in eventMap) {
-			if (o.indexOf(cb) > -1)
-				o.remove(cb);
-		}
+	public function removeListener(name:String, cb:Signal->Void) {
+		if (eventMap.exists(name))
+			eventMap.get(name).remove(cb);
 	}
 
 	/**
