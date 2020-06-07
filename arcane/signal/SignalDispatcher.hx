@@ -24,7 +24,7 @@ class SignalDispatcher {
 	 */
 	public function dispatch(s:Signal) {
 		s.target = __target;
-		if (!eventMap.exists(s.name))
+		if (eventMap.exists(s.name))
 			for (o in eventMap.get(s.name)) {
 				if (s.cancelled)
 					break;

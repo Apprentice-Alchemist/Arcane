@@ -8,13 +8,9 @@ import arcane.controls.Controls;
 @:allow(arcane.adv.App)
 class Engine {
 	public static final version:String = haxe.macro.Compiler.getDefine("arcane");
-	public static var app(get, null):Any;
-
-	static dynamic function get_app()
-		return app;
-
+	public static var app(default, null):App;
 	public static var physics(default, null) = new arcane.physics.Physics();
-	public static var sound(default, null):SoundHandler;
+	public static var sound(default, null):SoundHandler = new SoundHandler();
 
 	@:noCompletion static function __init(_app:App) {
 		app = _app;
@@ -30,5 +26,5 @@ class Engine {
 	public static function removeUpdate(cb:Float->Void)
 		app.__updates.remove(cb);
 
-	public static function closeConsole() #if hl return hl.UI.closeConsole() #else return; #end
+	public static function closeConsole() #if hl return hl.UI.closeConsole(); #else return; #end
 }

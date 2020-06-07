@@ -1,5 +1,6 @@
 package arcane.adv;
 
+import arcane.signal.Signal;
 import arcane.utils.Utils;
 import haxe.ds.IntMap;
 import haxe.ds.StringMap;
@@ -10,14 +11,14 @@ class EventHandler {
 	public static var interp:Interp;
 	public static var parser:Parser;
 
-	public static function interpret(expr:Dynamic,?locals:Map<String,Dynamic>):Dynamic {
+	public static function interpret(expr:Dynamic, ?locals:Map<String, Dynamic>):Dynamic {
 		if (interp == null) {
 			interp = new Interp();
 			loadVars(interp.variables);
 		}
-		if(locals != null)
-			for(o in locals.keys()){
-				interp.variables.set(o,locals.get(o));
+		if (locals != null)
+			for (o in locals.keys()) {
+				interp.variables.set(o, locals.get(o));
 			}
 		var tmp:Dynamic = interp.execute(expr);
 		if (locals != null)
@@ -62,14 +63,6 @@ class EventHandler {
 		v.set("true", true);
 		v.set("false", false);
 		v.set("Math", Math);
-		// v.set("trace", function(e) {
-		// 	haxe.Log.trace(Std.string(e), {
-		// 		fileName: "hscript",
-		// 		lineNumber: 0,
-		// 		methodName: "trace",
-		// 		className: "Hscript"
-		// 	});
-		// });
 		v.set("Std", Std);
 		v.set("StringTools", StringTools);
 		v.set("Xml", Xml);
@@ -100,6 +93,7 @@ class EventHandler {
 				to.set(k1, from.get(k1));
 			}
 		});
+		v.set("Signal", Signal);
 	}
 
 	public static var additionalVars:(v:Map<String, Dynamic>) -> Void;

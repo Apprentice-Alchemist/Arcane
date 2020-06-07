@@ -3,11 +3,11 @@ package arcane.adv;
 import arcane.signal.*;
 
 @:allow(arcane.Engine)
-class App extends hxd.App implements ISignalDispatcher {
+@:access(SignalDispatcher)
+class App extends hxd.App {
 	override function new() {
-		__dispatcher = new SignalDispatcher<T>(this);
+		__dispatcher = new SignalDispatcher(this);
 		super();
-		__dispatcher.__target;
 	}
 
 	@:noCompletion final __updates:Array<Float->Void> = [];
@@ -17,8 +17,9 @@ class App extends hxd.App implements ISignalDispatcher {
 			u(dt);
 	}
 
-	override function onResize()
+	override function onResize() {
 		dispatch(new Signal("resize"));
+	}
 
 	@:noCompletion var __dispatcher:SignalDispatcher;
 
@@ -31,6 +32,6 @@ class App extends hxd.App implements ISignalDispatcher {
 	public function hasListener(name):Bool
 		return __dispatcher.hasListener(name);
 
-	public function removeListener(cb:Signal->Void):Void
-		return __dispatcher.removeListener(cb);
+	public function removeListener(name:String, cb:Signal->Void):Void
+		return __dispatcher.removeListener(name, cb);
 }

@@ -17,7 +17,7 @@ class Signal {
 	/**
 	 * The dispatcher that sent the signal
 	 */
-	public final target:Null<T> = null;
+	public var target = null;
 
 	public inline function new(name:String) {
 		this.name = name;
