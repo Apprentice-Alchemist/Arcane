@@ -4,9 +4,9 @@
         "script",
         "tests"
     ],
-    "[haxe]": {
-        "editor.formatOnSave": true
-    },
+    // "[haxe]": {
+    //     "editor.formatOnSave": true
+    // },
     "haxe.configurations": [
         {
             "label": "HL",
