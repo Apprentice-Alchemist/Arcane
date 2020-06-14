@@ -1,9 +1,9 @@
 -lib heaps
 -lib heeps
--lib arcane
--lib hlsdl
-# -lib lime
 
+-lib hldx
+
+# -cp arcane
 -cp tests
 -main Test
 

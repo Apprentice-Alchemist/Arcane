@@ -6,5 +6,6 @@ class Controls {
     public static var instance:Controls;
     public function new(){
         instance = this;
+    
     }
 }

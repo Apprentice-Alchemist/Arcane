@@ -1,37 +1,39 @@
 package arcane.adv;
 
+import format.abc.Data.ABCData;
 import arcane.signal.*;
 
 @:allow(arcane.Engine)
 @:access(SignalDispatcher)
 class App extends hxd.App {
-	override function new() {
-		__dispatcher = new SignalDispatcher(this);
+	override public function new() {
+		dispatcher = new SignalDispatcher(this);
+		Engine.__init(this);
 		super();
 	}
 
-	@:noCompletion final __updates:Array<Float->Void> = [];
+	private final __updates:Array<Float->Void> = new Array();
 
-	override function update(dt:Float) {
+	private override function update(dt:Float) {
 		for (u in __updates)
 			u(dt);
 	}
 
-	override function onResize() {
+	private override function onResize() {
 		dispatch(new Signal("resize"));
 	}
 
-	@:noCompletion var __dispatcher:SignalDispatcher;
+	private var dispatcher:SignalDispatcher;
 
 	public function dispatch(s:Signal):Void
-		return __dispatcher.dispatch(s);
+		return dispatcher.dispatch(s);
 
 	public function listen(name:String, cb:Signal->Void):Void
-		return __dispatcher.listen(name, cb);
+		return dispatcher.listen(name, cb);
 
 	public function hasListener(name):Bool
-		return __dispatcher.hasListener(name);
+		return dispatcher.hasListener(name);
 
 	public function removeListener(name:String, cb:Signal->Void):Void
-		return __dispatcher.removeListener(name, cb);
+		return dispatcher.removeListener(name, cb);
 }

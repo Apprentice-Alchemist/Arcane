@@ -2,8 +2,6 @@ package arcane.adv;
 
 import arcane.signal.Signal;
 import arcane.utils.Utils;
-import haxe.ds.IntMap;
-import haxe.ds.StringMap;
 import hscript.Parser;
 import hscript.Interp;
 
@@ -35,7 +33,7 @@ class EventHandler {
 		return parser.parseString(str);
 	}
 
-	public static function _execute(str:String) {
+	private static function _execute(str:String) {
 		var p = parseString(str);
 		if (p != null) {
 			return interpret(p);
