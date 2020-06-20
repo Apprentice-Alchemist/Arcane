@@ -3,20 +3,27 @@ package arcane.adv.sound;
 import hxd.snd.Channel;
 import hxd.snd.ChannelGroup;
 import hxd.res.Sound;
+
 /**
  * Direct copy of Yanrishatums Music class, with a few changes
  */
 class Music {
-    public function new(){}
-    public var volume(default,set):Float;
-    public function set_volume(f:Float) {
-        volume = f;
-        if(channel != null) channel.volume = 1;
-        return f;
-    }
+	public function new() {}
+
+	public var volume(default, set):Float;
+
+	public function set_volume(f:Float) {
+		volume = f;
+		if (channel != null)
+			channel.volume = 1;
+		return f;
+	}
+
 	public var current(default, null):Sound;
 	public var channelGroup:ChannelGroup;
+
 	var channel:Channel;
+
 	public var FADE_TIME:Float = 0.4;
 
 	public function play(res:Sound, fade:Bool = true) {

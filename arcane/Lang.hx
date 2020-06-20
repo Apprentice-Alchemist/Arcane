@@ -1,33 +1,43 @@
 package arcane;
 
-import haxe.Exception;
 import arcane.xml.XmlPath;
 
 class Lang {
-	public static var cur_lang:String = "en_US";
-	public static var langs:Map<String, Lang> = new Map();
+	static var cur_lang:String = "en_US";
+	static var langs:Map<String, Lang> = new Map();
 
-	public static function loadLang(xml:XmlPath) {
-		if (langs.exists(xml.get("id")))
-			langs.get(xml.get("id")).addXml(xml);
-		else
-			langs.set(xml.get("id"), new Lang(xml));
+	public static function loadText(lang:String, section:String, id:String, value:String):Void
+		getLang(lang).getSection(section).texts.set(id, value);
+
+	public static function getText(section:String, id:String):String
+		return getLang(cur_lang).getSection(section).texts.get(id);
+
+	public static function setLang(id:String)
+		cur_lang = getLang(id).id;
+
+	var sections = new Map<String, Section>();
+	var id:String;
+
+	public function new(id:String):Void
+		this.id = id;
+
+	inline function getSection(id):Section {
+		if (!sections.exists(id))
+			sections.set(id, new Section());
+		return sections.get(id);
 	}
 
-	public static function getText(id:String)
-		return langs.exists(cur_lang) ? (langs.get(cur_lang).texts.exists(id) ? langs.get(cur_lang).texts.get(id) : "") : "";
-
-	var texts:Map<String, String> = new Map();
-
-	public function new(xml:XmlPath) {
-		addXml(xml);
+	static inline function getLang(id:String):Lang {
+		if (!langs.exists(id))
+			langs.set(id, new Lang(id));
+		return langs.get(id);
 	}
+}
 
-	public function addXml(xml:XmlPath) {
-		for (o in xml.elementsNamed("section")) {
-			for (a in o.elementsNamed("text")) {
-				texts.set(o.get("id") + "." + a.get("id"), a.firstChild().toString());
-			}
-		}
-	}
+@:allow(Lang)
+@:noCompletion class Section {
+	public var texts = new Map<String, String>();
+
+	public function new()
+		return;
 }

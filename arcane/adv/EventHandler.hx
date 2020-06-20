@@ -1,7 +1,6 @@
 package arcane.adv;
 
 import arcane.signal.Signal;
-import arcane.utils.Utils;
 import hscript.Parser;
 import hscript.Interp;
 
@@ -69,8 +68,8 @@ class EventHandler {
 		v.set("String", String);
 		v.set("Array", Array);
 		v.set("Bool", Bool);
-		v.set("StringMap", StringMap);
-		v.set("IntMap", IntMap);
+		v.set("StringMap", haxe.ds.StringMap);
+		v.set("IntMap", haxe.ds.IntMap);
 		v.set("Date", Date);
 		v.set("classFields", function(o) {
 			if (Std.is(o, Class)) {

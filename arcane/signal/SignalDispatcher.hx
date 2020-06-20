@@ -7,7 +7,7 @@ class SignalDispatcher {
 	private var eventMap:Map<String, Array<Signal->Void>>;
 	@:noCompletion var __target:Dynamic;
 
-	public function new(?customTarget) {
+	public function new(?customTarget:Any) {
 		eventMap = new Map();
 		if (customTarget != null)
 			__target = customTarget;
@@ -34,12 +34,8 @@ class SignalDispatcher {
 
 	/**
 		Listen for a signal
-		```haxe
-		instance.listen("base",on_base)
-		```
 
 		@param name The name of the signal you want to listen for
-
 		@param cb The call back
 
 	**/
@@ -61,6 +57,7 @@ class SignalDispatcher {
 
 	/**
 	 * Checks wether a listener has been registered
+	 * 
 	 * @param name
 	 */
 	public function hasListener(name:String) {

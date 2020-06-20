@@ -1,4 +1,4 @@
-package script;
+package arcane.script;
 
 
 // http://stackoverflow.com/a/28938235/2631715

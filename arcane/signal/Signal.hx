@@ -4,9 +4,7 @@ package arcane.signal;
  * A basic signal
  */
 class Signal {
-	/**
-	 * Should be obvious
-	 */
+
 	public var name:String;
 
 	/**
@@ -19,14 +17,14 @@ class Signal {
 	 */
 	public var target = null;
 
-	public inline function new(name:String) {
+	public function new(name:String) {
 		this.name = name;
 	}
 
 	/**
 	 * Cancels the signal, so that it won't be propagated further
 	 */
-	public inline function cancel() {
+	public function cancel() {
 		cancelled = true;
 	}
 }

@@ -11,15 +11,17 @@ import arcane.physics.*;
 class Engine {
 	public static final version:String = haxe.macro.Compiler.getDefine("arcane");
 	public static var app(default, null):App;
-	public static var physics(default, null):Physics = new Physics();
-	public static var sound(default, null):SoundHandler = new SoundHandler();
+	public static var physics(default, null) = new Physics();
+	public static var sound(default, null) = new SoundHandler();
 
-	@:noCompletion private static function __init(_app:App) {
+	@:noCompletion private static function init(_app:App) {
 		app = _app;
+		
 	}
 
 	public static function addUpdate(cb:Float->Void)
 		app.__updates.push(cb);
+	
 
 	public static function removeUpdate(cb:Float->Void)
 		app.__updates.remove(cb);

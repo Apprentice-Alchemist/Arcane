@@ -1,4 +1,4 @@
-package script;
+package arcane.script;
 
 import sys.io.Process;
 

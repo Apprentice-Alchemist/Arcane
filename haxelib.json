@@ -9,5 +9,5 @@
     "contributors": ["ApprenticeAlchemist"],
     "description": "N/A",
     "version": "0.0.1",
-    "main": "arcane.adv.script.Run"
+    "main": "arcane.script.Run"
 }

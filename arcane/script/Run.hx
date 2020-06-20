@@ -1,6 +1,5 @@
-package script;
+package arcane.script;
 
-import script.ColorUtils;
 import haxe.Json;
 import sys.io.File;
 import sys.FileSystem;
@@ -15,7 +14,7 @@ class Run {
     var path:String;
     var cmd:String;
     var haxelib_json:Dynamic;
-    var VERSION:Version;
+    var VERSION:String;
     public function new(args:Array<String>){
       try{
       this.args = args;
@@ -36,16 +35,12 @@ class Run {
 			Sys.println(e + CallStack.toString(CallStack.callStack()) + CallStack.toString(CallStack.exceptionStack()));
     }
   }
-  public function printInfo(){
-    ColorUtils.print("Arcane",Color.Purple,Style.Bold);
-    ColorUtils.print(" CLI Tools",Color.None,Style.Bold);
-    Sys.print("\n");
-  }
+  public function printInfo(){ColorUtils.print("Arcane",Purple); Sys.println(' CLI Tools v$VERSION');}
     public function build(){
 
     }
     public function run(){
-        new JSRun(path + "bin/js/");
+        if(Sys.command("nekotools") != 0) Sys.println("Neko is required to run js builds.");
     }
     public function help(){
       var cmdlist = ["help","setup","build","run","test"];
@@ -88,7 +83,6 @@ class Run {
 			File.saveContent("arcane.sh", '#!/bin/sh \nhaxelib run arcane "$ @ "');
       }
       Sys.setCwd(old);
-      Sys.print("Alias set to "); ColorUtils.print("arcane",Color.None,Style.Bold); Sys.print("!");
-      
+      Sys.println("Alias set to 'arcane'!");      
     }
 }
