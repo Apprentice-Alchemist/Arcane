@@ -1,5 +1,7 @@
 package arcane.adv.sound;
-
+#if !heaps
+#error "Heaps is require for sound!"
+#end
 import hxd.res.Sound;
 
 @:allow(arcane.Engine)

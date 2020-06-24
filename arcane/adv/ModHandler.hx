@@ -15,7 +15,11 @@ class ModHandler {
 		var files = [core_path];
 		for (o in files) {
 			var p = new haxe.io.Path(o);
+			#if heaps
 			parseXml(new XmlPath(p.dir == null ? "" : p.dir, Xml.parse(hxd.Res.load(o).toText()).firstElement()));
+			#else
+			throw "Not implemented";
+			#end
 		}
 		if (onComplete != null)
 			onComplete();
@@ -29,8 +33,15 @@ class ModHandler {
 			if (o.get("id") != null) {
 				var p = new haxe.io.Path(o.path + "/" + o.get("id"));
 				try{
+					#if heaps
 					parseXml(new XmlPath(p.dir, Xml.parse(hxd.Res.load(p.dir + "/" + p.file + "." + p.ext).toText()).firstElement()));
+					#else
+					throw "Not implemented";
+					#end
 				}catch(e){
+					#if (hl&&!heaps)
+						hl.Api.rethrow(e);
+					#end
 					trace("File not found : " + (p.dir + "/" + p.file + "." + p.ext));
 				}
 			}
@@ -45,6 +56,15 @@ class ModHandler {
 		});
 		action_map.set("achievement",function(o:XmlPath) {
 			Achievements.loadAchievement(new Achievement(o.get("id"),o));
+		});
+		action_map.set("script",function(o:XmlPath){
+			if(o.get("source") != null){
+				try{
+				EventHandler.execute(hxd.Res.load(haxe.io.Path.join([o.path, o.get("source")])).toText());
+				}catch(e){trace(e);}
+				return;
+			}
+			EventHandler.execute(o.xml.firstChild().toString());
 		});
 		if (extraActions != null)
 			extraActions(action_map);

@@ -6,8 +6,9 @@
         "heaps": ""
     },
     "releasenote": "N/A",
-    "contributors": ["ApprenticeAlchemist"],
+    "contributors": ["Apprentice-Alchemist"],
     "description": "N/A",
     "version": "0.0.1",
-    "main": "arcane.script.Run"
+    "main": "arcane.script.Run",
+    "url": "https://github.com/Apprentice-Alchemist/Arcane"
 }

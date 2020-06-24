@@ -13,15 +13,17 @@ class EventHandler {
 			interp = new Interp();
 			loadVars(interp.variables);
 		}
-		if (locals != null)
-			for (o in locals.keys()) {
-				interp.variables.set(o, locals.get(o));
+		if(locals != null){
+			for(o in locals.keys()){
+				interp.variables.set(o,locals.get(o));
 			}
+		}
 		var tmp:Dynamic = interp.execute(expr);
-		if (locals != null)
+		if (locals != null) {
 			for (o in locals.keys()) {
 				interp.variables.remove(o);
 			}
+		}
 		return tmp;
 	}
 

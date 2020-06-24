@@ -2,9 +2,9 @@
 -lib heeps
 
 -lib hldx
-
+-lib hscript
 # -cp arcane
--cp tests
--main Test
+# -cp tests
+-main tests.Test
 
 -hl tests/test.hl
