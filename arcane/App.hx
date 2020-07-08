@@ -1,9 +1,9 @@
-package arcane.adv;
+package arcane;
 
 import arcane.signal.*;
 
+@:pure
 @:allow(arcane.Engine)
-@:access(SignalDispatcher)
 class App #if heaps extends hxd.App #end {
 	#if heaps override #end public function new() {
 		dispatcher = new SignalDispatcher(this);

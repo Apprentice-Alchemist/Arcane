@@ -15,7 +15,7 @@ class Signal {
 	/**
 	 * The dispatcher that sent the signal
 	 */
-	public var target = null;
+	public var target:Dynamic;
 
 	public function new(name:String) {
 		this.name = name;

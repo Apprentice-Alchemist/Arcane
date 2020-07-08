@@ -3,9 +3,10 @@ package arcane.signal;
 /**
  * A basic signal dispatcher
  */
+
 class SignalDispatcher {
-	private var eventMap:Map<String, Array<Signal->Void>>;
-	@:noCompletion var __target:Dynamic;
+	@:noCompletion @:noDoc public var eventMap:Map<String, Array<Signal->Void>>;
+	@:noCompletion @:noDoc public var __target:Dynamic;
 
 	public function new(?customTarget:Any) {
 		eventMap = new Map();

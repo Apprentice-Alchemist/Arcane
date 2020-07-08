@@ -12,7 +12,7 @@ class XmlEventHandler {
     public var vars(get,null):Map<String,Dynamic> = new Map();
 
     public function get_vars(){
-        if(varstore != null) return varstore;
+        if(_varstore != null) return _varstore;
         else return vars;
     }
     public function new(?varstore:Map<String,Dynamic>) {
@@ -27,7 +27,7 @@ class XmlEventHandler {
             var node = it.next();
             switch(node.nodeName){
                 case "section": executeXml(node);
-                case "action": EventHandler.execute(node.firstChild(),this.vars);
+                case "action": EventHandler.execute(node.firstChild().toString());
                 case "stop": break;
             }
         }

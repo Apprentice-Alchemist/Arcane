@@ -1,7 +1,5 @@
 package arcane;
 
-import arcane.xml.XmlPath;
-
 class Lang {
 	static var cur_lang:String = "en_US";
 	static var langs:Map<String, Lang> = new Map();

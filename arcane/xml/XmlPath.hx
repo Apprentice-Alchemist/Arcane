@@ -3,12 +3,13 @@ package arcane.xml;
 class XmlPath {
 	public var xml:Xml;
 	public var path:String;
-	public var nodeName:String;
+	public var nodeName(get,set):String;
+	function set_nodeName(f:String) return xml.nodeName = f;
+	function get_nodeName():String return xml.nodeName;
 
 	public function new(_path:String, _xml:Xml) {
 		xml = _xml;
 		path = _path;
-		nodeName = xml.nodeName;
 	}
 
 	public function get(att:String) {
