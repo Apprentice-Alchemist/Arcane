@@ -2,13 +2,9 @@
     "name": "Arcane",
     "license": "MIT",
     "tags": [],
-    "dependencies": {
-        "heaps": ""
-    },
     "releasenote": "N/A",
     "contributors": ["Apprentice-Alchemist"],
     "description": "N/A",
     "version": "0.0.1",
-    "main": "arcane.script.Run",
     "url": "https://github.com/Apprentice-Alchemist/Arcane"
 }

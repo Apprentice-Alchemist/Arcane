@@ -1,33 +1,4 @@
 {
-    "haxecheckstyle.sourceFolders": [
-        "arcane",
-        "script",
-        "tests"
-    ],
-    // "[haxe]": {
-    //     "editor.formatOnSave": true
-    // },
-    "haxe.configurations": [
-        {
-            "label": "HL",
-            "args": [
-                "-lib",
-                "openfl",
-                "-lib",
-                "lime",
-                "-lib",
-                "hscript",
-                "-lib",
-                "hxp",
-                "-lib",
-                "flixel",
-                "-lib",
-                "flixel-tools",
-                "-hl",
-                "foo.hl",
-                "--remap",
-                "flash:openfl"
-            ]
-        }
-    ]
+    "liveServer.settings.root":"${workspaceFolder}/out",
+    "haxe.configurations":[]
 }

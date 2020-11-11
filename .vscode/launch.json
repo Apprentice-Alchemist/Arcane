@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "type": "hl",
+            "request": "attach",
+            "name": "Launch HL",
+            "cwd": "${workspaceFolder}",
+            "port": 6112
+        }
+    ]
+}

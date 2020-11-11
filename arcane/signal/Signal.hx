@@ -4,7 +4,6 @@ package arcane.signal;
  * A basic signal
  */
 class Signal {
-
 	public var name:String;
 
 	/**

@@ -1,9 +1,5 @@
 package arcane.signal;
 
-/**
- * A basic signal dispatcher
- */
-
 class SignalDispatcher {
 	@:noCompletion @:noDoc public var eventMap:Map<String, Array<Signal->Void>>;
 	@:noCompletion @:noDoc public var __target:Dynamic;
@@ -52,13 +48,18 @@ class SignalDispatcher {
 	 * Removes a listener
 	 */
 	public function removeListener(name:String, cb:Signal->Void) {
-		if (eventMap.exists(name))
-			eventMap.get(name).remove(cb);
+		if (eventMap.exists(name)) {
+			for (o in eventMap.get(name)) {
+				if (Reflect.compareMethods(o, cb)) {
+					eventMap.get(name).remove(o);
+				}
+			}
+		}
 	}
 
 	/**
 	 * Checks wether a listener has been registered
-	 * 
+	 *
 	 * @param name
 	 */
 	public function hasListener(name:String) {

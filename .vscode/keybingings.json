@@ -1,0 +1,9 @@
+[
+    {
+        "key": "ctrl+shift+b",
+        "command": "terminator.run",
+        "args": [
+            "Run HL \\w+"
+        ]
+    }
+]

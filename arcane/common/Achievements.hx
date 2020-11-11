@@ -1,33 +1,54 @@
 package arcane.common;
 
+import arcane.signal.Signal;
 import arcane.signal.SignalDispatcher;
 
-class Achievements {
-	public static final achievements = new Map<String, Achievement>();
+class Achievements extends arcane.signal.SignalDispatcher {
+	public static var instance:Null<Achievements>;
+	public var map:Map<String, Bool> = new Map<String, Bool>();
 
-	public static function loadAchievement(a:Achievement)
-		achievements.set(a.name, a);
+	public function new() {
+		instance = this;
+		super(this);
+	}
 
-	public static function awardAchievement(name:String):Bool {
-		if (!achievements.exists(name))
-			return false;
-		var a = achievements.get(name);
-		if (a.awarded == true)
-			return false;
-		a.awarded = true;
-		onAchievement(achievements.get(name));
+	public function clearAchievements() {
+		map.clear();
+		updateAchievements();
+	}
+
+	public function isAchievement(id:String):Bool {
 		return true;
 	}
 
-	public static dynamic function onAchievement(a:Achievement) {}
-}
+	/**
+	 * Call this this to give out an achievement, this will handle calling other functions.
+	 * Will throw an exception of type string if isAchievement returns false for the given id.
+	 * @param id
+	 * @param silent
+	 */
+	public function gainAchievement(id:String, silent:Bool) {
+		if (!isAchievement(id))
+			throw '$id is not an achievement!';
+		if (!map.exists(id) || !map.get(id)) {
+			dispatch(new Signal("new_achievement"));
+			onAchievement(id, silent);
+		}
+		map.set(id, true);
+		updateAchievements();
+	}
 
-class Achievement {
-	public var name:String = "";
-	public var awarded:Bool = false;
-	public var extraInfo:Any;
-	public function new(name:String,?extraInfo:Any){this.extraInfo = extraInfo; this.name = name;}
+	/**
+	 * Called when an achievement is awarded, that had not previously been awarded.
+	 * override this to provide custom behaviour such as new achievement popups.
+	 * @param id
+	 * @param silent
+	 */
+	public function onAchievement(id:String, silent:Bool) {}
 
-	public function toString()
-		return Lang.getText('achievements.names',name);
+	/**
+	 * Called when achievements are update, in gainAchievement and clearAchievements,
+	 * override this to provide custom behaviour such as saving achievements somewhere.
+	 */
+	public function updateAchievements() {}
 }

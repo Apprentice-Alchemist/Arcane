@@ -1,0 +1,10 @@
+-lib heaps
+-lib heeps
+--debug
+-cp tests
+-main Main
+
+-lib Arcane
+-lib hscript
+-lib hldx
+-hl out/out.hl

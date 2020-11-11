@@ -1,25 +1,27 @@
 package arcane.common;
 
-import haxe.Constraints.Function;
-import arcane.signal.*;
-
+#if (!display&&target.static)
+@:generic
+#end
 class Mutable<T> extends arcane.signal.SignalDispatcher {
 	@:noCompletion private var value:T;
-	@:noCompletion private var getFunc:Null<Function> = null;
+	@:noCompletion private var getFunc:Void->T = null;
 	public function get():Null<T>
-		return getFunc == null ? value : getFunc();
+		return getFunc();
 
 	public function set(v:Null<T>):Null<T> {
 		value = v;
-		dispatch(new Signal("update"));
+		dispatch(new arcane.signal.Signal("update"));
 		return v;
-	};
+	}
 
-	override public function new<C:T>(?v:C,?getFunc:Null<Function>) {
+	override public function new<C:T>(?v:C,?getFunc:Void->C) {
 		if (v != null)
 			value = v;
 		if(getFunc != null)
 			this.getFunc = getFunc;
+		else
+			this.getFunc = ()->value;
 		super(this);
 	}
 }

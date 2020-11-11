@@ -32,8 +32,7 @@ class Lang {
 	}
 }
 
-@:allow(Lang)
-@:noCompletion class Section {
+private class Section {
 	public var texts = new Map<String, String>();
 
 	public function new()

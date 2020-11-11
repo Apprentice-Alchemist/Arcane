@@ -1,8 +1,13 @@
 package arcane.adv;
 
+#if !hscript
+#error "Hscript is required for EventHandler"
+#end
 import arcane.signal.Signal;
 import hscript.Parser;
 import hscript.Interp;
+
+using haxe.macro.Tools;
 
 class EventHandler {
 	public static var interp:Interp;
@@ -13,9 +18,9 @@ class EventHandler {
 			interp = new Interp();
 			loadVars(interp.variables);
 		}
-		if(locals != null){
-			for(o in locals.keys()){
-				interp.variables.set(o,locals.get(o));
+		if (locals != null) {
+			for (o in locals.keys()) {
+				interp.variables.set(o, locals.get(o));
 			}
 		}
 		var tmp:Dynamic = interp.execute(expr);

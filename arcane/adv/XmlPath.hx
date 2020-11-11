@@ -1,11 +1,15 @@
-package arcane.xml;
+package arcane.adv;
 
 class XmlPath {
 	public var xml:Xml;
 	public var path:String;
-	public var nodeName(get,set):String;
-	function set_nodeName(f:String) return xml.nodeName = f;
-	function get_nodeName():String return xml.nodeName;
+	public var nodeName(get, set):String;
+
+	function set_nodeName(f:String)
+		return xml.nodeName = f;
+
+	function get_nodeName():String
+		return xml.nodeName;
 
 	public function new(_path:String, _xml:Xml) {
 		xml = _xml;
@@ -35,6 +39,4 @@ class XmlPath {
 	public function getPath() {
 		return path;
 	}
-
-	// public function
 }
