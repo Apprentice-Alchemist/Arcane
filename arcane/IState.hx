@@ -18,7 +18,7 @@ interface IState {
 	public function onResize():Void;
 
 	/**
-	 * Called when the IState is remove from the scene
+	 * Called when the IState is removed from the scene
 	 */
 	public function destroy():Void;
 

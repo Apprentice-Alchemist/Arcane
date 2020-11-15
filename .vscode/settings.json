@@ -1,4 +1,3 @@
 {
-    "liveServer.settings.root":"${workspaceFolder}/out",
-    "haxe.configurations":[]
+    "liveServer.settings.root":"${workspaceFolder}/out"
 }

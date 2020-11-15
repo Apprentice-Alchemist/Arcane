@@ -7,14 +7,13 @@ import haxe.macro.Context;
 using haxe.macro.Tools;
 #end
 
-@:autoBuild(arcane.signal.IDispatcher.MacroDispatcher.build())
+//@:autoBuild(arcane.signal.IDispatcher.MacroDispatcher.build())
 @:remove
 interface IDispatcher {
-	var __dispatcher:SignalDispatcher;
-	public function dispatch(s:Signal):Void;
-	public function listen(name:String, cb:Signal->Void):Void;
-	public function hasListener(name:String):Bool;
-	public function removeListener(name:String, cb:Signal->Void):Void;
+	public function dispatch<T:Dynamic>(s:Signal<T>):Void;
+	public function listen<T:Dynamic>(name:String, cb:Signal<T>->Void):Void;
+	public function hasListener<T:Dynamic>(name:String):Bool;
+	public function removeListener<T:Dynamic>(name:String, cb:Signal<T>->Void):Void;
 }
 
 #if macro
@@ -23,9 +22,10 @@ class MacroDispatcher {
 		var SD = haxe.macro.Context.getType("arcane.signal.SignalDispatcher").getClass();
 		var fields = haxe.macro.Context.getBuildFields();
 		var type = haxe.macro.Context.getLocalType().getClass();
-		var __dispatcher:haxe.macro.Expr.Field = {
+		if (type.pack.concat(["SignalDispatcher"]).join(".") == "arcane.signal.SignalDispatcher") return fields;
+		var __dispatcher:Field = {
 			name: "__dispatcher",
-			access: [APublic],
+			access: [],
 			pos: SD.pos,
 			kind: FieldType.FVar(haxe.macro.Context.getType("arcane.signal.SignalDispatcher").toComplexType(), macro new arcane.signal.SignalDispatcher())
 		}

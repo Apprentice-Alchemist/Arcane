@@ -5,31 +5,50 @@ import arcane.signal.SignalDispatcher;
 import arcane.audio.Audio;
 import arcane.common.Version;
 
-@:allow(arcane.backend)
+@:allow(arcane.internal)
 class Lib {
+	public static var version(default, never):Version = new Version("0.0.0");
 	public static var fps(default, null):Float;
 	public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
 	public static var state(default, set):IState;
+	#if heaps
+	public static var audio(default, null):Audio;
+	public static var engine(get, null):h3d.Engine;
+	public static var s2d(get, null):h2d.Scene;
+	public static var s3d(get, null):h3d.scene.Scene;
+	public static var sevents(get, null):hxd.SceneEvents;
+
+	private static var app:hxd.App;
+	#end
+	private static var arcane_app:Bool = true;
 
 	static function set_state(s:IState):IState
 		return null;
 
-	public static function init() {}
+	public static function init(cb:Null<Void->Void>):Void {
+		initCb = cb;
+		#if heaps
+		Lib.app = new arcane.internal.App();
+		#end
+	}
 
-	private static dynamic function initCb() {}
+	private static dynamic function initCb():Void {}
 
-	public static function onInit() {
+	static function onInit():Void {
+		#if heaps
+		audio = new Audio();
+		#end
 		initCb();
 	}
 
-	static function update(dt:Float) {
+	static function update(dt:Float):Void {
 		fps = 1 / (dt * 1000);
 		for (o in __updates)
 			o(dt);
 	}
 
-	static function onResize() {
-		dispatcher.dispatch(new Signal("resize"));
+	static function onResize():Void {
+		dispatcher.dispatch(new Signal<Void>("resize",(null:Void)));
 	}
 
 	private static var __updates:Array<Float->Void> = [];
@@ -52,4 +71,18 @@ class Lib {
 	 * @param force Force exit
 	 */
 	public static function exit(code:Int, force:Bool = false):Void {}
+
+	#if heaps
+	private static inline function get_engine():h3d.Engine
+		return app == null ? (h3d.Engine.getCurrent() == null ? null : h3d.Engine.getCurrent()) : app.engine;
+
+	private inline static function get_s2d():h2d.Scene
+		return app == null ? null : app.s2d;
+
+	private inline static function get_s3d():h3d.scene.Scene
+		return app == null ? null : app.s3d;
+
+	private inline static function get_sevents():hxd.SceneEvents
+		return app == null ? null : app.sevents;
+	#end
 }

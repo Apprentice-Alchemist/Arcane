@@ -19,6 +19,7 @@ class Audio {
 	}
 
 	public var musicGroup(default, default):ChannelGroup;
+
 	public var sfxGroup(default, default):ChannelGroup;
 	public var currentMusic(default, null):Null<Channel>;
 	public var currentSfx(default, null):Null<Channel>;
@@ -36,15 +37,18 @@ class Audio {
 					currentMusic = s.play(looping, 0, musicGroup);
 					currentMusic.fadeTo(1, FADE_TIME);
 				});
-			} else {
+			}
+			else {
 				currentMusic.stop();
 				currentMusic = s.play(looping, 1, musicGroup);
 			}
-		} else {
+		}
+		else {
 			if (fade) {
 				currentMusic = s.play(looping, 0, musicGroup);
 				currentMusic.fadeTo(1, FADE_TIME);
-			} else {
+			}
+			else {
 				currentMusic = s.play(looping, 1, musicGroup);
 			}
 		}
@@ -54,7 +58,8 @@ class Audio {
 		if (currentMusic != null) {
 			if (fade) {
 				currentMusic.fadeTo(0, FADE_TIME, () -> currentMusic.stop());
-			} else {
+			}
+			else {
 				currentMusic.stop();
 			}
 		}

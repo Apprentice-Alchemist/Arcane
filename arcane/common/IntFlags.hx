@@ -1,6 +1,6 @@
 package arcane.common;
 
-abstract Flags(Int) from Int to Int {
+abstract IntFlags(Int) from Int to Int {
 	public inline function new()
 		this = 0;
 	public inline function addFlag(x:Int) {

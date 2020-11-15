@@ -1,7 +1,5 @@
 package arcane;
 
-import h2d.Camera;
-
 /**
  * A base state you can extend
  */

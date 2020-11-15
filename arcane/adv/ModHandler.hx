@@ -1,10 +1,5 @@
 package arcane.adv;
 
-import hxd.res.Resource;
-import hxd.res.Any;
-import haxe.Exception;
-import arcane.common.Achievements;
-
 class ModHandler {
 	public static var core_path:String = "core/mod.xml";
 	public static var mods_path:String = "assets/mods/";
@@ -18,7 +13,7 @@ class ModHandler {
 		var loadedFiles = 0;
 		for (o in files) {
 			#if heaps
-			parseXml(makeXml(Xml.parse(hxd.Res.loader.loadCache(o, Resource).entry.getBytes().toString()).firstElement(), new haxe.io.Path(o).dir));
+			parseXml(makeXml(Xml.parse(hxd.Res.loader.loadCache(o, hxd.res.Resource).entry.getBytes().toString()).firstElement(), new haxe.io.Path(o).dir));
 			#elseif sys
 			parseXml(makeXml(Xml.parse(sys.io.File.getContent(o)).firstElement(), new haxe.io.Path(o).dir));
 			#elseif js
@@ -40,7 +35,7 @@ class ModHandler {
 				try {
 					#if heaps
 					parseXml(new XmlPath(p.dir,
-						Xml.parse(hxd.Res.loader.loadCache(p.dir + "/" + p.file + "." + p.ext, Resource).entry.getBytes().toString()).firstElement()));
+						Xml.parse(hxd.Res.loader.loadCache(p.dir + "/" + p.file + "." + p.ext, hxd.res.Resource).entry.getBytes().toString()).firstElement()));
 					#elseif sys
 					parseXml(makeXml(Xml.parse(sys.io.File.getContent(o)).firstElement(), new haxe.io.Path(o).dir));
 					#elseif js

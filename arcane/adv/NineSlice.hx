@@ -1,3 +1,3 @@
 package arcane.adv;
 
-class Slice {}
+class NineSlice {}

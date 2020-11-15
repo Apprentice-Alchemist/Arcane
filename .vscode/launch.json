@@ -2,10 +2,10 @@
     "configurations": [
         {
             "type": "hl",
-            "request": "attach",
+            "request": "launch",
             "name": "Launch HL",
             "cwd": "${workspaceFolder}",
-            "port": 6112
+            "program": "out/out.hl"
         }
     ]
 }

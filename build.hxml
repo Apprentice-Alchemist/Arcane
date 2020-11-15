@@ -1,10 +1,8 @@
 -lib heaps
 -lib heeps
---debug
+-D resourcesPath=arcane
 -cp tests
 -main Main
-
--lib Arcane
 -lib hscript
 -lib hldx
 -hl out/out.hl

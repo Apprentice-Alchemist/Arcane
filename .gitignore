@@ -1,5 +1,6 @@
 tests/*
 build/*
 out/*
+dump
 *.ogg
 *.hl

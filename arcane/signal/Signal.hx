@@ -3,7 +3,7 @@ package arcane.signal;
 /**
  * A basic signal
  */
-class Signal {
+class Signal<V> {
 	public var name:String;
 
 	/**
@@ -11,13 +11,12 @@ class Signal {
 	 */
 	public var cancelled(default, null):Bool = false;
 
-	/**
-	 * The dispatcher that sent the signal
-	 */
-	public var target:Dynamic;
+	public var value:Null<V>;
+	public var dispatcher:SignalDispatcher;
 
-	public function new(name:String) {
+	public function new(name:String,?value:Null<V>) {
 		this.name = name;
+		this.value = value;
 	}
 
 	/**
