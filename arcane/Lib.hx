@@ -6,7 +6,7 @@ import arcane.common.Version;
 
 @:allow(arcane.internal)
 class Lib {
-	public static var version(default, never):Version = new Version("0.0.0");
+	public static var version(default, never):Version = new Version("0.0.1");
 	public static var fps(default, null):Float;
 	public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
 	public static var state(default, set):IState;
