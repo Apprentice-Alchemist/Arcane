@@ -1,7 +1,5 @@
 -lib heaps
 -lib heeps
--D resourcesPath=C:/Program Files (x86)/Steam/steamapps/common/Aground
--lib yatl
 -cp tests
 -main Main
 -lib hscript
