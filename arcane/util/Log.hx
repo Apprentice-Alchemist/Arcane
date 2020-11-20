@@ -13,12 +13,7 @@ class Log {
 		haxe.Log.trace('Warning : $msg at ${formatPos(pos)}', null);
 	}
 
-	static function formatPos(infos:haxe.PosInfos):String {
-		var str = "";
-		var pstr = infos.fileName + ":" + infos.lineNumber;
-		if (infos.customParams != null)
-			for (v in infos.customParams)
-				str += ", " + Std.string(v);
-		return pstr;
+	public static function formatPos(infos:haxe.PosInfos):String {
+		return infos.fileName + ":" + infos.lineNumber;
 	}
 }

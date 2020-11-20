@@ -1,10 +1,10 @@
 package arcane.signal;
 
 @:forward
-abstract EventType<T>(String) from String to String {}
+abstract SignalType<T>(String) from String to String {}
 
 class SignalDispatcher {
-	@:noCompletion @:noDoc public var eventMap:Map<String, Array<Signal<Dynamic>->Void>> = new Map();
+	@:noDoc var eventMap:Map<String, Array<Signal<Dynamic>->Void>> = new Map();
 
 	public function new() {}
 
@@ -18,12 +18,10 @@ class SignalDispatcher {
 	public function dispatch<T>(s:Signal<T>):Void {
 		s.dispatcher = this;
 		@:privateAccess s.cancelled = false;
-		if (eventMap.exists(s.name))
-			for (o in eventMap.get(s.name)) {
-				if (s.cancelled)
-					break;
-				o(s);
-			}
+		if (eventMap.exists(s.name)) for (o in eventMap.get(s.name)) {
+			if (s.cancelled) break;
+			o(s);
+		}
 	}
 
 	/**
@@ -33,10 +31,11 @@ class SignalDispatcher {
 		@param cb The call back
 
 	**/
-	public function listen<T>(name:EventType<T>, cb:Signal<T>->Void):Void {
+	public function listen<T>(name:SignalType<T>, cb:Signal<T>->Void):Void {
 		if (eventMap.exists(name)) {
 			eventMap.get(name).unshift(cast cb);
-		} else {
+		}
+		else {
 			eventMap.set(name, [cast cb]);
 		}
 	}
@@ -44,7 +43,7 @@ class SignalDispatcher {
 	/**
 	 * Removes a listener
 	 */
-	public function removeListener<T>(name:EventType<T>, cb:Signal<T>->Void):Void {
+	public function removeListener<T>(name:SignalType<T>, cb:Signal<T>->Void):Void {
 		if (eventMap.exists(name)) {
 			for (o in eventMap.get(name)) {
 				if (Reflect.compareMethods(o, cb)) {
@@ -59,7 +58,7 @@ class SignalDispatcher {
 	 *
 	 * @param name
 	 */
-	public function hasListener<T>(name:EventType<T>):Bool {
+	public function hasListener<T>(name:SignalType<T>):Bool {
 		return eventMap.exists(name) ? eventMap.get(name).length > 0 : false;
 	}
 }

@@ -2,7 +2,6 @@ package arcane;
 
 import arcane.signal.Signal;
 import arcane.signal.SignalDispatcher;
-import arcane.audio.Audio;
 import arcane.common.Version;
 
 @:allow(arcane.internal)
@@ -12,15 +11,13 @@ class Lib {
 	public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
 	public static var state(default, set):IState;
 	#if heaps
-	public static var audio(default, null):Audio;
+	public static var audio(default, null):arcane.audio.Audio;
 	public static var engine(get, null):h3d.Engine;
 	public static var s2d(get, null):h2d.Scene;
 	public static var s3d(get, null):h3d.scene.Scene;
 	public static var sevents(get, null):hxd.SceneEvents;
-
-	private static var app:hxd.App;
+	private static var app:arcane.internal.App;
 	#end
-	private static var arcane_app:Bool = true;
 
 	static function set_state(s:IState):IState
 		return null;
@@ -36,7 +33,7 @@ class Lib {
 
 	static function onInit():Void {
 		#if heaps
-		audio = new Audio();
+		audio = new arcane.audio.Audio();
 		#end
 		initCb();
 	}
@@ -48,7 +45,7 @@ class Lib {
 	}
 
 	static function onResize():Void {
-		dispatcher.dispatch(new Signal<Void>("resize",(null:Void)));
+		dispatcher.dispatch(new Signal("resize"));
 	}
 
 	private static var __updates:Array<Float->Void> = [];

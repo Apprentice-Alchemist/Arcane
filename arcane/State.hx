@@ -6,6 +6,7 @@ package arcane;
 class State extends h2d.Layers implements IState {
 	override public function new()
 		super();
+
 	public function create():Void {}
 	public function onResize() {}
 	public function update(dt:Float):Void {}

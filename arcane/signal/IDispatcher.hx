@@ -7,7 +7,8 @@ import haxe.macro.Context;
 using haxe.macro.Tools;
 #end
 
-//@:autoBuild(arcane.signal.IDispatcher.MacroDispatcher.build())
+// @:autoBuild(arcane.signal.IDispatcher.MacroDispatcher.build())
+
 @:remove
 interface IDispatcher {
 	public function dispatch<T:Dynamic>(s:Signal<T>):Void;

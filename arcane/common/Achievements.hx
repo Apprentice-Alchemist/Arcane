@@ -3,13 +3,15 @@ package arcane.common;
 import arcane.signal.Signal;
 import arcane.signal.SignalDispatcher;
 
-class Achievements extends arcane.signal.SignalDispatcher {
+class Achievements extends SignalDispatcher {
+	public static var NewAchievement:SignalType<String> = "new_achievment";
 	public static var instance:Null<Achievements>;
+
 	public var map:Map<String, Bool> = new Map<String, Bool>();
 
 	public function new() {
 		instance = this;
-		super(this);
+		super();
 	}
 
 	public function clearAchievements() {
@@ -31,7 +33,7 @@ class Achievements extends arcane.signal.SignalDispatcher {
 		if (!isAchievement(id))
 			throw '$id is not an achievement!';
 		if (!map.exists(id) || !map.get(id)) {
-			dispatch(new Signal("new_achievement"));
+			dispatch(new Signal("new_achievement", id));
 			onAchievement(id, silent);
 		}
 		map.set(id, true);

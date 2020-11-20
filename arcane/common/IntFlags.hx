@@ -3,6 +3,7 @@ package arcane.common;
 abstract IntFlags(Int) from Int to Int {
 	public inline function new()
 		this = 0;
+
 	public inline function addFlag(x:Int) {
 		// this = this OR x
 		this = this | x;

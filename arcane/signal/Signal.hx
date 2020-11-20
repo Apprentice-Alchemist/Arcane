@@ -14,7 +14,7 @@ class Signal<V> {
 	public var value:Null<V>;
 	public var dispatcher:SignalDispatcher;
 
-	public function new(name:String,?value:Null<V>) {
+	public function new(name:String, ?value:Null<V>) {
 		this.name = name;
 		this.value = value;
 	}

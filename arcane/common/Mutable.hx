@@ -1,27 +1,23 @@
 package arcane.common;
 
-#if (!display&&target.static)
 @:generic
-#end
 class Mutable<T> extends arcane.signal.SignalDispatcher {
-	@:noCompletion private var value:T;
-	@:noCompletion private var getFunc:Void->T = null;
+	private var value:Null<T>;
+	private var getFunc:Void->T;
+
 	public function get():Null<T>
 		return getFunc();
 
 	public function set(v:Null<T>):Null<T> {
 		value = v;
-		dispatch(new arcane.signal.Signal("update"));
+		dispatch(new arcane.signal.Signal<T>("update", v));
 		return v;
 	}
 
-	override public function new<C:T>(?v:C,?getFunc:Void->C) {
-		if (v != null)
-			value = v;
-		if(getFunc != null)
-			this.getFunc = getFunc;
-		else
-			this.getFunc = ()->value;
-		super(this);
+	public override function new(?v:T, ?getFunc:Void->Null<T>) {
+		if (v != null) value = v;
+		if (getFunc != null) this.getFunc = getFunc
+		else this.getFunc = () -> value;
+		super();
 	}
 }
