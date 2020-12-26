@@ -18,15 +18,13 @@ class Assets {
 	public static var manifest:Array<String> = [];
 
 	public static function __init__() {
-		#if ((js || arcane_use_manifest)&&!arcane_no_manifest)
-		// manifest = [];
+		#if ((js || arcane_use_manifest) && !arcane_no_manifest)
 		arcane.internal.Macro.initManifest(manifest);
 		#end
 	}
 
 	public static function loadManifest() {
 		#if sys
-		// manifest = [];
 		var path = haxe.macro.Compiler.getDefine("resourcesPath") != null ? haxe.macro.Compiler.getDefine("resourcesPath") : "res";
 		trace(path);
 		function readRec(f:Array<String>, basePath:String) {
@@ -69,11 +67,6 @@ class Assets {
 
 	public static function loadBytes(path:String, cache:Bool = true) {
 		#if js
-		js.Browser.window.fetch("").then(function(x){
-			return x.arrayBuffer();
-		}).then(function(a){
-			
-		});
 		throw "Synchronous loading not supported on javascript!";
 		#elseif sys
 		var b = sys.io.File.getBytes(path);

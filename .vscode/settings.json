@@ -1,3 +1,7 @@
 {
-    "liveServer.settings.root":"${workspaceFolder}/out"
+    "liveServer.settings.root": "${workspaceFolder}/out",
+    "files.associations": {
+        "*.h": "c",
+        "*.rh": "cpp"
+    }
 }

@@ -15,6 +15,20 @@ abstract Version(Ver) from Ver to Ver {
 		};
 	}
 
+	public inline function increasePatch(by = 1){
+		this.patch += by;
+	}
+
+	public inline function increaseMinor(by = 1){
+		this.minor += by;
+		this.patch = 0;
+	}
+
+	public inline function increaseMajor(by = 1){
+		this.major += 1;
+		this.minor = this.patch = 0;
+	}
+
 	@:op(A > B) public static inline function greater(a:Version, b:Version):Bool {
 		if (a.major > b.major) return true; 
 		else if (a.major < b.major) return false; 
@@ -37,10 +51,11 @@ abstract Version(Ver) from Ver to Ver {
 	}
 }
 
-typedef Ver = {
+@:structInit
+class Ver {
 	public var major:Int;
 	public var minor:Int;
 	public var patch:Int;
-	@:optional public var other:String;
-	@:optional public var build:String;
+	public var other:Null<String>;
+	public var build:Null<String>;
 }

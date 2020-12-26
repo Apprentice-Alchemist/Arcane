@@ -1,9 +1,11 @@
-package arcane.internal;
+package arcane.backend.heaps;
 
+#if heaps
 @:access(arcane)
 class App extends hxd.App {
 	override function init() {
-		Lib.onInit();
+		if (HeapsLib.initCb != null)
+			HeapsLib.initCb();
 	}
 
 	override function update(dt:Float) {
@@ -14,3 +16,4 @@ class App extends hxd.App {
 		Lib.onResize();
 	}
 }
+#end

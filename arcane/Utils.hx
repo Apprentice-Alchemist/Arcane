@@ -16,12 +16,23 @@ class Utils {
 	}
 
 	public static function int(f:Null<Float>):Int {
-		assert(f == 0);
 		if (f == null || !Math.isFinite(f)) return 0;
 		return Std.int(f);
 	}
 	
-	public static macro function assert(expr:ExprOf<Null<Bool>>):ExprOf<Bool> {
-		return macro @:pos(${haxe.macro.Context.currentPos()}) if($expr == true) $expr else throw "assert";
-	}
+	public static extern inline function assert(b:Bool,msg:String)
+		if(!b) throw 'assert : $msg';
+
+	// #if !macro
+	// public static macro function assert(expr:ExprOf<Bool>):ExprOf<Bool> {
+	// 	switch expr.expr {
+	// 		case EConst(CIdent("true")):
+	// 			return macro @:pos(${haxe.macro.Context.currentPos()}) true;
+	// 		case EConst(CIdent("false")):
+	// 			return macro @:pos(${haxe.macro.Context.currentPos()}) throw "assert";
+	// 		default: 
+	// 	}
+	// 	return macro @:pos(${haxe.macro.Context.currentPos()}) if ($expr) true else throw "assert";
+	// }
+	// #end
 }

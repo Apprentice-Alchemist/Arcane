@@ -6,6 +6,16 @@
             "name": "Launch HL",
             "cwd": "${workspaceFolder}",
             "program": "out/out.hl"
+        },
+        {
+            "type": "cppvsdbg",
+            "request": "launch",
+            "name": "Launch",
+            "cwd": "${workspaceRoot}",
+            "program": "hl",
+            "args": [
+                "out/out.hl"
+            ]
         }
     ]
 }
