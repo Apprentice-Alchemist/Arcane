@@ -1,7 +1,4 @@
-tests/*
-build/*
+test/*
 out/*
-dump
-*.ogg
-*.hl
-dev/*
+res/*
+.vscode/*

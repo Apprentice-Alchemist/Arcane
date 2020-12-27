@@ -6,5 +6,6 @@
     "contributors": ["Apprentice-Alchemist"],
     "description": "N/A",
     "version": "0.0.1",
-    "url": "https://github.com/Apprentice-Alchemist/Arcane"
+    "url": "https://github.com/Apprentice-Alchemist/Arcane",
+    "main": "tools.Main"
 }
