@@ -1,9 +1,4 @@
--cp tests
+-cp test
 -main Main
--lib hscript
 -lib kinc
--lib hldx
--lib heaps
--lib vector-math
--cp ../../Libs/Kha
 -hl out/out.hl

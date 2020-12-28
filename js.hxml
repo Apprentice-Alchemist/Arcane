@@ -1,6 +1,3 @@
--lib heaps
--lib heeps
--cp tests
+-cp test
 -main Main
--lib hscript
 -js out/app.js

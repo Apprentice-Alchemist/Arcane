@@ -27,9 +27,10 @@ class Lib {
 	public static function init(cb:Null<Void->Void>):Void {
 		
 		if (backend == null)
-			setBackend(new arcane.backend.kinc.System());
 			#if kinc
 			backend = new arcane.backend.kinc.System();
+			#elseif js
+			backend = new arcane.backend.html5.System();
 			#else
 			backend = new arcane.backend.empty.System();
 			#end

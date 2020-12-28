@@ -1,8 +1,8 @@
-package arcane.backend.kinc;
+package arcane.backend.html5;
 
-import arcane.spec.ISystem;
 import arcane.spec.IGraphicsDriver;
 import arcane.spec.IAudioDriver;
+import arcane.spec.ISystem;
 
 @:access(arcane)
 class System implements ISystem {
@@ -14,25 +14,27 @@ class System implements ISystem {
 
 	public function new() {}
 
+	var canvas:js.html.CanvasElement;
+
 	public function init(cb:Void->Void):Void {
-		kinc.System.init("", 500, 500);
-		kinc.System.setUpdateCallback(update);
+		canvas = cast js.Browser.window.document.getElementById("webgl");
 		cb();
-		kinc.System.start();
-	}
-	private var lastTime = 0.0;
-	public function update(){
-		var curtime = kinc.System.time();
-		arcane.Lib.update(curtime - lastTime);
-		lastTime = curtime;
+		js.Browser.window.requestAnimationFrame(update);
 	}
 
-	public function shutdown()
-		kinc.System.stop();
+	private var lastTime = 0.0;
+
+	public function update(dt:Float) {
+		arcane.Lib.update(dt - lastTime);
+		lastTime = dt;
+		js.Browser.window.requestAnimationFrame(update);
+	}
+
+	public function shutdown() {}
 
 	public function createAudioDriver():Null<IAudioDriver>
 		return null;
 
 	public function createGraphicsDriver():Null<IGraphicsDriver>
-		return new GraphicsDriver();
+		return new WebGLDriver(canvas);
 }

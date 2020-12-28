@@ -1,0 +1,13 @@
+{
+    "emptyLines": {},
+    "sameLine": {
+        "anonFunctionBody": "keep",
+        "functionBody": "keep"
+    },
+    "whitespace":{
+        "addLineCommentSpace": true,
+        "binopPolicy": "around",
+        "compressSuccessiveParenthesis": true,
+        "ifPolicy": "before"
+    }
+}
