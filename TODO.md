@@ -1,0 +1,46 @@
+- Documentation.
+    - Api docs
+    - [ ] How does the backend system work
+    - [ ] Docs on whatever I choose for shaders
+
+- General
+    - Should make a bunch of gh issues out of this todo list?
+    - arcane.spec.
+        - [ ] IGraphicsDriver
+            - [ ] IPipeline
+                - [ ] Stencil, depth & co
+        - [ ] IAudioDriver
+            - How should the api look?
+        - [ ] ISystem
+            - How should the api look?
+        - [ ] IInputHandler
+            - Should these apis just go in ISystem?
+            - Design questions
+                - [ ] Callbacks vs isPressed/Down (Or even both?)
+                - [ ] Touch vs Mouse
+    - [ ] 2D
+        - [ ] Make sure to implement some kind of batching
+    - [ ] 3D
+        - [ ] Figure out a nice way of handling shaders.
+            - Glsl vs Hxsl style vs Kongruent vs hlsl vs custom
+    - [ ] Command line tools
+        - [ ] Project creation
+        - [ ] Automate setting up kincfiles and running kincmake
+        - [ ] \(nice but optional) downloading hashlink and such (requires either a prebuild exe, or working ssl for eval)
+
+- Kinc Backend
+    - Finish implementing everything
+        - [ ] Graphics
+            - [ ] Stencil, depth & co
+        - [ ] Audio
+        - [ ] System
+        - [ ] Input
+
+- HTML5 Backend
+    - Graphics 
+        - [ ] Finish the WebGL driver
+            - [ ] Figure out why its not working
+        - webgpu driver?
+    - Audio
+        - [ ] WebAudio driver.
+    - [ ] System, input etc.
