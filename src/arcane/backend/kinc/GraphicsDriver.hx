@@ -9,12 +9,10 @@ class VertexBuffer implements IVertexBuffer {
 
 	public var buf:kinc.g4.VertexBuffer;
 	public var struc:kinc.g4.VertexStructure;
-	public var stride:Int;
 
 	public function new(desc:VertexBufferDesc) {
 		this.desc = desc;
 		this.struc = new kinc.g4.VertexStructure();
-		this.stride = 0;
 		for (el in desc.layout) {
 			struc.add(el.name, switch el.kind {
 				case Float1: kinc.g4.VertexStructure.VertexData.Float1;
@@ -23,20 +21,13 @@ class VertexBuffer implements IVertexBuffer {
 				case Float4: kinc.g4.VertexStructure.VertexData.Float4;
 				case Float4x4: kinc.g4.VertexStructure.VertexData.Float4X4;
 			});
-			stride += switch el.kind {
-				case Float1: 1;
-				case Float2: 2;
-				case Float3: 3;
-				case Float4: 4;
-				case Float4x4: 0;
-			}
 		}
 		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, DynamicUsage, 0);
 	}
 
 	public function upload(start:Int = 0, arr:Array<Float>) {
 		#if debug
-		assert(start + arr.length <= desc.size * stride, "Trying to upload vertex data outside of buffer bounds!");
+		assert(start + arr.length <= desc.size * buf.stride(), "Trying to upload vertex data outside of buffer bounds!");
 		#end
 		var v = buf.lock(start, arr.length);
 		for (i in 0...arr.length)
@@ -74,6 +65,7 @@ class IndexBuffer implements IIndexBuffer {
 }
 
 class Texture implements ITexture {
+	private static var tmpimg:kinc.Image;
 	public var desc(default, null):TextureDesc;
 
 	public var tex:kinc.g4.Texture;
@@ -82,9 +74,10 @@ class Texture implements ITexture {
 		tex = new kinc.g4.Texture();
 
 		if(desc.data != null) {
-			var img = kinc.Image.fromBytes(desc.data, desc.width, desc.height, FORMAT_RGBA32);
-			tex.initFromImage(img);
-			img.destroy();
+			if(tmpimg == null) tmpimg = new kinc.Image();
+			tmpimg.initFromBytes(desc.data.getData(),desc.width,desc.height,cast kinc.Image.ImageFormat.FORMAT_RGBA32);
+			tex.initFromImage(tmpimg);
+			tmpimg.destroy();
 		} else {
 			tex.init(desc.width, desc.height, FORMAT_RGBA32);
 		}

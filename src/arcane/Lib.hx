@@ -24,7 +24,7 @@ class Lib {
 		backend = b;
 	}
 
-	public static function init(cb:Null<Void->Void>):Void {
+	public static function init(cb:Void->Void):Void {
 		if(backend == null)
 			#if kinc
 			backend = new arcane.backend.kinc.System();

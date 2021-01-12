@@ -31,7 +31,7 @@ typedef InputLayout = Array<{var name:String; var kind:VertexData;}>;
 
 @:structInit class IndexBufferDesc {
 	public var size:Int;
-	public var is32:Bool = true;
+	public var is32:Bool = false;
 }
 
 @:structInit class TextureDesc {
@@ -91,11 +91,11 @@ interface IGraphicsDriver {
 	public function flush():Void;
 	public function present():Void;
 
-	@:pure public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer;
-	@:pure public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer;
-	@:pure public function createTexture(desc:TextureDesc):ITexture;
-	@:pure public function createShader(desc:ShaderDesc):IShader;
-	@:pure public function createPipeline(desc:PipelineDesc):IPipeline;
+	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer;
+	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer;
+	public function createTexture(desc:TextureDesc):ITexture;
+	public function createShader(desc:ShaderDesc):IShader;
+	public function createPipeline(desc:PipelineDesc):IPipeline;
 
 	public function setPipeline(p:IPipeline):Void;
 	public function setVertexBuffer(b:IVertexBuffer):Void;

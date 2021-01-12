@@ -21,7 +21,7 @@ class Utils {
 	}
 	
 	public static extern inline function assert(b:Bool,msg:String = "")
-		if(!b) throw msg == "" ? "assert" : '$msg';
+		if(!b) throw ((msg == "") ? "assert" : '$msg');
 
 	// #if !macro
 	// public static macro function assert(expr:ExprOf<Bool>):ExprOf<Bool> {

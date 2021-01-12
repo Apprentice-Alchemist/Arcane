@@ -11,6 +11,9 @@ typedef SystemOptions = {
 	var windowX:Int;
 	var windowY:Int;
 	var windowTitle:Int;
+	var ?html5:{
+		var ?canvas_id:String;
+	}
 }
 
 interface ISystem {

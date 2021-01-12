@@ -39,7 +39,7 @@
 - HTML5 Backend
     - Graphics 
         - [ ] Finish the WebGL driver
-            - [ ] Figure out why its not working
+            - [x] Figure out why its not working
         - webgpu driver?
     - Audio
         - [ ] WebAudio driver.

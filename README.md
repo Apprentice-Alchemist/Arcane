@@ -5,7 +5,7 @@ Yet another open source game engine.
 
 ## Platforms
 - Via Kinc Arcane supports the following platforms :
-    - Windows : OpenGL, DirectX, Vulkan. Tested.
+    - Windows : OpenGL, DirectX, Vulkan. In progress.
     - OSX : OpenGL and Metal. Untested.
     - Linux : OpenGL and Vulkan. Untested.
     - Android : OpenGL and Vulkan. Untested.
@@ -13,5 +13,4 @@ Yet another open source game engine.
     - Playstation 4 & 5, Xbox One and X/S, Nintendo Switch : In theory.
 - HTML5 : 
     - WebGL Renderer : In progress.
-    - WebGPU Renderer : TODO.
-    - Sound via WebAudio : Yes.
+    - Sound via WebAudio : TODO.

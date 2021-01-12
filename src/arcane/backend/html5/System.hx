@@ -17,9 +17,14 @@ class System implements ISystem {
 
 	public var canvas:js.html.CanvasElement;
 
-	public function init(opts, cb:Void->Void):Void try {
+	public function init(opts:SystemOptions, cb:Void->Void):Void try {
 		var cdef = haxe.macro.Compiler.getDefine("arcane.html5.canvas");
-		canvas = cast js.Browser.window.document.getElementById((cdef == "1" || cdef == null) ? "arcane" : cdef);
+		var cid = (opts != null && opts.html5 != null && opts.html5.canvas_id != null) ? opts.html5.canvas_id : ((cdef == "1" || cdef == null) ? "arcane" : cdef);
+		canvas = cast js.Browser.window.document.getElementById(cid);
+		if(canvas == null) {
+			untyped alert('Could not find canvas with id ${cid}.');
+			return;
+		}
 		cb();
 		js.Browser.window.requestAnimationFrame(update);
 	} catch (e:haxe.Exception)
@@ -30,11 +35,13 @@ class System implements ISystem {
 	public function update(dt:Float) try {
 		arcane.Lib.update(dt - lastTime);
 		lastTime = dt;
-		js.Browser.window.requestAnimationFrame(update);
+		if(!sd) js.Browser.window.requestAnimationFrame(update);
 	} catch (e)
 		js.Browser.window.alert(e.details());
-
-	public function shutdown() {}
+	var sd = false;
+	public function shutdown() {
+		sd = true;
+	}
 
 	public function createAudioDriver():Null<IAudioDriver>
 		return null;
@@ -42,7 +49,7 @@ class System implements ISystem {
 	public function createGraphicsDriver():Null<IGraphicsDriver> {
 		var gl = canvas.getContextWebGL();
 		if(gl == null) {
-			untyped alert("Could not aquire WebGL context.\n\nYou will now see a blank screen.\n\nPlease make sure you are using a modern browser (recent firefox or chrome will do).");
+			untyped alert("Could not aquire WebGL1 context.\n\nYou will now see a blank screen.\n\nBy the way... how can your browser be so old that it doesn't support WebGL1?");
 			return null;
 		}
 		return new WebGLDriver(gl, canvas);

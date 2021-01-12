@@ -1,8 +1,6 @@
 -cp test
 -cp src
 -main Main
-# -lib heaps
-# -cp ../../Libs/Kha
 -js out/app.js
 --debug
 -D js-es=6

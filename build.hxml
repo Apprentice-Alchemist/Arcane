@@ -6,6 +6,4 @@
 -lib format
 -D krafix
 -D absolute-path
-# -cp C:/LanguageToolkits/HaxeToolkit/haxe/lib/heaps/git/
-# -cp ../../Libs/Kha
 -hl out/out.hl

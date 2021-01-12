@@ -6,6 +6,7 @@ import js.html.webgl.Buffer;
 import js.html.webgl.GL;
 import js.html.CanvasElement;
 import arcane.spec.IGraphicsDriver;
+import arcane.Utils.assert;
 
 private class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
@@ -48,9 +49,9 @@ private class VertexBuffer implements IVertexBuffer {
 	}
 
 	public function upload(start:Int = 0, arr:Array<Float>):Void {
-		var arr = new js.lib.Float32Array(arr);
+		var a = new js.lib.Float32Array(arr);
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
-		driver.gl.bufferSubData(GL.ARRAY_BUFFER, start, arr);
+		driver.gl.bufferData(GL.ARRAY_BUFFER, a, desc.dyn ? GL.DYNAMIC_DRAW : GL.STATIC_DRAW);
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, null);
 	}
 
@@ -67,22 +68,24 @@ private class IndexBuffer implements IIndexBuffer {
 
 	private var buf:Buffer;
 	private var driver:WebGLDriver;
-	private var size:Int;
 
 	public function new(driver:WebGLDriver, desc:IndexBufferDesc) {
 		this.driver = driver;
 		this.desc = desc;
-		this.size = this.desc.is32 ? 4 : 2;
+		if(desc.is32) {
+			untyped alert("WebGL does not support 32 bit index buffers. Have a nice day.");
+			throw "See previous alert";
+		}
 		this.buf = driver.gl.createBuffer();
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
-		this.driver.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, desc.size * size, GL.STATIC_DRAW);
+		this.driver.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, desc.size * 2, GL.STATIC_DRAW);
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 	}
 
 	public function upload(start:Int = 0, arr:Array<Int>):Void {
-		var arr = new Uint16Array(arr);
+		var a = new Uint16Array(arr);
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
-		this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, start << (desc.is32 ? 2 : 1), arr);
+		this.driver.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, a, GL.STATIC_DRAW);
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 	}
 
@@ -132,7 +135,13 @@ private class Pipeline implements IPipeline {
 		this.program = driver.gl.createProgram();
 		driver.gl.attachShader(program, @:privateAccess cast(desc.vertexShader, Shader).shader);
 		driver.gl.attachShader(program, @:privateAccess cast(desc.fragmentShader, Shader).shader);
+		var index = 0;
+		for (i in desc.inputLayout) {
+			driver.gl.bindAttribLocation(program, index, i.name);
+			++index;
+		}
 		driver.gl.linkProgram(program);
+		driver.gl.validateProgram(program);
 		if(driver.gl.getProgramParameter(program, GL.LINK_STATUS) != 1) {
 			throw "WebGL Program Linking failure : " + driver.gl.getProgramInfoLog(program);
 		}
@@ -142,7 +151,6 @@ private class Pipeline implements IPipeline {
 		if(!driver.check() || program == null)
 			return null;
 		driver.gl.getUniformLocation(program, name);
-		// driver.gl.tex
 		return null;
 	}
 
@@ -170,25 +178,28 @@ class WebGLDriver implements IGraphicsDriver {
 	var curIndexBuffer:IndexBuffer;
 	var curPipeline:Pipeline;
 
-	public function new(gl:GL,canvas:CanvasElement) {
+	public function new(gl:GL, canvas:CanvasElement) {
 		this.canvas = canvas;
 		this.gl = gl;
-		try gl.getExtension(OES_element_index_uint) catch(e){};
 	}
 
 	public function check():Bool return gl != null && !gl.isContextLost();
 
-	public function dispose():Void {}
+	public function dispose():Void {
+		gl = null;
+	}
 
 	public function begin():Void {}
 
 	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
 		var bits:arcane.common.IntFlags = 0;
 		if(col == null)
-			col = 0x000000ff;
+			col = 0x000000;
+		gl.colorMask(true, true, true, true);
 		gl.clearColor(col.r, col.g, col.b, 0xff);
 		bits.add(GL.COLOR_BUFFER_BIT);
 		if(depth != null) {
+			gl.depthMask(true);
 			gl.clearDepth(depth);
 			bits.add(GL.DEPTH_BUFFER_BIT);
 		}
@@ -200,11 +211,11 @@ class WebGLDriver implements IGraphicsDriver {
 	}
 
 	public function end():Void {
-		gl.finish();
+		// gl.finish();
 	}
 
 	public function flush():Void {
-		gl.flush();
+		// gl.flush();
 	}
 
 	public function present():Void {}
@@ -241,23 +252,36 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function setPipeline(p:IPipeline):Void {
 		var state:Pipeline = cast p;
+		if(state.driver != this)
+			throw "Driver mismatch";
+		gl.validateProgram(state.program);
 		gl.useProgram(state.program);
 		curPipeline = state;
 	}
 
+	private var enabledVertexAttribs = 0;
+
 	public function setVertexBuffer(b:IVertexBuffer):Void {
-		curVertexBuffer = cast b;
+		var vb:VertexBuffer = cast b;
+		if(vb.driver != this)
+			throw "Driver mismatch";
+		curVertexBuffer = vb;
+		for (i in 0...enabledVertexAttribs)
+			gl.disableVertexAttribArray(i);
 		gl.bindBuffer(GL.ARRAY_BUFFER, curVertexBuffer.buf);
-		for (idx => i in curVertexBuffer.layout) {
-			// var idx = gl.getAttribLocation(curPipeline.program, i.name);
-			gl.enableVertexAttribArray(idx);
-			gl.vertexAttribPointer(idx, i.size, GL.FLOAT, true, curVertexBuffer.stride * 4, i.pos * 4);
-			
+		enabledVertexAttribs = 0;
+		for (i in curVertexBuffer.layout) {
+			gl.enableVertexAttribArray(i.index);
+			gl.vertexAttribPointer(i.index, i.size, GL.FLOAT, false, curVertexBuffer.stride * 4, i.pos * 4);
+			++enabledVertexAttribs;
 		}
 	}
 
 	public function setIndexBuffer(b:IIndexBuffer):Void {
-		curIndexBuffer = cast b;
+		var ib:IndexBuffer = cast b;
+		if(ib.driver != this)
+			throw "Driver mismatch";
+		curIndexBuffer = ib;
 	}
 
 	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void {}
@@ -266,6 +290,6 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function draw():Void {
 		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, curIndexBuffer.buf);
-		gl.drawElements(GL.POINTS, curIndexBuffer.size, curIndexBuffer.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, 0);
+		gl.drawElements(GL.TRIANGLES, curIndexBuffer.desc.size, GL.UNSIGNED_SHORT, 0);
 	}
 }
