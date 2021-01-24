@@ -2,318 +2,434 @@ package arcane.common;
 
 @:eager private typedef Float = arcane.FastFloat;
 
-@:notNull abstract Vector2(Array<Float>) from Array<Float> to Array<Float> {
-	public extern inline function empty():Vector2 return [0, 0];
+@:forward
+@:forward.new
+abstract Vector3(Vec3Internal) {
+	public extern inline static function empty():Vector3 {
+		return new Vector3(0, 0, 0);
+	}
 
-	public extern inline function new(arr:Array<Float>) this = arr;
+	public extern inline function dot(b:Vector3):Float {
+		return this.x * b.x + this.y * b.y + this.z * b.z;
+	}
 }
 
-@:notNull abstract Vector3(Array<Float>) from Array<Float> to Array<Float> {
-	public extern inline function empty():Vector3 return [0, 0, 0];
+@:forward
+@:forward.new
+abstract Vector4(Vec4Internal) {
+	public extern inline static function empty():Vector4 {
+		return new Vector4(0, 0, 0, 0);
+	}
 
-	public extern inline function new(arr:Array<Float>) this = arr;
+	public extern inline function dot(b:Vector4):Float {
+		return this.x * b.x + this.y * b.y + this.z * b.z + this.w * b.w;
+	}
 }
 
-@:notNull abstract Vector4(Array<Float>) from Array<Float> to Array<Float> {
-	public extern inline function empty():Vector4 return [0, 0, 0, 0];
-
-	public extern inline function new(arr:Array<Float>) this = arr;
-}
-
-@:notNull
-abstract Matrix3(Array<Float>) from Array<Float> to Array<Float> {
-	public static extern inline function rotationX(alpha:Float) {
+@:forward
+@:forward.new
+abstract Matrix3(Mat3Internal) {
+	public static extern inline function rotationX(alpha:Float):Matrix3 {
 		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
-		m.set(1, 1, ca);
-		m.set(1, 2, -sa);
-		m.set(2, 1, sa);
-		m.set(2, 2, ca);
+		m._22 = ca;
+		m._23 = -sa;
+		m._32 = sa;
+		m._33 = ca;
 		return m;
 	}
 
-	public static extern inline function rotationY(alpha:Float) {
+	public static extern inline function rotationY(alpha:Float):Matrix3 {
 		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
-		m.set(0, 0, ca);
-		m.set(0, 2, sa);
-		m.set(2, 0, -sa);
-		m.set(2, 2, ca);
+		m._11 = ca;
+		m._13 = sa;
+		m._31 = -sa;
+		m._33 = ca;
 		return m;
 	}
 
-	public static extern inline function rotationZ(alpha:Float) {
+	public static extern inline function rotationZ(alpha:Float):Matrix3 {
 		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
-		m.set(0, 0, ca);
-		m.set(0, 1, -sa);
-		m.set(1, 0, sa);
-		m.set(1, 1, ca);
+		m._11 = ca;
+		m._12 = -sa;
+		m._21 = sa;
+		m._22 = ca;
 		return m;
 	}
 
-	public extern static inline function identity():Matrix3
-		return [
+	public extern static inline function identity():Matrix3 {
+		return new Matrix3(
 			1, 0, 0,
 			0, 1, 0,
-			0, 0, 1,
-		];
+			0, 0, 1
+		);
+	}
 
-	public extern static inline function empty():Matrix3
-		return [
+	public extern static inline function empty():Matrix3 {
+		return new Matrix3(
 			0, 0, 0,
 			0, 0, 0,
-			0, 0, 0,
-		];
-
-	private extern static inline var size:Int = 3;
-
-	public extern inline function new(arr:Array<Float>) {
-		this = arr;
+			0, 0, 0
+		);
 	}
 
-	public extern inline function get(x:Int, y:Int)
-		return this[y * size + x];
-
-	public extern inline function set(x:Int, y:Int, v:Float)
-		this[y * size + x] = v;
-
-	public extern inline function transpose():Matrix3 return null;
-
-	public extern inline function trace():Float
-		return get(0, 0) + get(1, 1) + get(2, 2);
-
-	@:op(A + V) extern static inline function add(a:Matrix3, b:Matrix3):Matrix3
-		return [for (i in 0...(size * size)) (a : Array<Float>) [i] + (b : Array<Float>)[i]];
-
-	@:op(A + V) extern static inline function addv(a:Matrix3, b:Float):Matrix3
-		return [for (i in (a : Array<Float>)) i + b];
-
-	@:op(A - B) extern static inline function sub(a:Matrix3, b:Matrix3):Matrix3
-		return [for (i in 0...(size * size)) (a : Array<Float>) [i] - (b : Array<Float>)[i]];
-
-	@:op(A - B) extern static inline function subv(a:Matrix3, b:Float):Matrix3
-		return [for (i in (a : Array<Float>)) i - b];
-
-	@:op(A * B) extern static inline function mult(a:Matrix3, b:Matrix3):Matrix3
-		return [
-			for (x in 0...size)
-				for (y in 0...size)
-					a.get(x, y) * b.get(y, x) + a.get(x + 1, y + 1) * b.get(y + 1, x + 1) + a.get(x + 2, y + 2) * b.get(y + 2, x + 2)
-		];
-
-	@:op(A * B) extern static inline function multv(a:Matrix3, b:Float):Matrix3
-		return [for (i in 0...(size * size)) a[i] * b];
-
-	@:op(A * B) extern static inline function multvec(a:Matrix3, b:Vector3):Vector3
-		return [
-			b[0] * (a[0] + a[1] + a[2]),
-			b[0] * (a[0 + 1] + a[1 + 1] + a[2 + 1]),
-			b[0] * (a[0 + 2] + a[1 + 2] + a[2 + 2]),
-		];
-
-	public inline extern function clamp(min:Float, max:Float) {
-		var ret = empty();
-		for (i in 0...9) {
-			var x = this[i];
-			ret[i] = x < min ? min : (x > max ? max : x);
-		}
-		return ret;
+	public extern inline function transpose():Matrix3 {
+		return new Matrix3(
+			this._11, this._21, this._31,
+			this._12, this._22, this._32,
+			this._13, this._23, this._33
+		);
 	}
 
-	#if kinc
-	@:to extern inline function toKincMatrix():kinc.math.Matrix3 {
-		var ret = new kinc.math.Matrix3();
-		for (x in 0...size)
-			for (y in 0...size)
-				ret.set(x, y, get(x, y));
-		return ret;
+	public extern inline function trace():Float {
+		return this._11 + this._22 + this._33;
 	}
 
-	@:from extern static inline function fromKincMatrix(m:kinc.math.Matrix3) {
-		var ret = empty();
-		for (x in 0...size)
-			for (y in 0...size)
-				ret.set(x, y, m.get(x, y));
-		return ret;
+	@:op(A + V) extern static inline function add(a:Matrix3, b:Matrix3):Matrix3 {
+		return new Matrix3(
+			a._11 + b._11, a._12 + b._12, a._13 + b._13,
+			a._21 + b._21, a._22 + b._22, a._23 + b._23,
+			a._31 + b._31, a._32 + b._32, a._33 + b._33
+		);
 	}
-	#end
+
+	@:commutative
+	@:op(A + V) extern static inline function addf(a:Matrix3, b:Float):Matrix3 {
+		return new Matrix3(
+			a._11 + b, a._12 + b, a._13 + b,
+			a._21 + b, a._22 + b, a._23 + b,
+			a._31 + b, a._32 + b, a._33 + b
+		);
+	}
+
+	@:op(A - B) extern static inline function sub(a:Matrix3, b:Matrix3):Matrix3 {
+		return new Matrix3(
+			a._11 - b._11, a._12 - b._12, a._13 - b._13,
+			a._21 - b._21, a._22 - b._22, a._23 - b._23,
+			a._31 - b._31, a._32 - b._32, a._33 - b._33
+		);
+	}
+
+	@:op(A - B) extern static inline function subf(a:Matrix3, b:Float):Matrix3 {
+		return new Matrix3(
+			a._11 - b, a._12 - b, a._13 - b,
+			a._21 - b, a._22 - b, a._23 - b,
+			a._31 - b, a._32 - b, a._33 - b
+		);
+	}
+
+	@:op(A - B) extern static inline function fsub(a:Float, b:Matrix3):Matrix3 {
+		return new Matrix3(
+			a - b._11, a - b._12, a - b._13,
+			a - b._21, a - b._22, a - b._23,
+			a - b._31, a - b._32, a - b._33
+		);
+	}
+
+	@:op(A * B) extern static inline function mult(a:Matrix3, b:Matrix3):Matrix3 {
+		var a1 = new Vector3(a._11, a._12, a._13);
+		var a2 = new Vector3(a._21, a._22, a._23);
+		var a3 = new Vector3(a._31, a._32, a._33);
+
+		var b1 = new Vector3(b._11, b._21, b._31);
+		var b2 = new Vector3(b._12, b._22, b._32);
+		var b3 = new Vector3(b._13, b._23, b._33);
+
+		return new Matrix3(
+			a1.dot(b1), a1.dot(b2), a1.dot(b3),
+			a2.dot(b1), a2.dot(b2), a2.dot(b3),
+			a3.dot(b1), a3.dot(b2), a3.dot(b3)
+		);
+	}
+
+	@:commutative
+	@:op(A * B) extern static inline function multf(a:Matrix3, b:Float):Matrix3 {
+		return new Matrix3(
+			a._11 * b, a._12 * b, a._13 * b,
+			a._21 * b, a._22 * b, a._23 * b,
+			a._31 * b, a._32 * b, a._33 * b
+		);
+	}
+
+	@:op(A * B) extern static inline function multvec(a:Matrix3, b:Vector3):Vector3 {
+		var a1 = new Vector3(a._11, a._12, a._13);
+		var a2 = new Vector3(a._21, a._22, a._23);
+		var a3 = new Vector3(a._31, a._32, a._33);
+
+		return new Vector3(a1.dot(b), a2.dot(b), a3.dot(b));
+	}
 }
 
-@:notNull
-abstract Matrix4(Array<Float>) from Array<Float> to Array<Float> {
-	public extern static inline function scale(x:Float, y:Float, z:Float):Matrix4
-		return [
+@:forward.new
+@:forward
+abstract Matrix4(Mat4Internal) {
+	public static extern inline function scale(x:Float, y:Float, z:Float):Matrix4 {
+		return new Matrix4(
 			x, 0, 0, 0,
 			0, y, 0, 0,
 			0, 0, z, 0,
 			0, 0, 0, 1
-		];
+		);
+	}
 
-	public extern static inline function rotation(yaw:Float, pitch:Float, roll:Float):Matrix4 {
+	public static extern inline function rotation(yaw:Float, pitch:Float, roll:Float):Matrix4 {
 		var sy = Math.sin(yaw);
 		var cy = Math.cos(yaw);
 		var sx = Math.sin(pitch);
 		var cx = Math.cos(pitch);
 		var sz = Math.sin(roll);
 		var cz = Math.cos(roll);
-		return [
+		return new Matrix4(
 			cx * cy, cx * sy * sz - sx * cz, cx * sy * cz + sx * sz, 0,
 			sx * cy, sx * sy * sz + cx * cz, sx * sy * cz - cx * sz, 0,
-			    -sy,                cy * sz,                cy * cz, 0,
-			      0,                      0,                      0, 1
-		];
+			-sy, cy * sz, cy * cz, 0,
+			0, 0, 0, 1
+		);
 	}
 
-	public extern static inline function identity():Matrix4
-		return [
+	public extern static inline function identity():Matrix4 {
+		return new Matrix4(
 			1, 0, 0, 0,
 			0, 1, 0, 0,
 			0, 0, 1, 0,
 			0, 0, 0, 1
-		];
+		);
+	}
 
-	public extern static inline function empty():Matrix4
-		return [
+	public extern static inline function empty():Matrix4 {
+		return new Matrix4(
 			0, 0, 0, 0,
 			0, 0, 0, 0,
 			0, 0, 0, 0,
 			0, 0, 0, 0
-		];
-
-	private static inline var size:Int = 4;
-
-	public extern inline function new(arr:Array<Float>) {
-		this = arr;
+		);
 	}
 
-	public extern inline function get(x:Int, y:Int)
-		return this[y * size + x];
-
-	public extern inline function set(x:Int, y:Int, v:Float)
-		this[y * size + x] = v;
-
-	public extern inline function transpose():Matrix4 return null;
-
-	public extern inline function trace():Float
-		return get(0, 0) + get(1, 1) + get(2, 2) + get(3, 3);
-
-	@:op(A + V) extern static inline function add(a:Matrix4, b:Matrix4):Matrix4
-		return [for (i in 0...(size * size)) (a : Array<Float>) [i] + (b : Array<Float>)[i]];
-
-	@:op(A + V) extern static inline function addv(a:Matrix4, b:Float):Matrix4
-		return [for (i in (a : Array<Float>)) i + b];
-
-	@:op(A - B) extern static inline function sub(a:Matrix4, b:Matrix4):Matrix4
-		return [for (i in 0...(size * size)) (a : Array<Float>) [i] - (b : Array<Float>)[i]];
-
-	@:op(A - B) extern static inline function subv(a:Matrix4, b:Float):Matrix4
-		return [for (i in (a : Array<Float>)) i - b];
-
-	@:op(A * B) extern static inline function mult(a_:Matrix4, b_:Matrix4):Matrix4 {
-		inline function a(x:Int, y:Int) return a_.get(x, y);
-		inline function b(x:Int, y:Int) return b_.get(x, y);
-		return [a(0, 0) * b(0, 0) + a(1, 0) * b(0, 1) + a(2, 0) * b(0, 2) + a(3, 0) * b(0, 3),
-			a(0, 0) * b(1, 0)
-			+ a(1, 0) * b(1, 1)
-			+ a(2, 0) * b(1, 2)
-			+ a(3, 0) * b(1, 3),
-			a(0, 0) * b(2, 0)
-			+ a(1, 0) * b(2, 1)
-			+ a(2, 0) * b(2, 2)
-			+ a(3, 0) * b(2, 3),
-			a(0, 0) * b(3, 0)
-			+ a(1, 0) * b(3, 1)
-			+ a(2, 0) * b(3, 2)
-			+ a(3, 0) * b(3, 3),
-			a(0, 1) * b(0, 0)
-			+ a(1, 1) * b(0, 1)
-			+ a(2, 1) * b(0, 2)
-			+ a(3, 1) * b(0, 3),
-			a(0, 1) * b(1, 0)
-			+ a(1, 1) * b(1, 1)
-			+ a(2, 1) * b(1, 2)
-			+ a(3, 1) * b(1, 3),
-			a(0, 1) * b(2, 0)
-			+ a(1, 1) * b(2, 1)
-			+ a(2, 1) * b(2, 2)
-			+ a(3, 1) * b(2, 3),
-			a(0, 1) * b(3, 0)
-			+ a(1, 1) * b(3, 1)
-			+ a(2, 1) * b(3, 2)
-			+ a(3, 1) * b(3, 3),
-			a(0, 2) * b(0, 0)
-			+ a(1, 2) * b(0, 1)
-			+ a(2, 2) * b(0, 2)
-			+ a(3, 2) * b(0, 3),
-			a(0, 2) * b(1, 0)
-			+ a(1, 2) * b(1, 1)
-			+ a(2, 2) * b(1, 2)
-			+ a(3, 2) * b(1, 3),
-			a(0, 2) * b(2, 0)
-			+ a(1, 2) * b(2, 1)
-			+ a(2, 2) * b(2, 2)
-			+ a(3, 2) * b(2, 3),
-			a(0, 2) * b(3, 0)
-			+ a(1, 2) * b(3, 1)
-			+ a(2, 2) * b(3, 2)
-			+ a(3, 2) * b(3, 3),
-			a(0, 3) * b(0, 0)
-			+ a(1, 3) * b(0, 1)
-			+ a(2, 3) * b(0, 2)
-			+ a(3, 3) * b(0, 3),
-			a(0, 3) * b(1, 0)
-			+ a(1, 3) * b(1, 1)
-			+ a(2, 3) * b(1, 2)
-			+ a(3, 3) * b(1, 3),
-			a(0, 3) * b(2, 0)
-			+ a(1, 3) * b(2, 1)
-			+ a(2, 3) * b(2, 2)
-			+ a(3, 3) * b(2, 3),
-			a(0, 3) * b(3, 0)
-			+ a(1, 3) * b(3, 1)
-			+ a(2, 3) * b(3, 2)
-			+ a(3, 3) * b(3, 3)];
+	public extern static inline function translation(x:Float, y:Float, z:Float):Matrix4 {
+		return new Matrix4(
+			0, 0, 0, x,
+			0, 0, 0, y,
+			0, 0, 0, z,
+			0, 0, 0, 0
+		);
 	}
 
-	@:op(A * B) extern static inline function multv(a:Matrix4, b:Float):Matrix4
-		return [for (i in 0...(size * size)) a[i] * b];
+	public extern inline function transpose():Matrix4 {
+		return new Matrix4(
+			this._11, this._21, this._31, this._41,
+			this._12, this._22, this._32, this._42,
+			this._13, this._23, this._33, this._43,
+			this._34, this._24, this._34, this._44
+		);
+	}
 
-	@:op(A * B) extern static inline function multvec(a:Matrix4, b:Vector4):Vector4
+	public extern inline function trace():Float {
+		return this._11 + this._22 + this._33 + this._44;
+	}
+
+	@:op(A + V) extern static inline function add(a:Matrix4, b:Matrix4):Matrix4 {
+		return new Matrix4(
+			a._11 + b._11, a._12 + b._12, a._13 + b._13, a._14 + b._14,
+			a._21 + b._21, a._22 + b._22, a._23 + b._23, a._24 + b._24,
+			a._31 + b._31, a._32 + b._32, a._33 + b._33, a._34 + b._34,
+			a._41 + b._41, a._42 + b._42, a._43 + b._43, a._44 + b._44
+		);
+	}
+
+	@:commutative
+	@:op(A + V) extern static inline function addv(a:Matrix4, b:Float):Matrix4 {
+		return new Matrix4(
+			a._11 + b, a._12 + b, a._13 + b, a._14 + b,
+			a._21 + b, a._22 + b, a._23 + b, a._24 + b,
+			a._31 + b, a._32 + b, a._33 + b, a._34 + b,
+			a._41 + b, a._42 + b, a._43 + b, a._44 + b
+		);
+	}
+
+	@:op(A - B) extern static inline function sub(a:Matrix4, b:Matrix4):Matrix4 {
+		return new Matrix4(
+			a._11 - b._11, a._12 - b._12, a._13 - b._13, a._14 - b._14,
+			a._21 - b._21, a._22 - b._22, a._23 - b._23, a._24 - b._24,
+			a._31 - b._31, a._32 - b._32, a._33 - b._33, a._34 - b._34,
+			a._41 - b._41, a._42 - b._42, a._43 - b._43, a._44 - b._44
+		);
+	}
+
+	@:op(A - B) extern static inline function subf(a:Matrix4, b:Float):Matrix4 {
+		return new Matrix4(
+			a._11 - b, a._12 - b, a._13 - b, a._14 - b,
+			a._21 - b, a._22 - b, a._23 - b, a._24 - b,
+			a._31 - b, a._32 - b, a._33 - b, a._34 - b,
+			a._41 - b, a._42 - b, a._43 - b, a._44 - b
+		);
+	}
+
+	@:op(A - B) extern static inline function fsub(a:Float, b:Matrix4):Matrix4 {
+		return new Matrix4(
+			a - b._11, a - b._12, a - b._13, a - b._14,
+			a - b._21, a - b._22, a - b._23, a - b._24,
+			a - b._31, a - b._32, a - b._33, a - b._34,
+			a - b._41, a - b._42, a - b._43, a - b._44
+		);
+	}
+
+	@:op(A * B) extern static inline function mult(a:Matrix4, b:Matrix4):Matrix4 {
+		var a1 = new Vector4(a._11, a._12, a._13, a._14);
+		var a2 = new Vector4(a._21, a._22, a._23, a._24);
+		var a3 = new Vector4(a._31, a._32, a._33, a._34);
+		var a4 = new Vector4(a._41, a._42, a._43, a._44);
+
+		var b1 = new Vector4(b._11, b._21, b._31, b._41);
+		var b2 = new Vector4(b._12, b._22, b._32, b._42);
+		var b3 = new Vector4(b._13, b._23, b._33, b._43);
+		var b4 = new Vector4(b._14, b._24, b._34, b._44);
+
+		return new Matrix4(
+			a1.dot(b1), a1.dot(b2), a1.dot(b3), a1.dot(b4),
+			a2.dot(b1), a2.dot(b2), a2.dot(b3), a2.dot(b4),
+			a3.dot(b1), a3.dot(b2), a3.dot(b3), a3.dot(b4),
+			a4.dot(b1), a4.dot(b2), a4.dot(b3), a4.dot(b4)
+		);
+	}
+
+	@:commutative
+	@:op(A * B) extern static inline function multf(a:Matrix4, b:Float):Matrix4
+		return new Matrix4(
+			a._11 * b, a._12 * b, a._13 * b, a._14 * b,
+			a._21 * b, a._22 * b, a._23 * b, a._24 * b,
+			a._31 * b, a._32 * b, a._33 * b, a._34 * b,
+			a._41 * b, a._42 * b, a._43 * b, a._44 * b
+		);
+
+	@:op(A * B) extern static inline function multv(a:Matrix4, b:Vector4):Vector4 {
+		var a1 = new Vector4(a._11, a._12, a._13, a._14);
+		var a2 = new Vector4(a._21, a._22, a._23, a._24);
+		var a3 = new Vector4(a._31, a._32, a._33, a._34);
+		var a4 = new Vector4(a._41, a._42, a._43, a._44);
+		return new Vector4(a1.dot(b), a2.dot(b), a3.dot(b), a4.dot(b));
+	}
+
+	@:op(A == B) extern static inline function equal(a:Matrix4, b:Matrix4) {
+		return a._11 == b._11 && a._12 == b._12 && a._13 == b._13 && a._14 == b._14 && a._21 == b._21 && a._22 == b._22 && a._23 == b._23 && a._24 == b._24
+			&& a._31 == b._31 && a._32 == b._32 && a._33 == b._33 && a._34 == b._34 && a._41 == b._41 && a._42 == b._42 && a._43 == b._43 && a._44 == b._44;
+	}
+
+	@:to extern inline function toArray():Array<Float> {
 		return [
-			b[0] * (a[0] + a[1] + a[2] + a[3]),
-			b[0] * (a[0 + 1] + a[1 + 1] + a[2 + 1] + a[3 + 1]),
-			b[0] * (a[0 + 2] + a[1 + 2] + a[2 + 2] + a[3 + 2]),
-			b[0] * (a[0 + 3] + a[1 + 3] + a[2 + 3] + a[3 + 3])
+			this._11, this._12, this._13, this._14,
+			this._21, this._22, this._23, this._24,
+			this._31, this._32, this._33, this._34,
+			this._41, this._42, this._43, this._44
 		];
+	}
+}
 
-	public inline extern function clamp(min:Float, max:Float) {
-		var ret = empty();
-		for (i in 0...9) {
-			var x = this[i];
-			ret[i] = x < min ? min : (x > max ? max : x);
-		}
-		return ret;
+private class Mat3Internal {
+	public var _11:Float;
+	public var _12:Float;
+	public var _13:Float;
+	public var _21:Float;
+	public var _22:Float;
+	public var _23:Float;
+	public var _31:Float;
+	public var _32:Float;
+	public var _33:Float;
+
+	public function new(_11, _12, _13, _21, _22, _23, _31, _32, _33) {
+		this._11 = _11;
+		this._12 = _12;
+		this._13 = _13;
+		this._21 = _21;
+		this._22 = _22;
+		this._23 = _23;
+		this._31 = _31;
+		this._32 = _32;
+		this._33 = _33;
 	}
 
-	#if kinc
-	@:to extern inline function toKincMatrix():kinc.math.Matrix4 {
-		var ret = new kinc.math.Matrix4();
-		for (x in 0...size)
-			for (y in 0...size)
-				ret.set(x, y, get(x, y));
-		return ret;
+	inline function toString() {
+		return 'Matrix3 {\n $_11 $_12 $_13\n$_21 $_22 $_23\n$_31 $_32 $_33\n}';
+	}
+}
+
+private class Mat4Internal {
+	public var _11:Float;
+	public var _12:Float;
+	public var _13:Float;
+	public var _14:Float;
+	public var _21:Float;
+	public var _22:Float;
+	public var _23:Float;
+	public var _24:Float;
+	public var _31:Float;
+	public var _32:Float;
+	public var _33:Float;
+	public var _34:Float;
+	public var _41:Float;
+	public var _42:Float;
+	public var _43:Float;
+	public var _44:Float;
+
+	public inline function new(_11:Float, _12:Float, _13:Float, _14:Float, _21:Float, _22:Float, _23:Float, _24:Float, _31:Float, _32:Float, _33:Float,
+			_34:Float, _41:Float, _42:Float, _43:Float, _44:Float) {
+		this._11 = _11;
+		this._12 = _12;
+		this._13 = _13;
+		this._14 = _14;
+		this._21 = _21;
+		this._22 = _22;
+		this._23 = _23;
+		this._24 = _24;
+		this._31 = _31;
+		this._32 = _32;
+		this._33 = _33;
+		this._34 = _34;
+		this._41 = _41;
+		this._42 = _42;
+		this._43 = _43;
+		this._44 = _44;
 	}
 
-	@:from extern static inline function fromKincMatrix(m:kinc.math.Matrix4) {
-		var ret = empty();
-		for (x in 0...size)
-			for (y in 0...size)
-				ret.set(x, y, m.get(x, y));
-		return ret;
+	inline function toString() {
+		return 'Matrix4 {\n$_11 $_12 $_13 $_14\n$_21 $_22 $_23 $_24\n$_31 $_32 $_33 $_34\n$_41 $_42 $_43 $_44\n}';
 	}
-	#end
+}
+
+private class Vec3Internal {
+	public var x:Float;
+	public var y:Float;
+	public var z:Float;
+
+	public inline function new(x, y, z) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+	}
+
+	inline function toString():String {
+		return 'Vector3 {$x $y $z}';
+	}
+}
+
+private class Vec4Internal {
+	public var x:Float;
+	public var y:Float;
+	public var z:Float;
+	public var w:Float;
+
+	public inline function new(x, y, z, w) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
+	}
+
+	inline function toString():String {
+		return 'Vector4 {$x $y $z $w}';
+	}
 }
