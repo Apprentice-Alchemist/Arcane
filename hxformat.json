@@ -7,7 +7,10 @@
     "whitespace":{
         "addLineCommentSpace": true,
         "binopPolicy": "around",
-        "compressSuccessiveParenthesis": true,
-        "ifPolicy": "before"
+        "compressSuccessiveParenthesis": true
+    },
+    "wrapping":{
+        "opAddSubChain": {"defaultWrap":"keep"},
+        "callParameter": {"defaultWrap": "keep","defaultLocation": "afterLast"}
     }
 }

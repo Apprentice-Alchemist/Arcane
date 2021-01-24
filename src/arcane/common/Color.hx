@@ -51,14 +51,3 @@ abstract Color(Int) from Int to Int {
 	private inline function toString():String
 		return "0x" + StringTools.hex(a, 2) + StringTools.hex(r, 2) + StringTools.hex(g, 2) + StringTools.hex(b, 2);
 }
-
-function main() @:privateAccess {
-	var col:Color = 0x00ff0000;
-	var a = 0xff;
-	trace(StringTools.hex(0x00ff | (0xff << 8)));
-	trace(col.toString());
-	trace(col.r);
-	col.a = a;
-	trace(col.toString());
-	trace(col.a);
-}

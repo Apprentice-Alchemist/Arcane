@@ -1,4 +1,4 @@
-package arcane.backend.kinc;
+package backend.kinc;
 
 import arcane.spec.IAudioDriver;
 

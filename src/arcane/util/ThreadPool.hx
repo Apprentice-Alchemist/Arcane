@@ -4,11 +4,18 @@ package arcane.util;
 #error "ThreadPool only works on multithreaded targets"
 #end
 
-import sys.thread.*;
+import sys.thread.Thread;
+import sys.thread.Deque;
+import sys.thread.Mutex;
 
 private enum ThreadStatus {
 	Awake;
 	Sleeping;
+}
+
+private enum ThreadMessage {
+	Wake;
+	Die;
 }
 
 @:nullSafety(StrictThreaded)
@@ -44,8 +51,7 @@ private class Task {
 	}
 
 	public function complete() {
-		Utils.assert(is_executed,"");
-		if (is_errored)
+		if(is_errored)
 			on_error(this);
 		else
 			on_complete(this);
@@ -56,89 +62,109 @@ private class Task {
 private class ThreadData {
 	public var thread:Thread;
 	public var mutex:Mutex;
-	public var tasks:Array<Task>;
-	public var completed_tasks:Array<Task>;
-	public var status:ThreadStatus = Sleeping;
+	public var tasks:Deque<Task>;
+	public var completed_tasks:Deque<Task>;
 
 	public function new() {
 		mutex = new Mutex();
-		tasks = [];
-		completed_tasks = [];
+		tasks = new Deque();
+		completed_tasks = new Deque();
 		thread = Thread.create(work);
 	}
 
 	function work() {
-		Sys.sleep(0.1);
 		var sleeping = true;
 		while (true) {
-			var _msg = Thread.readMessage(false);
-			if (_msg == "wake") {
-				sleeping = false;
+			var _msg:Null<ThreadMessage> = Thread.readMessage(false);
+			switch _msg {
+				case Wake:
+					sleeping = false;
+				case Die:
+					break;
+				case _:
 			}
-			if (_msg == "die")
-				break;
-			if (!sleeping) {
-				// mutex.acquire();
-				status = Awake;
-				var t = tasks.pop();
-				// mutex.release();
-				while (t != null) {
-					t.execute();
-					// mutex.acquire();
-					completed_tasks.push(t);
-					t = tasks.pop();
-					// mutex.release();
+			if(!sleeping) {
+				mutex.acquire();
+				var t:Array<Task> = [];
+				var val = tasks.pop(false);
+				while (val != null) {
+					t.push(val);
+					val = tasks.pop(false);
 				}
-				// mutex.acquire();
-				status = Sleeping;
-				// mutex.release();
+				mutex.release();
+
+				for (i in t) {
+					i.execute();
+				}
+
+				mutex.acquire();
+				for (i in t) {
+					completed_tasks.push(i);
+				}
 				sleeping = true;
+				mutex.release();
 			}
-			// Sys.sleep(0.1);
+			Sys.sleep(0.1);
 		}
 	}
 }
 
-/**
- * A pool of threads for tasks that should be executed asynchronusly
- */
 @:nullSafety(StrictThreaded)
 class ThreadPool {
-	public static var threads:Array<ThreadData> = [];
+	public var threads:Array<ThreadData> = [];
 
-	public static function __init__() {
-		threads = [for(_ in 0...4) new ThreadData()];
-		haxe.MainLoop.add(process);
+	private var ml_ev:arcane.util.Nullable<haxe.MainLoop.MainEvent>;
+
+	private function create():Void {
+		if(threads.length > 0)
+			return;
+		threads = [for (_ in 0...4) new ThreadData()];
+		ml_ev = haxe.MainLoop.add(process);
+		ml_ev!.isBlocking = false;
 	}
 
-	private static var _ct:Int = 0;
+	public function new() {
+		create();
+	}
 
-	public static function addTask(_in, exec, comp, err, wake_thread = true) {
+	private var _ct:Int = 0;
+
+	public function addTask(_in, exec, comp, err, wake_thread = true):Void {
+		create();
 		var id = _ct >= threads.length ? (_ct = 0) : _ct++;
 		var t = threads[id];
-		// t.mutex.acquire();
+		t.mutex.acquire();
 		t.tasks.push(new Task(_in, exec, comp, err));
-		// t.mutex.release();
-		if (wake_thread)
+		t.mutex.release();
+		if(wake_thread)
 			t.thread.sendMessage("wake");
 	}
 
-	public static function process() {
+	public function process():Void {
 		for (thread in threads) {
-			// if (thread.mutex.tryAcquire()) {
-				var task = thread.completed_tasks.pop();
-				while (task != null) {
-					task.complete();
-					task = thread.completed_tasks.pop();
-				}
-			// 	thread.mutex.release();
-			// }
+			thread.mutex.acquire();
+			var task = thread.completed_tasks.pop(false);
+			while (task != null) {
+				task.complete();
+				task = thread.completed_tasks.pop(false);
+			}
+			thread.mutex.release();
 		}
 	}
 
-	public static function awaken() {
+	public function awaken():Void {
+		create();
 		for (thread in threads) {
-			thread.thread.sendMessage("wake");
+			thread.thread.sendMessage((Wake : ThreadMessage));
 		}
+	}
+
+	public function dispose():Void {
+		for (thread in threads) {
+			thread.thread.sendMessage((Die : ThreadMessage));
+		}
+		threads = [];
+		ml_ev!.stop();
+		ml_ev = null;
 	}
 }

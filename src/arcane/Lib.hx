@@ -7,12 +7,13 @@ import arcane.signal.Signal;
 import arcane.signal.SignalDispatcher;
 import arcane.common.Version;
 
+@:nullSafety
 @:allow(arcane.internal)
 class Lib {
 	public static var version(default, never):Version = new Version("0.0.1");
-	public static var fps(default, null):Float;
+	public static var fps(default, null):Float = 0.0;
 	public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
-
+	
 	private static var backend:Null<ISystem>;
 	private static var gdriver:Null<IGraphicsDriver>;
 	private static var adriver:Null<IAudioDriver>;
@@ -27,11 +28,11 @@ class Lib {
 	public static function init(cb:Void->Void):Void {
 		if(backend == null)
 			#if kinc
-			backend = new arcane.backend.kinc.System();
+			backend = new backend.kinc.System();
 			#elseif js
-			backend = new arcane.backend.html5.System();
+			backend = new backend.html5.System();
 			#else
-			backend = new arcane.backend.empty.System();
+			backend = new backend.empty.System();
 			#end
 		initCb = cb;
 		backend.init(cast {}, onInit);
@@ -41,6 +42,7 @@ class Lib {
 
 	static function onInit():Void {
 		init_done = true;
+		if(backend == null) return;
 		if(backend.isFeatureSupported(Graphics3D))
 			gdriver = backend.createGraphicsDriver();
 		if(backend.isFeatureSupported(Audio))
@@ -49,18 +51,15 @@ class Lib {
 	}
 
 	static function update(dt:Float):Void {
-		if(gdriver != null)
-			gdriver.begin();
 		fps = 1 / (dt * 1000);
+		@:privateAccess haxe.MainLoop.tick();
 		for (o in __updates)
 			o(dt);
-		if(gdriver != null)
-			gdriver.end();
 		if(gdriver != null)
 			gdriver.present();
 	}
 
-	public static function time():Float return backend.time();
+	public static function time():Float return backend == null ? 0 : backend.time();
 
 	static function onResize():Void {
 		dispatcher.dispatch(new Signal("resize"));

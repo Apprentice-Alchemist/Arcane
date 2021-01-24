@@ -1,4 +1,4 @@
-package arcane.backend.kinc;
+package backend.kinc;
 
 import arcane.spec.ISystem;
 import arcane.spec.IGraphicsDriver;
@@ -19,6 +19,9 @@ class System implements ISystem {
 			samples_per_pixel: 1
 		});
 		kinc.System.setUpdateCallback(update);
+		kinc.System.setShutdownCallback(function(){
+			arcane.Lib.exit(0);
+		});
 		cb();
 		kinc.System.start();
 	} catch (e) {
@@ -33,10 +36,7 @@ class System implements ISystem {
 		arcane.Lib.update(curtime - lastTime);
 		lastTime = curtime;
 		kinc.g4.Graphics4.swapBuffers();
-	} catch (e) {
-		trace(e.details());
-		Sys.exit(-1);
-	}
+	} catch(e) trace(e.details());
 
 	public function shutdown()
 		kinc.System.stop();

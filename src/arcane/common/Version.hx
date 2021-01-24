@@ -1,6 +1,7 @@
 package arcane.common;
 
 @:forward
+@:nullSafety
 abstract Version(Ver) {
 	static final reg:EReg = ~/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/i;
 
@@ -8,9 +9,9 @@ abstract Version(Ver) {
 		if(!reg.match(s))
 			throw '$s is not a valid version';
 		this = {
-			major: cast(Std.parseInt(reg.matched(1))),
-			minor: cast(Std.parseInt(reg.matched(2))),
-			patch: cast(Std.parseInt(reg.matched(3))),
+			major: arcane.Utils.parseInt(reg.matched(1)),
+			minor: arcane.Utils.parseInt(reg.matched(2)),
+			patch: arcane.Utils.parseInt(reg.matched(3)),
 			other: reg.matched(4),
 			build: reg.matched(5)
 		};

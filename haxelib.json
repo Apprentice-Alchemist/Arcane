@@ -3,7 +3,9 @@
     "license": "MIT",
     "tags": [],
     "releasenote": "N/A",
-    "contributors": ["Apprentice-Alchemist"],
+    "contributors": [
+        "Apprentice-Alchemist"
+    ],
     "description": "N/A",
     "version": "0.0.1",
     "url": "https://github.com/Apprentice-Alchemist/Arcane",

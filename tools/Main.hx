@@ -1,6 +1,7 @@
 package tools;
 
 using StringTools;
+using Lambda;
 
 interface ICommand {
 	public function doc():Doc;
@@ -164,7 +165,7 @@ class Main {
    / _ \\ | '__/ __/ _` | '_ \\ / _ \\
   / ___ \\| | | (_| (_| | | | |  __/
  /_/   \\_\\_|  \\___\\__,_|_| |_|\\___|");
-		Sys.println(arcane.Lib.version);
+		Sys.println('Arcane Version : ${arcane.Lib.version}');
 	}
 }
 
@@ -201,10 +202,10 @@ class HelpCommand implements ICommand {
 		var doc = @:privateAccess Main.commands.get(id).doc();
 		var buf = new LineBuf();
 		buf.add("- " + doc.doc + "\n");
-		buf.add("Usage : arcane " + id + " " + [for (a in doc.args) a.optional ? "(" + a.id + ")" : "<" + a.id + ">"].join(" "));
+		buf.add("Usage : arcane " + id + " " + [for (a in doc.args) a.optional ? ("(" + a.id + ")") : ("<" + a.id + ">")].join(" "));
 		buf.add("\n\n");
 
-		if(Lambda.count(doc.switches) > 0) {
+		if(doc.switches.count() > 0) {
 			buf.add("Switches :\n");
 			buf.indent(function() {
 				for (value in doc.switches) {
@@ -257,7 +258,7 @@ class CreateCommand implements ICommand {
 			args: [
 				{
 					id: "template",
-					optional: false,
+					optional: true,
 					doc: "Which template to use"
 				},
 				{

@@ -1,5 +1,6 @@
-test/*
-out/*
-res/*
-.vscode/*
-tmp/*
+test
+dump
+out
+res
+.vscode
+.tmp

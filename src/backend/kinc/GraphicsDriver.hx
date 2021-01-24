@@ -1,5 +1,7 @@
-package arcane.backend.kinc;
+package backend.kinc;
 
+import kinc.g4.RenderTarget;
+import kinc.g4.Pipeline.StencilAction;
 import arcane.Utils.assert;
 import kinc.g4.Graphics4;
 import arcane.spec.IGraphicsDriver;
@@ -19,7 +21,7 @@ class VertexBuffer implements IVertexBuffer {
 				case Float2: kinc.g4.VertexStructure.VertexData.Float2;
 				case Float3: kinc.g4.VertexStructure.VertexData.Float3;
 				case Float4: kinc.g4.VertexStructure.VertexData.Float4;
-				case Float4x4: kinc.g4.VertexStructure.VertexData.Float4X4;
+					// case Float4x4: kinc.g4.VertexStructure.VertexData.Float4X4;
 			});
 		}
 		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, DynamicUsage, 0);
@@ -65,26 +67,53 @@ class IndexBuffer implements IIndexBuffer {
 }
 
 class Texture implements ITexture {
-	private static var tmpimg:kinc.Image;
+	public static var img:kinc.Image = new kinc.Image();
+
 	public var desc(default, null):TextureDesc;
 
 	public var tex:kinc.g4.Texture;
+	public var renderTarget:kinc.g4.RenderTarget;
 
 	public function new(desc:TextureDesc) {
-		tex = new kinc.g4.Texture();
+		this.desc = desc;
 
-		if(desc.data != null) {
-			if(tmpimg == null) tmpimg = new kinc.Image();
-			tmpimg.initFromBytes(desc.data.getData(),desc.width,desc.height,cast kinc.Image.ImageFormat.FORMAT_RGBA32);
-			tex.initFromImage(tmpimg);
-			tmpimg.destroy();
+		if(desc.isRenderTarget) {
+			renderTarget = RenderTarget.create(desc.width, desc.height, 24, false, Format32Bit, 8, 0);
 		} else {
-			tex.init(desc.width, desc.height, FORMAT_RGBA32);
+			tex = new kinc.g4.Texture();
+			img.initFromBytes(desc.data, desc.width, desc.height, cast kinc.Image.ImageFormat.FORMAT_RGBA32);
+			tex.initFromImage(img);
+			img.destroy();
+			// tex.init(desc.width, desc.height, FORMAT_RGBA32);
+			// if(desc.data != null) {
+			// 	var p = 0;
+			// 	var data = tex.lock();
+			// 	var stride = tex.stride();
+			// 	for (y in 0...desc.height) {
+			// 		for (x in 0...desc.width) {
+			// 			// data[y * stride * 4 + x * 4 + 0] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 0);
+			// 			// data[y * stride * 4 + x * 4 + 1] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 1);
+			// 			// data[y * stride * 4 + x * 4 + 2] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 2);
+			// 			// data[y * stride * 4 + x * 4 + 3] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 3);
+
+			// 			// data[x * desc.width * 4 + y * 4 + 0] = desc.data.get(p++);
+			// 			// data[x * desc.width * 4 + y * 4 + 1] = desc.data.get(p++);
+			// 			// data[x * desc.width * 4 + y * 4 + 2] = desc.data.get(p++);
+			// 			// data[x * desc.width * 4 + y * 4 + 3] = desc.data.get(p++);
+			// 		}
+			// 	}
+			// 	tex.unlock();
+			// }
 		}
 	}
 
 	public function dispose():Void {
-		tex.destroy();
+		if(tex != null)
+			tex.destroy();
+		if(renderTarget != null)
+			renderTarget.destroy();
+		tex = null;
+		renderTarget = null;
 	}
 }
 
@@ -168,12 +197,70 @@ class Pipeline implements IPipeline {
 				case Float2: kinc.g4.VertexStructure.VertexData.Float2;
 				case Float3: kinc.g4.VertexStructure.VertexData.Float3;
 				case Float4: kinc.g4.VertexStructure.VertexData.Float4;
-				case Float4x4: kinc.g4.VertexStructure.VertexData.Float4X4;
+					// case Float4x4: kinc.g4.VertexStructure.VertexData.Float4X4;
 			});
 		}
 
 		state.input_layout[0] = struc;
+
+		state.stencil_reference_value = desc.stencil.reference;
+		state.stencil_read_mask = desc.stencil.readMask;
+		state.stencil_write_mask = desc.stencil.writeMask;
+		state.stencil_mode = convertCompare(desc.stencil.frontTest);
+		state.stencil_fail = convertStencilOp(desc.stencil.frontSTfail);
+		state.stencil_depth_fail = convertStencilOp(desc.stencil.frontDPfail);
+		state.stencil_both_pass = convertStencilOp(desc.stencil.frontPass);
+
+		state.cull_mode = switch desc.culling {
+			case None: NOTHING;
+			case Back: COUNTER_CLOCKWISE;
+			case Front: CLOCKWISE;
+			case Both: throw "";
+		}
+
+		state.depth_write = desc.depthWrite;
+		state.depth_mode = convertCompare(desc.depthTest);
+
+		state.blend_source = convertBlend(desc.blend.src);
+		state.alpha_blend_source = convertBlend(desc.blend.alphaSrc);
+		state.alpha_blend_destination = convertBlend(desc.blend.alphaDst);
+		state.blend_destination = convertBlend(desc.blend.dst);
 		state.compile();
+	}
+
+	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingOperation return switch b {
+		case One: ONE;
+		case Zero: ZERO;
+		case SrcAlpha: SOURCE_ALPHA;
+		case SrcColor: SOURCE_COLOR;
+		case DstAlpha: DEST_ALPHA;
+		case DstColor: DEST_COLOR;
+		case OneMinusSrcAlpha: INV_SOURCE_ALPHA;
+		case OneMinusSrcColor: INV_SOURCE_COLOR;
+		case OneMinusDstAlpha: INV_DEST_ALPHA;
+		case OneMinusDstColor: INV_DEST_COLOR;
+	}
+
+	private static inline function convertStencilOp(c:StencilOp):StencilAction return switch c {
+		case Keep: KEEP;
+		case Zero: ZERO;
+		case Replace: REPLACE;
+		case Increment: INCREMENT;
+		case IncrementWrap: INCREMENT_WRAP;
+		case Decrement: DECREMENT;
+		case DecrementWrap: DECREMENT_WRAP;
+		case Invert: INVERT;
+	}
+
+	private static inline function convertCompare(c:Compare):kinc.g4.Pipeline.CompareMode return switch c {
+		case Always: ALWAYS;
+		case Never: NEVER;
+		case Equal: EQUAL;
+		case NotEqual: NOT_EQUAL;
+		case Greater: GREATER;
+		case GreaterEqual: GREATER_EQUAL;
+		case Less: LESS;
+		case LessEqual: LESS_EQUAL;
 	}
 
 	public function getConstantLocation(name:String)
@@ -190,6 +277,12 @@ class Pipeline implements IPipeline {
 @:access(arcane.backend.kinc)
 class GraphicsDriver implements IGraphicsDriver {
 	public var window:Int;
+
+	public function supportsFeature(f:GraphicsDriverFeature):Bool
+		return switch f {
+			case ThirtyTwoBitIndexBuffers: true;
+			case InstancedRendering: true;
+		}
 
 	public function new(window:Int = 0) this.window = window;
 
@@ -227,42 +320,54 @@ class GraphicsDriver implements IGraphicsDriver {
 
 	public function createPipeline(desc:PipelineDesc):IPipeline return new Pipeline(desc);
 
+	public function setRenderTarget(?t:ITexture) {
+		if(t == null) {
+			Graphics4.restoreRenderTarget();
+			return;
+		}
+		var rt:Texture = cast t;
+
+		Graphics4.setRenderTargets([rt.renderTarget]);
+	}
+
 	public function setPipeline(p:IPipeline):Void {
-		#if debug
-		assert(p != null);
-		#end
 		Graphics4.setPipeline(cast(p, Pipeline).state);
 	}
 
 	public function setIndexBuffer(b:IIndexBuffer):Void {
-		#if debug
-		assert(b != null);
-		#end
 		Graphics4.setIndexBuffer(cast(b, IndexBuffer).buf);
 	}
 
 	public function setVertexBuffer(b:IVertexBuffer):Void {
-		#if debug
-		assert(b != null);
-		#end
 		Graphics4.setVertexBuffer(cast(b, VertexBuffer).buf);
 	}
 
-	public function setTextureUnit(u, t) {
-		#if debug
-		assert(u != null);
-		#end
-		Graphics4.setTexture(cast(u, TU).tu, cast(t, Texture).tex);
+	public function setTextureUnit(u:ITextureUnit, t:ITexture) {
+		var tex:Texture = cast t;
+		var unit:TU = cast u;
+		if(tex.desc.isRenderTarget) {
+			tex.renderTarget.useColorAsTexture(unit.tu);
+		} else {
+			Graphics4.setTexture(unit.tu, tex.tex);
+			// Graphics4.setTextureMagnificationFilter(unit.tu,POINT);
+		}
 	}
 
-	public function setConstantLocation(cl, floats:Array<hl.F32>) {
-		#if debug
-		assert(cl != null);
-		#end
+	public function setConstantLocation(cl:IConstantLocation, floats:Array<hl.F32>) {
 		Graphics4.setFloats(cast(cl, CL).cl, floats);
 	}
 
-	public function draw():Void {
-		Graphics4.drawIndexedVertices();
+	public function draw(start:Int = 0, count:Int = -1):Void {
+		if(count < 0)
+			Graphics4.drawIndexedVertices();
+		else
+			Graphics4.drawIndexedVerticesFromTo(start, count);
+	}
+
+	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {
+		if(count < 0)
+			Graphics4.drawIndexedVerticesInstanced(instanceCount);
+		else
+			Graphics4.drawIndexedVerticesInstancedFromTo(instanceCount, start, count);
 	}
 }

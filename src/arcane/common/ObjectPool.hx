@@ -5,20 +5,9 @@ import haxe.Constraints;
 private typedef Destroyable = {
 	function destroy():Void;
 }
-class X {
-	public function new() {}
-	private function toString() return "X";
-	public function destroy() {
-		
-	}
-}
 
-function main(){
-	trace("Hey");
-	var pool = new ObjectPool<X>();
-	trace(pool.get());
-}
 @:generic
+@:nullSafety
 class ObjectPool<T:Constructible<Void->Void> & Destroyable> {
 	public var count(default, null):Int;
 

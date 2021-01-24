@@ -2,6 +2,7 @@ package arcane.common;
 
 // TODO : Evalutate wether this is needed / used anywhere and remove it if it isn't.
 @:generic
+@:nullSafety
 class Mutable<T> extends arcane.signal.SignalDispatcher {
 	private var value:Null<T>;
 	private var getFunc:Void->T;

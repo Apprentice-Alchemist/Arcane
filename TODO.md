@@ -4,11 +4,15 @@
     - [ ] Docs on whatever I choose for shaders
 
 - General
-    - Should make a bunch of gh issues out of this todo list?
+    - Should I make a bunch of gh issues out of this todo list?
     - arcane.spec.
         - [ ] IGraphicsDriver
-            - [ ] IPipeline
-                - [ ] Stencil, depth & co
+            - [x] IPipeline
+                - [x] Stencil, depth & co
+            - [ ] ITexture
+                - [ ] mipmaps
+                - [ ] texture params
+                - [ ] upload texture data
         - [ ] IAudioDriver
             - How should the api look?
         - [ ] ISystem
@@ -26,12 +30,14 @@
     - [ ] Command line tools
         - [ ] Project creation
         - [ ] Automate setting up kincfiles and running kincmake
-        - [ ] \(nice but optional) downloading hashlink and such (requires either a prebuild exe, or working ssl for eval)
+        - [ ] \(nice but optional) downloading hashlink and such (requires either a prebuilt exe, or working ssl for eval)
 
 - Kinc Backend
     - Finish implementing everything
-        - [ ] Graphics
-            - [ ] Stencil, depth & co
+        - [x] Graphics ~~Unless I forgot something~~
+            - [x] Stencil, depth & co
+            - [ ] Texture stuff
+                - [ ] Figure out how to upload texture data correctly
         - [ ] Audio
         - [ ] System
         - [ ] Input
@@ -40,6 +46,8 @@
     - Graphics 
         - [ ] Finish the WebGL driver
             - [x] Figure out why its not working
+            - [ ] make render targets work
+            - [ ] Texture stuff
         - webgpu driver?
     - Audio
         - [ ] WebAudio driver.

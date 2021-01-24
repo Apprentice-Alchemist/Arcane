@@ -1,4 +1,4 @@
-package arcane.backend.empty;
+package backend.empty;
 
 import arcane.spec.ISystem;
 
