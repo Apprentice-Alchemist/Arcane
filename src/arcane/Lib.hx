@@ -13,20 +13,26 @@ class Lib {
 	public static var version(default, never):Version = new Version("0.0.1");
 	public static var fps(default, null):Float = 0.0;
 	public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
-	
-	private static var backend:Null<ISystem>;
-	private static var gdriver:Null<IGraphicsDriver>;
-	private static var adriver:Null<IAudioDriver>;
+
+	public static var backend(default, null):Null<ISystem>;
+	public static var gdriver(default, null):Null<IGraphicsDriver>;
+	public static var adriver(default, null):Null<IAudioDriver>;
+
 	private static var init_done:Bool = false;
+	#if target.threaded
+	private static var mainThread:sys.thread.Thread = cast null;
+	#end
 
-	public static function setBackend(b) {
-		if(init_done)
-			throw "Switching backends after Lib.init was called is not supported";
-		backend = b;
-	}
-
+	/**
+	 * Initialize engine, create the initial window and graphics driver.
+	 * Behaviour of methods in this class (and other classes) is undefined before this function is called.
+	 * @param cb 
+	 */
 	public static function init(cb:Void->Void):Void {
-		if(backend == null)
+		#if target.threaded
+		mainThread = sys.thread.Thread.current();
+		#end
+		if (backend == null)
 			#if kinc
 			backend = new backend.kinc.System();
 			#elseif js
@@ -42,28 +48,29 @@ class Lib {
 
 	static function onInit():Void {
 		init_done = true;
-		if(backend == null) return;
-		if(backend.isFeatureSupported(Graphics3D))
+		if (backend == null)
+			return;
+		if (backend.isFeatureSupported(Graphics3D))
 			gdriver = backend.createGraphicsDriver();
-		if(backend.isFeatureSupported(Audio))
+		if (backend.isFeatureSupported(Audio))
 			adriver = backend.createAudioDriver();
 		initCb();
 	}
 
 	static function update(dt:Float):Void {
-		fps = 1 / (dt * 1000);
+		fps = 1 / (dt);
+		#if ((target.threaded && !cppia) && haxe_ver >= 4.2)
+		mainThread.events.progress();
+		#else // MainLoop.tick() is automatically called by the main thread's event loop.
 		@:privateAccess haxe.MainLoop.tick();
+		#end
 		for (o in __updates)
 			o(dt);
-		if(gdriver != null)
+		if (gdriver != null)
 			gdriver.present();
 	}
 
 	public static function time():Float return backend == null ? 0 : backend.time();
-
-	static function onResize():Void {
-		dispatcher.dispatch(new Signal("resize"));
-	}
 
 	private static var __updates:Array<Float->Void> = [];
 
@@ -84,9 +91,9 @@ class Lib {
 	 * @param code Exit code
 	 */
 	public static function exit(code:Int):Void {
-		if(gdriver != null)
+		if (gdriver != null)
 			gdriver.dispose();
-		if(backend != null)
+		if (backend != null)
 			backend.shutdown();
 		#if sys
 		Sys.exit(code);

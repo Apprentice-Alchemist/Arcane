@@ -34,7 +34,7 @@ class System implements ISystem {
 	private var lastTime = 0.0;
 
 	public function update(dt:Float) try {
-		arcane.Lib.update(dt - lastTime);
+		arcane.Lib.update((dt - lastTime) / 1000);
 		lastTime = dt;
 		if(!sd)
 			js.Browser.window.requestAnimationFrame(update);
@@ -58,7 +58,7 @@ class System implements ISystem {
 			wgl2 = false;
 		}
 		if(gl == null) {
-			untyped alert("Could not aquire WebGL1 context.\n\nYou will now see a blank screen.\n\nBy the way... how can your browser be so old that it doesn't support WebGL1?");
+			untyped alert("Could not aquire WebGL1 or 2 context.");
 			return null;
 		}
 		return new WebGLDriver(gl, canvas, wgl2);
@@ -69,4 +69,7 @@ class System implements ISystem {
 
 	public function time():Float
 		return lastTime / 1000.0;
+
+	public function width():Float return canvas.width;
+	public function height():Float return canvas.height;
 }

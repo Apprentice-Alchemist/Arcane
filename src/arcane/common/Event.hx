@@ -1,6 +1,5 @@
 package arcane.common;
 
-
 @:forward(dispatch, add, remove)
 @:multiType
 abstract Event<T>(IEvent<T>) {

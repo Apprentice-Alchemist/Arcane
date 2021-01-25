@@ -15,13 +15,12 @@ class System implements ISystem {
 	public function new() {}
 
 	public function init(opts, cb:Void->Void):Void try {
-		kinc.System.init("", 500, 500, null, {
-			samples_per_pixel: 1
-		});
+		kinc.System.init("", 500, 500);
 		kinc.System.setUpdateCallback(update);
 		kinc.System.setShutdownCallback(function(){
 			arcane.Lib.exit(0);
 		});
+		// kinc.System.
 		cb();
 		kinc.System.start();
 	} catch (e) {
@@ -52,4 +51,10 @@ class System implements ISystem {
 
 	public function time():Float
 		return kinc.System.time();
+
+	public function width():Float
+		return kinc.System.width();
+
+	public function height():Float
+		return kinc.System.height();
 }

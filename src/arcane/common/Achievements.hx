@@ -26,15 +26,15 @@ class Achievements extends SignalDispatcher {
 
 	/**
 	 * Call this this to give out an achievement, this will handle calling other functions.
-	 * Will throw an exception of type string if isAchievement returns false for the given id.
+	 * Does nothing if isAchievement returns false for the given id.
 	 * @param id
 	 * @param silent
 	 */
 	public function gainAchievement(id:String, silent:Bool) {
-		if(!isAchievement(id))
-			throw '$id is not an achievement!';
-		if(!map.exists(id) || !map.get(id)) {
-			dispatch(new Signal("new_achievement", id));
+		if (!isAchievement(id))
+			return;
+		if (!map.exists(id) || !map.get(id)) {
+			dispatch(new Signal(newAchievement, id));
 			onAchievement(id, silent);
 		}
 		map.set(id, true);
@@ -47,11 +47,11 @@ class Achievements extends SignalDispatcher {
 	 * @param id
 	 * @param silent
 	 */
-	public function onAchievement(id:String, silent:Bool) {}
+	@:dox(show) function onAchievement(id:String, silent:Bool) {}
 
 	/**
 	 * Called when achievements are updated, in gainAchievement and clearAchievements,
 	 * override this to provide custom behaviour such as saving achievements somewhere.
 	 */
-	public function updateAchievements() {}
+	@:dox(show) function updateAchievements() {}
 }

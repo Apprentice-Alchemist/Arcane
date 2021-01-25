@@ -24,23 +24,24 @@ class Assets {
 	@:noCompletion private static var _thread_pool:Null<ThreadPool>;
 
 	private static function get_thread_pool():ThreadPool {
-		if(_thread_pool == null) {
+		if (_thread_pool == null) {
 			_thread_pool = new ThreadPool();
 		}
 		return cast _thread_pool;
 	}
 	#end
 
-	public static function loadManifest():Void {
-		#if sys
+	public static function loadManifest():Array<String> {
+		#if (sys && !arcane_use_manifest)
+		var manifest = [];
 		var pathes:Array<String> = (cast(haxe.macro.Compiler.getDefine("resourcesPath") != null ? haxe.macro.Compiler.getDefine("resourcesPath") : "res"))
 			.split(",");
 		function readRec(f:Array<String>, basePath:String) {
 			for (f1 in f) {
 				var p = haxe.io.Path.normalize(basePath + "/" + f1);
-				if(p.indexOf(".git") > -1 || p.indexOf("build") > -1)
+				if (p.indexOf(".git") > -1)
 					continue;
-				if(sys.FileSystem.isDirectory(p)) {
+				if (sys.FileSystem.isDirectory(p)) {
 					readRec(sys.FileSystem.readDirectory(p), p);
 				} else {
 					manifest.push(p);
@@ -50,37 +51,44 @@ class Assets {
 		for (path in pathes) {
 			readRec(sys.FileSystem.readDirectory(path), path);
 		}
+		return manifest;
 		#else
-		manifest = [];
-		arcane.internal.Macros.initManifest(manifest);
+		return arcane.internal.Macros.initManifest();
 		#end
 	}
 
-	public static function preload(onProgress:Float->Void, handle_error:(file:String,err:Dynamic)->Void, onComplete:Void->Void):Void {
-		loadManifest();
-		var loaded_files:Int = 0;
-		var errored_files:Int = 0;
-		var file_count:Int = manifest.length;
-		for (x in manifest) {
-			loadBytesAsync(x, function(bytes) {
-				bytes_cache.set(x, bytes);
-				loaded_files++;
-				onProgress(loaded_files / file_count);
-				if((file_count + errored_files) == loaded_files) {
-					onComplete();
-				}
-			}, function(error) {
-				errored_files++;
-				handle_error(x,error);
-			}, true);
-		}
+	public static function preload(onProgress:Float->Void, handle_error:(file:String, err:Dynamic) -> Void, onComplete:Void->Void):Void {
 		#if target.threaded
-		thread_pool.awaken();
+		thread_pool.addTask(null, task -> {
+			task.out_data = loadManifest();
+		}, task -> {
+			Assets.manifest = cast(task.out_data);
+		#else
+		Assets.manifest = loadManifest();
+		#end
+			var loaded_files:Int = 0;
+			var errored_files:Int = 0;
+			var file_count:Int = manifest.length;
+			for (x in manifest) {
+				loadBytesAsync(x, function(bytes) {
+					bytes_cache.set(x, bytes);
+					loaded_files++;
+					onProgress(loaded_files / file_count);
+					if ((file_count + errored_files) == loaded_files) {
+							onComplete();
+					}
+				}, function(error) {
+					errored_files++;
+					handle_error(x, error);
+				});
+			}
+		#if target.threaded
+		}, task -> {});
 		#end
 	}
 
 	/**
-	 * Load bytes from the cache.
+	 * Get bytes from the cache.
 	 * @param path
 	 * @return Null<Bytes>
 	 */
@@ -98,7 +106,7 @@ class Assets {
 		throw "Synchronous loading not supported on javascript!";
 		#elseif sys
 		var b = sys.io.File.getBytes(path);
-		if(cache)
+		if (cache)
 			bytes_cache.set(path, b);
 		return b;
 		#end
@@ -111,7 +119,7 @@ class Assets {
 		xhr.responseType = js.html.XMLHttpRequestResponseType.ARRAYBUFFER;
 		// xhr.onerror = function(e) err(xhr.statusText);
 		xhr.onload = function(e) {
-			if(xhr.status != 200) {
+			if (xhr.status != 200) {
 				err(xhr.statusText);
 				return;
 			}

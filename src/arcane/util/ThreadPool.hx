@@ -137,7 +137,7 @@ class ThreadPool {
 		t.tasks.push(new Task(_in, exec, comp, err));
 		t.mutex.release();
 		if(wake_thread)
-			t.thread.sendMessage("wake");
+			t.thread.sendMessage((Wake:ThreadMessage));
 	}
 
 	public function process():Void {

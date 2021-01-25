@@ -3,7 +3,7 @@ package arcane.signal;
 /**
  * A basic signal
  */
- @:nullSafety
+@:nullSafety
 class Signal<V> {
 	public var name:String;
 

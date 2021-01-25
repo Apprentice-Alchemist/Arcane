@@ -13,6 +13,14 @@ class Image {
 	public var height(default, null):Int;
 	public var data(default, null):haxe.io.Bytes;
 
+	/**
+	 * Create a new image with parameters.
+	 * If the `bytes` argument is null, this function will allocate some with `haxe.io.Bytes.alloc`.
+	 * @param width Width in pixels.
+	 * @param height Height in pixels.
+	 * @param format Image format.
+	 * @param bytes Optional bytes to initalize the image with.
+	 */
 	public function new(width:Int, height:Int, format:PixelFormat, ?bytes:haxe.io.Bytes):Void {
 		this.width = width;
 		this.height = height;
@@ -28,11 +36,9 @@ class Image {
 	 * Tries to convert the image's pixel data to a specific format.
 	 * Returns true if the conversion was successful and false if it wasn't.
 	 * Currently supported conversions :
-	 * ```
-	 * BGRA -> RGBA | ARGB
-	 * RGBA -> BGRA | ARGB
-	 * ARGB -> BGRA | RGBA
-	 * ```
+	 * - BGRA -> RGBA | ARGB
+	 * - RGBA -> BGRA | ARGB
+	 * - ARGB -> BGRA | RGBA
 	 */
 	public function convert(to:PixelFormat):Bool {
 		if(format == to)
@@ -107,6 +113,7 @@ class Image {
 	}
 
 	/**
+	 * Create an image from png encoded bytes.
 	 * Requires the `format` haxelib.
 	 * @param b raw png bytes
 	 */
@@ -123,7 +130,7 @@ class Image {
 	}
 
 	/**
-	 * Returns the amount of bytes each pixel takes up for a given format
+	 * Returns the amount of bytes each pixel takes up for the given format
 	 */
 	public static function bytesPerPixel(format:PixelFormat):Int {
 		return switch format {

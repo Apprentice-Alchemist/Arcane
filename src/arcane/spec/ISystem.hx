@@ -24,4 +24,6 @@ interface ISystem {
 	public function createGraphicsDriver():Null<IGraphicsDriver>;
 	public function language():String;
 	public function time():Float;
+	public function width():Float;
+	public function height():Float;
 }

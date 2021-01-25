@@ -2,8 +2,9 @@ package asl;
 
 import haxe.io.Bytes;
 import arcane.spec.IGraphicsDriver;
-
+#if (!eval||macro)
 @:autoBuild(asl.Macros.buildShader())
+#end
 @:allow(arcane)
 class Shader {
 	private var vertex_src(get, never):String;
