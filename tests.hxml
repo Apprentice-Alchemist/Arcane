@@ -3,7 +3,7 @@ arcane.Lib
 --each
 
 backend.html5.System
-backend.html5.GraphicsDriver
+backend.html5.WebGLDriver
 -js out.js
 --no-output
 
