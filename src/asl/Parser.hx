@@ -58,7 +58,8 @@ class Parser {
 					error("Unsupported expression", expr.pos);
 			}
 		}
-		for(e in exprs) iter(e,[]);
+		for (e in exprs)
+			iter(e, []);
 		return parsed_shader;
 	}
 }

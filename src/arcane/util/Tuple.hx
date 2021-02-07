@@ -1,16 +1,16 @@
 package arcane.util;
 
 /*
-import haxe.macro.Expr;
-import haxe.macro.ComplexTypeTools;
-import haxe.macro.TypeTools;
+	import haxe.macro.Expr;
+	import haxe.macro.ComplexTypeTools;
+	import haxe.macro.TypeTools;
 
-#if !macro
-@:genericBuild(arcane.util.Tuple.TupleBuilder.build())
-class Tuple<Rest> {}
-#end
+	#if !macro
+	@:genericBuild(arcane.util.Tuple.TupleBuilder.build())
+	class Tuple<Rest> {}
+	#end
 
-class TupleBuilder {
+	class TupleBuilder {
 	#if macro
 	public static function build() {
 		var t = haxe.macro.Context.getLocalType();
@@ -51,15 +51,15 @@ class TupleBuilder {
 					}
 				}),
 				pos: haxe.macro.Context.currentPos()
-            });
-            for(i in 0...type_count){
-                fields.push({
-                    name: "v" + (i + 1),
-                    kind: FVar(type_params[i]),
-                    pos: haxe.macro.Context.currentPos(),
-                    access: [APublic]
-                });
-            }
+			});
+			for(i in 0...type_count){
+				fields.push({
+					name: "v" + (i + 1),
+					kind: FVar(type_params[i]),
+					pos: haxe.macro.Context.currentPos(),
+					access: [APublic]
+				});
+			}
 			haxe.macro.Context.defineType({
 				pack: [],
 				name: type_name,
@@ -71,12 +71,12 @@ class TupleBuilder {
 		return haxe.macro.Context.getType(type_name);
 	}
 	#end
-}
+	}
 
-#if !macro
-function main() {
-    var tup = new Tuple<Int, Float, arcane.Geometry>(0, 5, null);
-    trace(tup.v1);
-}
-#end
-*/
+	#if !macro
+	function main() {
+	var tup = new Tuple<Int, Float, arcane.Geometry>(0, 5, null);
+	trace(tup.v1);
+	}
+	#end
+ */

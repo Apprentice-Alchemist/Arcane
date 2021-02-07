@@ -2,6 +2,7 @@ package arcane.internal;
 
 import haxe.macro.Expr;
 import haxe.macro.Context;
+
 using haxe.macro.Tools;
 
 class Macros {

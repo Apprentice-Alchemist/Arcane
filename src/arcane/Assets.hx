@@ -5,7 +5,7 @@ import arcane.util.ThreadPool;
 #end
 import haxe.io.Bytes;
 
-@:nullSafety(StrictThreaded)
+@:nullSafety(Strict)
 class Assets {
 	static var bytes_cache:Map<String, Bytes> = new Map();
 
@@ -17,7 +17,7 @@ class Assets {
 	#if target.threaded
 	/**
 	 * The thread pool used for asynchronous task loading.
-	 * Loaded lazily.
+	 * Initialized lazily.
 	 */
 	public static var thread_pool(get, never):ThreadPool;
 
@@ -27,7 +27,7 @@ class Assets {
 		if (_thread_pool == null) {
 			_thread_pool = new ThreadPool();
 		}
-		return cast _thread_pool;
+		return _thread_pool;
 	}
 	#end
 
@@ -75,7 +75,7 @@ class Assets {
 					loaded_files++;
 					onProgress(loaded_files / file_count);
 					if ((file_count + errored_files) == loaded_files) {
-							onComplete();
+						onComplete();
 					}
 				}, function(error) {
 					errored_files++;
@@ -112,30 +112,57 @@ class Assets {
 		#end
 	}
 
-	public static function loadBytesAsync(path:String, cb:Bytes->Void, err:Dynamic->Void, preloading = false) {
+	/**
+	 * Loads bytes from `path` asynchronously.
+	 * @param path
+	 * @param cb
+	 * @param err
+	 * @param cache Wether to cache the bytes in `bytes_cache` for further use with getBytes.
+	 * @param preloading = false
+	 */
+	public static function loadBytesAsync(path:String, cb:Bytes->Void, err:AssetError->Void, cache = true, preloading = false) {
 		#if js
 		var xhr = new js.html.XMLHttpRequest();
 		xhr.open('GET', path, true);
 		xhr.responseType = js.html.XMLHttpRequestResponseType.ARRAYBUFFER;
-		// xhr.onerror = function(e) err(xhr.statusText);
+		xhr.onerror = function(e) err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
 		xhr.onload = function(e) {
 			if (xhr.status != 200) {
-				err(xhr.statusText);
+				err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
 				return;
 			}
-			cb(haxe.io.Bytes.ofData(xhr.response));
+			final data = haxe.io.Bytes.ofData(xhr.response);
+			if (cache)
+				bytes_cache.set(path, data);
+			cb(data);
 		}
 		xhr.send();
 		#elseif target.threaded
 		thread_pool.addTask(path, function(t) {
-			t.out_data = sys.io.File.getBytes(path);
+			final path:String = cast t.in_data;
+			if (sys.FileSystem.exists(path)) {
+				try
+					t.out_data = sys.io.File.getBytes(path)
+				catch (e)
+					t.error_data = (Other(path, e.message) : AssetError);
+			} else {
+				t.error_data = (NotFound(path) : AssetError);
+			}
 		}, function(t) {
-			cb(cast t.out_data);
+			final data:Bytes = cast t.out_data;
+			if (cache)
+				bytes_cache.set(path, data);
+			cb(data);
 		}, function(t) {
 			err(cast t.error_data);
 		}, !preloading);
 		#else
-		cb(sys.io.File.getBytes(path));
+		cb(loadBytes(path, cache));
 		#end
 	}
+}
+
+enum AssetError {
+	NotFound(path:String);
+	Other(path:String, ?msg:String);
 }

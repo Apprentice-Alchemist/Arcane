@@ -5,6 +5,4 @@ import haxe.macro.Expr;
 
 using haxe.macro.Tools;
 
-class Macro {
-
-}
+class Macro {}

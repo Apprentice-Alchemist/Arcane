@@ -1,7 +1,10 @@
 package arcane;
 
 /**
- * A Single on C++, Hashlink, Java or C#, a regular Float on other platforms.
+ * - C++, Hashlink, Java, C# : single-precision IEEE 32bit float.
+ * - Other :  double-precision IEEE 64bit float.
+ * 
+ * Should only be used in graphics code.
  */
 #if (cpp || hl || java || cs)
 typedef FastFloat = Single;

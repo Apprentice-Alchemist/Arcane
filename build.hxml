@@ -1,9 +1,10 @@
---debug
 -cp src
 -cp test
+
 -main Main
 -lib kinc
 -lib format
--D krafix
--D absolute-path
+
+--debug
+
 -hl out/out.hl

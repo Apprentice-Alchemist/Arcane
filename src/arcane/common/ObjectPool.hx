@@ -22,11 +22,12 @@ class ObjectPool<T:Constructible<Void->Void> & Destroyable> {
 		if (count == 0) {
 			return new T();
 		}
-        return pool[--count];
+		return pool[--count];
 	}
 
 	public function put(obj:T):Void {
-        if(obj == null) return;
+		if (obj == null)
+			return;
 		var index = pool.indexOf(obj);
 		if (index == -1 || index >= count) {
 			obj.destroy();

@@ -19,6 +19,7 @@ class Lib {
 	public static var adriver(default, null):Null<IAudioDriver>;
 
 	private static var init_done:Bool = false;
+
 	#if target.threaded
 	private static var mainThread:sys.thread.Thread = cast null;
 	#end
@@ -26,7 +27,7 @@ class Lib {
 	/**
 	 * Initialize engine, create the initial window and graphics driver.
 	 * Behaviour of methods in this class (and other classes) is undefined before this function is called.
-	 * @param cb 
+	 * @param cb
 	 */
 	public static function init(cb:Void->Void):Void {
 		#if target.threaded
@@ -59,6 +60,7 @@ class Lib {
 
 	static function update(dt:Float):Void {
 		fps = 1 / (dt);
+		// Ensure haxe.Timer
 		#if ((target.threaded && !cppia) && haxe_ver >= 4.2)
 		mainThread.events.progress();
 		#else // MainLoop.tick() is automatically called by the main thread's event loop.
@@ -72,19 +74,23 @@ class Lib {
 
 	public static function time():Float return backend == null ? 0 : backend.time();
 
-	private static var __updates:Array<Float->Void> = [];
+	private static var __updates = new Array<Float->Void>();
 
 	/**
-	 * The passed callback will be called every time `Lib.update` is called by the backend.
-	 * Dt in milliseconds.
-	 * @param cb
-	 * @return Void
+	 * The passed function will be called every time Lib.update is called by the backend.
+	 * 
+	 * dt is in seconds.
 	 */
-	public static function addUpdate(cb:Float->Void):Void
+	public static function addUpdate(cb:(dt:Float) -> Void):Void {
 		__updates.push(cb);
+	}
 
-	public static function removeUpdate(cb:Float->Void):Void
+	/**
+	 * Removes the passed function from the update list.
+	 */
+	public static function removeUpdate(cb:Float->Void):Void {
 		__updates.remove(cb);
+	}
 
 	/**
 	 * Execute the appropriate shutdown procedures, and exit the application.

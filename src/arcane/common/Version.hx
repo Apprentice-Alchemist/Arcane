@@ -6,7 +6,7 @@ abstract Version(Ver) {
 	static final reg:EReg = ~/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/i;
 
 	public inline function new(s:String) {
-		if(!reg.match(s))
+		if (!reg.match(s))
 			throw '$s is not a valid version';
 		this = {
 			major: arcane.Utils.parseInt(reg.matched(1)),
@@ -35,15 +35,15 @@ abstract Version(Ver) {
 		return a.major == b.major && a.minor == b.minor && a.patch == b.patch && a.other == b.other && a.build == b.build;
 
 	@:op(A > B) public static inline function greater(a:Version, b:Version):Bool {
-		if(a.major > b.major)
+		if (a.major > b.major)
 			return true;
-		else if(a.major < b.major)
+		else if (a.major < b.major)
 			return false;
-		else if(a.minor > b.minor)
+		else if (a.minor > b.minor)
 			return true;
-		else if(a.minor < b.minor)
+		else if (a.minor < b.minor)
 			return false;
-		else if(a.patch > b.patch)
+		else if (a.patch > b.patch)
 			return true
 		else
 			return false;

@@ -19,10 +19,12 @@ class SignalDispatcher {
 	public function dispatch<T>(s:Signal<T>):Void {
 		s.dispatcher = this;
 		@:privateAccess s.cancelled = false;
-		if (eventMap.exists(s.name)) @:nullSafety(Off) for (o in eventMap.get(s.name)) {
-			if (s.cancelled) break;
-			o(s);
-		}
+		if (eventMap.exists(s.name))
+			@:nullSafety(Off) for (o in eventMap.get(s.name)) {
+				o(s);
+				if (s.cancelled)
+					break;
+			}
 	}
 
 	/**
@@ -33,10 +35,10 @@ class SignalDispatcher {
 
 	**/
 	public function listen<T>(name:SignalType<T>, cb:Signal<T>->Void):Void {
-		if (eventMap.exists(name)) @:nullSafety(Off) {
+		if (eventMap.exists(name))
+			@:nullSafety(Off) {
 			eventMap.get(name).unshift(cast cb);
-		}
-		else {
+		} else {
 			eventMap.set(name, [cast cb]);
 		}
 	}
@@ -47,7 +49,7 @@ class SignalDispatcher {
 	public function removeListener<T>(name:SignalType<T>, cb:Signal<T>->Void):Void {
 		if (eventMap.exists(name)) {
 			@:nullSafety(Off) for (o in eventMap.get(name)) {
-				@:nullSafety if (Reflect.compareMethods(o, cb)) {
+				if (Reflect.compareMethods(o, cb)) {
 					eventMap.get(name).remove(o);
 				}
 			}

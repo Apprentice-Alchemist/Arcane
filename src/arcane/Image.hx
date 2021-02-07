@@ -8,9 +8,24 @@ import format.png.Tools as PngTools;
 #end
 
 class Image {
+	/**
+	 * The format of the image.
+	 */
 	public var format(default, null):PixelFormat;
+
+	/**
+	 * Width in pixels of the image.
+	 */
 	public var width(default, null):Int;
+
+	/**
+	 * Height in pixels of the image.
+	 */
 	public var height(default, null):Int;
+
+	/**
+	 * The raw bytes of the image, in the format specified by `this.format`
+	 */
 	public var data(default, null):haxe.io.Bytes;
 
 	/**
@@ -25,9 +40,9 @@ class Image {
 		this.width = width;
 		this.height = height;
 		this.format = format;
-		if(bytes == null){
+		if (bytes == null) {
 			data = haxe.io.Bytes.alloc(width * height * bytesPerPixel(format));
-		}else{
+		} else {
 			this.data = bytes;
 		}
 	}
@@ -41,7 +56,7 @@ class Image {
 	 * - ARGB -> BGRA | RGBA
 	 */
 	public function convert(to:PixelFormat):Bool {
-		if(format == to)
+		if (format == to)
 			return true;
 		switch [format, to] {
 			case [BGRA, RGBA] | [RGBA, BGRA]:
@@ -58,7 +73,7 @@ class Image {
 					bset(p++, b);
 					bset(p++, a);
 				}
-				// return true;
+			// return true;
 			case [BGRA, ARGB] | [ARGB, BGRA]:
 				var p = 0;
 				inline function bget(i) return data.get(i);
@@ -73,7 +88,7 @@ class Image {
 					bset(p++, g);
 					bset(p++, b);
 				}
-				// return true;
+			// return true;
 
 			case [ARGB, RGBA]:
 				var p = 0;
@@ -89,7 +104,7 @@ class Image {
 					bset(p++, b);
 					bset(p++, a);
 				}
-				// return true;
+			// return true;
 			case [RGBA, ARGB]:
 				var p = 0;
 				inline function bget(i) return data.get(i);
@@ -104,7 +119,7 @@ class Image {
 					bset(p++, g);
 					bset(p++, b);
 				}
-				// return true;
+			// return true;
 			default:
 				return false;
 		}

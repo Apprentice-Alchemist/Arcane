@@ -17,10 +17,9 @@ class System implements ISystem {
 	public function init(opts, cb:Void->Void):Void try {
 		kinc.System.init("", 500, 500);
 		kinc.System.setUpdateCallback(update);
-		kinc.System.setShutdownCallback(function(){
+		kinc.System.setShutdownCallback(function() {
 			arcane.Lib.exit(0);
 		});
-		// kinc.System.
 		cb();
 		kinc.System.start();
 	} catch (e) {
@@ -35,7 +34,8 @@ class System implements ISystem {
 		arcane.Lib.update(curtime - lastTime);
 		lastTime = curtime;
 		kinc.g4.Graphics4.swapBuffers();
-	} catch(e) trace(e.details());
+	} catch (e)
+		trace(e.details());
 
 	public function shutdown()
 		kinc.System.stop();

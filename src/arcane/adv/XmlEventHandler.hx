@@ -3,7 +3,6 @@ package arcane.adv;
 #if !hscript
 #error "Hscript is required for XmlEventHandler"
 #end
-
 import hscript.Parser;
 import hscript.Interp;
 

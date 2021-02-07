@@ -1,10 +1,9 @@
 package backend.html5;
 
-import js.html.webgl.GL;
-import js.html.DOMError;
-import arcane.spec.IGraphicsDriver;
 import arcane.spec.IAudioDriver;
+import arcane.spec.IGraphicsDriver;
 import arcane.spec.ISystem;
+import js.html.webgl.GL;
 
 @:access(arcane)
 class System implements ISystem {
@@ -22,7 +21,7 @@ class System implements ISystem {
 		var cdef = haxe.macro.Compiler.getDefine("arcane.html5.canvas");
 		var cid = (opts != null && opts.html5 != null && opts.html5.canvas_id != null) ? opts.html5.canvas_id : ((cdef == "1" || cdef == null) ? "arcane" : cdef);
 		canvas = cast js.Browser.window.document.getElementById(cid);
-		if(canvas == null) {
+		if (canvas == null) {
 			untyped alert('Could not find canvas with id ${cid}.');
 			return;
 		}
@@ -36,7 +35,7 @@ class System implements ISystem {
 	public function update(dt:Float) try {
 		arcane.Lib.update((dt - lastTime) / 1000);
 		lastTime = dt;
-		if(!sd)
+		if (!sd)
 			js.Browser.window.requestAnimationFrame(update);
 	} catch (e)
 		js.Browser.window.alert(e.details());
@@ -53,12 +52,12 @@ class System implements ISystem {
 	public function createGraphicsDriver():Null<IGraphicsDriver> {
 		var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 		var wgl2 = true;
-		if(gl == null) {
+		if (gl == null) {
 			gl = canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
 			wgl2 = false;
 		}
-		if(gl == null) {
-			untyped alert("Could not aquire WebGL1 or 2 context.");
+		if (gl == null) {
+			untyped alert("Could not aquire WebGL context.");
 			return null;
 		}
 		return new WebGLDriver(gl, canvas, wgl2);
@@ -71,5 +70,6 @@ class System implements ISystem {
 		return lastTime / 1000.0;
 
 	public function width():Float return canvas.width;
+
 	public function height():Float return canvas.height;
 }

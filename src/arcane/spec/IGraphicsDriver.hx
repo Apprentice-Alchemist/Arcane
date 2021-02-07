@@ -205,8 +205,7 @@ interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
 }
 
 interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
-	// public function upload(bytes:haxe.io.Bytes):Void;
-	// Blocked by the kinc backend
+	public function upload(bytes:haxe.io.Bytes):Void;
 }
 
 interface IGraphicsDriver {

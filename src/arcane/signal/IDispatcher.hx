@@ -23,7 +23,8 @@ class MacroDispatcher {
 		var SD = haxe.macro.Context.getType("arcane.signal.SignalDispatcher").getClass();
 		var fields = haxe.macro.Context.getBuildFields();
 		var type = haxe.macro.Context.getLocalType().getClass();
-		if (type.pack.concat(["SignalDispatcher"]).join(".") == "arcane.signal.SignalDispatcher") return fields;
+		if (type.pack.concat(["SignalDispatcher"]).join(".") == "arcane.signal.SignalDispatcher")
+			return fields;
 		var __dispatcher:Field = {
 			name: "__dispatcher",
 			access: [],

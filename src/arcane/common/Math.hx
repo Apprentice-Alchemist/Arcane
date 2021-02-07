@@ -1,15 +1,15 @@
 package arcane.common;
 
-@:eager private typedef Float = arcane.FastFloat;
+// @:eager private typedef Float = arcane.FastFloat;
 
 @:forward
 @:forward.new
 abstract Vector3(Vec3Internal) {
-	public extern inline static function empty():Vector3 {
+	public inline static function empty():Vector3 {
 		return new Vector3(0, 0, 0);
 	}
 
-	public extern inline function dot(b:Vector3):Float {
+	public inline function dot(b:Vector3):Float {
 		return this.x * b.x + this.y * b.y + this.z * b.z;
 	}
 }
@@ -17,11 +17,11 @@ abstract Vector3(Vec3Internal) {
 @:forward
 @:forward.new
 abstract Vector4(Vec4Internal) {
-	public extern inline static function empty():Vector4 {
+	public inline static function empty():Vector4 {
 		return new Vector4(0, 0, 0, 0);
 	}
 
-	public extern inline function dot(b:Vector4):Float {
+	public inline function dot(b:Vector4):Float {
 		return this.x * b.x + this.y * b.y + this.z * b.z + this.w * b.w;
 	}
 }
@@ -29,7 +29,7 @@ abstract Vector4(Vec4Internal) {
 @:forward
 @:forward.new
 abstract Matrix3(Mat3Internal) {
-	public static extern inline function rotationX(alpha:Float):Matrix3 {
+	public static inline function rotationX(alpha:Float):Matrix3 {
 		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
@@ -40,7 +40,7 @@ abstract Matrix3(Mat3Internal) {
 		return m;
 	}
 
-	public static extern inline function rotationY(alpha:Float):Matrix3 {
+	public static inline function rotationY(alpha:Float):Matrix3 {
 		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
@@ -51,7 +51,7 @@ abstract Matrix3(Mat3Internal) {
 		return m;
 	}
 
-	public static extern inline function rotationZ(alpha:Float):Matrix3 {
+	public static inline function rotationZ(alpha:Float):Matrix3 {
 		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
@@ -62,7 +62,7 @@ abstract Matrix3(Mat3Internal) {
 		return m;
 	}
 
-	public extern static inline function identity():Matrix3 {
+	public inline static function identity():Matrix3 {
 		return new Matrix3(
 			1, 0, 0,
 			0, 1, 0,
@@ -70,7 +70,7 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	public extern static inline function empty():Matrix3 {
+	public inline static function empty():Matrix3 {
 		return new Matrix3(
 			0, 0, 0,
 			0, 0, 0,
@@ -78,7 +78,7 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	public extern inline function transpose():Matrix3 {
+	public inline function transpose():Matrix3 {
 		return new Matrix3(
 			this._11, this._21, this._31,
 			this._12, this._22, this._32,
@@ -86,11 +86,11 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	public extern inline function trace():Float {
+	public inline function trace():Float {
 		return this._11 + this._22 + this._33;
 	}
 
-	@:op(A + V) extern static inline function add(a:Matrix3, b:Matrix3):Matrix3 {
+	@:op(A + V) inline static function add(a:Matrix3, b:Matrix3):Matrix3 {
 		return new Matrix3(
 			a._11 + b._11, a._12 + b._12, a._13 + b._13,
 			a._21 + b._21, a._22 + b._22, a._23 + b._23,
@@ -99,7 +99,7 @@ abstract Matrix3(Mat3Internal) {
 	}
 
 	@:commutative
-	@:op(A + V) extern static inline function addf(a:Matrix3, b:Float):Matrix3 {
+	@:op(A + V) inline static function addf(a:Matrix3, b:Float):Matrix3 {
 		return new Matrix3(
 			a._11 + b, a._12 + b, a._13 + b,
 			a._21 + b, a._22 + b, a._23 + b,
@@ -107,7 +107,7 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	@:op(A - B) extern static inline function sub(a:Matrix3, b:Matrix3):Matrix3 {
+	@:op(A - B) inline static function sub(a:Matrix3, b:Matrix3):Matrix3 {
 		return new Matrix3(
 			a._11 - b._11, a._12 - b._12, a._13 - b._13,
 			a._21 - b._21, a._22 - b._22, a._23 - b._23,
@@ -115,7 +115,7 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	@:op(A - B) extern static inline function subf(a:Matrix3, b:Float):Matrix3 {
+	@:op(A - B) inline static function subf(a:Matrix3, b:Float):Matrix3 {
 		return new Matrix3(
 			a._11 - b, a._12 - b, a._13 - b,
 			a._21 - b, a._22 - b, a._23 - b,
@@ -123,7 +123,7 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	@:op(A - B) extern static inline function fsub(a:Float, b:Matrix3):Matrix3 {
+	@:op(A - B) inline static function fsub(a:Float, b:Matrix3):Matrix3 {
 		return new Matrix3(
 			a - b._11, a - b._12, a - b._13,
 			a - b._21, a - b._22, a - b._23,
@@ -131,7 +131,7 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	@:op(A * B) extern static inline function mult(a:Matrix3, b:Matrix3):Matrix3 {
+	@:op(A * B) inline static function mult(a:Matrix3, b:Matrix3):Matrix3 {
 		var a1 = new Vector3(a._11, a._12, a._13);
 		var a2 = new Vector3(a._21, a._22, a._23);
 		var a3 = new Vector3(a._31, a._32, a._33);
@@ -148,7 +148,7 @@ abstract Matrix3(Mat3Internal) {
 	}
 
 	@:commutative
-	@:op(A * B) extern static inline function multf(a:Matrix3, b:Float):Matrix3 {
+	@:op(A * B) inline static function multf(a:Matrix3, b:Float):Matrix3 {
 		return new Matrix3(
 			a._11 * b, a._12 * b, a._13 * b,
 			a._21 * b, a._22 * b, a._23 * b,
@@ -156,7 +156,7 @@ abstract Matrix3(Mat3Internal) {
 		);
 	}
 
-	@:op(A * B) extern static inline function multvec(a:Matrix3, b:Vector3):Vector3 {
+	@:op(A * B) inline static function multvec(a:Matrix3, b:Vector3):Vector3 {
 		var a1 = new Vector3(a._11, a._12, a._13);
 		var a2 = new Vector3(a._21, a._22, a._23);
 		var a3 = new Vector3(a._31, a._32, a._33);
@@ -167,8 +167,9 @@ abstract Matrix3(Mat3Internal) {
 
 @:forward.new
 @:forward
+@:pure
 abstract Matrix4(Mat4Internal) {
-	public static extern inline function scale(x:Float, y:Float, z:Float):Matrix4 {
+	public static inline function scale(x:Float, y:Float, z:Float):Matrix4 {
 		return new Matrix4(
 			x, 0, 0, 0,
 			0, y, 0, 0,
@@ -177,7 +178,7 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	public static extern inline function rotation(yaw:Float, pitch:Float, roll:Float):Matrix4 {
+	public static inline function rotation(yaw:Float, pitch:Float, roll:Float):Matrix4 {
 		var sy = Math.sin(yaw);
 		var cy = Math.cos(yaw);
 		var sx = Math.sin(pitch);
@@ -192,7 +193,7 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	public extern static inline function identity():Matrix4 {
+	public inline static function identity():Matrix4 {
 		return new Matrix4(
 			1, 0, 0, 0,
 			0, 1, 0, 0,
@@ -201,7 +202,7 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	public extern static inline function empty():Matrix4 {
+	public inline static function empty():Matrix4 {
 		return new Matrix4(
 			0, 0, 0, 0,
 			0, 0, 0, 0,
@@ -210,29 +211,41 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	public extern static inline function translation(x:Float, y:Float, z:Float):Matrix4 {
+	public inline static function translation(x:Float, y:Float, z:Float):Matrix4 {
 		return new Matrix4(
-			0, 0, 0, x,
-			0, 0, 0, y,
-			0, 0, 0, z,
-			0, 0, 0, 0
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			x, y, z, 1
 		);
 	}
 
-	public extern inline function transpose():Matrix4 {
+	public inline static function orthogonalProjection(left:Float, right:Float, bottom:Float, top:Float, zn:Float, zf:Float):Matrix4 {
+		var tx:Float = -(right + left) / (right - left);
+		var ty:Float = -(top + bottom) / (top - bottom);
+		var tz:Float = -(zf + zn) / (zf - zn);
+		return new Matrix4(
+			2 / (right - left), 0, 0, tx,
+			0, 2.0 / (top - bottom), 0, ty,
+			0, 0, -2 / (zf - zn), tz,
+			0, 0, 0, 1
+		);
+	}
+
+	public inline function transpose():Matrix4 {
 		return new Matrix4(
 			this._11, this._21, this._31, this._41,
 			this._12, this._22, this._32, this._42,
 			this._13, this._23, this._33, this._43,
-			this._34, this._24, this._34, this._44
+			this._14, this._24, this._34, this._44
 		);
 	}
 
-	public extern inline function trace():Float {
+	public inline function trace():Float {
 		return this._11 + this._22 + this._33 + this._44;
 	}
 
-	@:op(A + V) extern static inline function add(a:Matrix4, b:Matrix4):Matrix4 {
+	@:op(A + V) inline static function add(a:Matrix4, b:Matrix4):Matrix4 {
 		return new Matrix4(
 			a._11 + b._11, a._12 + b._12, a._13 + b._13, a._14 + b._14,
 			a._21 + b._21, a._22 + b._22, a._23 + b._23, a._24 + b._24,
@@ -242,7 +255,7 @@ abstract Matrix4(Mat4Internal) {
 	}
 
 	@:commutative
-	@:op(A + V) extern static inline function addv(a:Matrix4, b:Float):Matrix4 {
+	@:op(A + V) inline static function addv(a:Matrix4, b:Float):Matrix4 {
 		return new Matrix4(
 			a._11 + b, a._12 + b, a._13 + b, a._14 + b,
 			a._21 + b, a._22 + b, a._23 + b, a._24 + b,
@@ -251,7 +264,7 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	@:op(A - B) extern static inline function sub(a:Matrix4, b:Matrix4):Matrix4 {
+	@:op(A - B) inline static function sub(a:Matrix4, b:Matrix4):Matrix4 {
 		return new Matrix4(
 			a._11 - b._11, a._12 - b._12, a._13 - b._13, a._14 - b._14,
 			a._21 - b._21, a._22 - b._22, a._23 - b._23, a._24 - b._24,
@@ -260,7 +273,7 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	@:op(A - B) extern static inline function subf(a:Matrix4, b:Float):Matrix4 {
+	@:op(A - B) inline static function subf(a:Matrix4, b:Float):Matrix4 {
 		return new Matrix4(
 			a._11 - b, a._12 - b, a._13 - b, a._14 - b,
 			a._21 - b, a._22 - b, a._23 - b, a._24 - b,
@@ -269,7 +282,7 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	@:op(A - B) extern static inline function fsub(a:Float, b:Matrix4):Matrix4 {
+	@:op(A - B) inline static function fsub(a:Float, b:Matrix4):Matrix4 {
 		return new Matrix4(
 			a - b._11, a - b._12, a - b._13, a - b._14,
 			a - b._21, a - b._22, a - b._23, a - b._24,
@@ -278,7 +291,7 @@ abstract Matrix4(Mat4Internal) {
 		);
 	}
 
-	@:op(A * B) extern static inline function mult(a:Matrix4, b:Matrix4):Matrix4 {
+	@:op(A * B) inline static function mult(a:Matrix4, b:Matrix4):Matrix4 {
 		var a1 = new Vector4(a._11, a._12, a._13, a._14);
 		var a2 = new Vector4(a._21, a._22, a._23, a._24);
 		var a3 = new Vector4(a._31, a._32, a._33, a._34);
@@ -298,7 +311,7 @@ abstract Matrix4(Mat4Internal) {
 	}
 
 	@:commutative
-	@:op(A * B) extern static inline function multf(a:Matrix4, b:Float):Matrix4
+	@:op(A * B) inline static function multf(a:Matrix4, b:Float):Matrix4
 		return new Matrix4(
 			a._11 * b, a._12 * b, a._13 * b, a._14 * b,
 			a._21 * b, a._22 * b, a._23 * b, a._24 * b,
@@ -306,7 +319,7 @@ abstract Matrix4(Mat4Internal) {
 			a._41 * b, a._42 * b, a._43 * b, a._44 * b
 		);
 
-	@:op(A * B) extern static inline function multv(a:Matrix4, b:Vector4):Vector4 {
+	@:op(A * B) inline static function multv(a:Matrix4, b:Vector4):Vector4 {
 		var a1 = new Vector4(a._11, a._12, a._13, a._14);
 		var a2 = new Vector4(a._21, a._22, a._23, a._24);
 		var a3 = new Vector4(a._31, a._32, a._33, a._34);
@@ -314,12 +327,12 @@ abstract Matrix4(Mat4Internal) {
 		return new Vector4(a1.dot(b), a2.dot(b), a3.dot(b), a4.dot(b));
 	}
 
-	@:op(A == B) extern static inline function equal(a:Matrix4, b:Matrix4) {
+	@:op(A == B) inline static function equal(a:Matrix4, b:Matrix4) {
 		return a._11 == b._11 && a._12 == b._12 && a._13 == b._13 && a._14 == b._14 && a._21 == b._21 && a._22 == b._22 && a._23 == b._23 && a._24 == b._24
 			&& a._31 == b._31 && a._32 == b._32 && a._33 == b._33 && a._34 == b._34 && a._41 == b._41 && a._42 == b._42 && a._43 == b._43 && a._44 == b._44;
 	}
 
-	@:to extern inline function toArray():Array<Float> {
+	@:to inline function toArray():Array<arcane.FastFloat> {
 		return [
 			this._11, this._12, this._13, this._14,
 			this._21, this._22, this._23, this._24,

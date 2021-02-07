@@ -1,8 +1,9 @@
 package asl;
 
-import haxe.io.Bytes;
 import arcane.spec.IGraphicsDriver;
-#if (!eval||macro)
+import haxe.io.Bytes;
+
+#if !(eval || macro)
 @:autoBuild(asl.Macros.buildShader())
 #end
 @:allow(arcane)

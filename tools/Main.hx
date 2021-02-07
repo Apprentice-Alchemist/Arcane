@@ -1,7 +1,10 @@
 package tools;
 
-using StringTools;
+import arcane.util.Log.*;
+import arcane.util.Log;
+
 using Lambda;
+using StringTools;
 
 interface ICommand {
 	public function doc():Doc;
@@ -47,15 +50,15 @@ private class GlobalSwitch {
 	public function match(s:Pair<String, String>) {
 		switch s {
 			case KeyOnly(k):
-				if(aliases.contains(k)) {
-					if(!executed)
+				if (aliases.contains(k)) {
+					if (!executed)
 						action();
 					return true;
 				}
 			case KeyValue(k, v):
-				if(has_value)
-					if(aliases.contains(k)) {
-						if(!executed)
+				if (has_value)
+					if (aliases.contains(k)) {
+						if (!executed)
 							action();
 						return true;
 					}
@@ -87,22 +90,22 @@ class Main {
 
 	public static var cwd:String;
 
-	public static function main() {
-		var args = Sys.args();
+	public static function main():Void {
+		var args:Array<String> = #if sys Sys.args() #else [] #end;
 		cwd = args.pop();
 		var switches:Array<Pair<String, String>> = [];
 		var command:String = null;
 		var c_args:Array<String> = [];
 		while (true) {
 			var arg = args.shift();
-			if(arg == null)
+			if (arg == null)
 				break;
-			if(arg.startsWith("-")) {
-				if(arg.contains("="))
+			if (arg.startsWith("-")) {
+				if (arg.contains("="))
 					switches.push(KeyValue(arg.split("=")[0], arg.split("=")[1]))
 				else
 					switches.push(KeyOnly(arg));
-			} else if(command == null)
+			} else if (command == null)
 				command = arg;
 			else
 				c_args.push(arg);
@@ -110,30 +113,30 @@ class Main {
 		var to_remove = [];
 		for (s in switches)
 			for (x in global_switches.iterator())
-				if(x.match(s))
+				if (x.match(s))
 					to_remove.push(s);
 		for (x in to_remove)
 			switches.remove(x);
-		if(command == null)
+		if (command == null)
 			commands.get("help").run([], []);
-		else if(!commands.exists(command)) {
+		else if (!commands.exists(command)) {
 			Log.error("Unknown command '" + command + "'");
 			Log.println("Run 'arcane help' to see a list of all commands.");
 		} else {
 			var cmd = commands.get(command);
 			var doc = cmd.doc();
 			var cmd_switches:Map<String, String> = [];
-			if(c_args.length > doc.args.length) {
-				Log.error('Too many arguments for command \'$command\'.\n' + 'Run \'arcane help $command\' for more information on how to use this command.');
-				return;
+			if (c_args.length > doc.args.length) {
+				return
+					Log.error('Too many arguments for command \'$command\'.\n' + 'Run \'arcane help $command\' for more information on how to use this command.');
 			}
 			var needed_args = 0;
 			for (i in doc.args)
-				if(!i.optional)
+				if (!i.optional)
 					needed_args++;
 
-			if(c_args.length < needed_args) {
-				Log.error('Not enough arguments for command \'$command\'.\n'
+			if (c_args.length < needed_args) {
+				return Log.error('Not enough arguments for command \'$command\'.\n'
 					+ 'Run \'arcane help $command\' for more information on how to use this command.');
 			}
 
@@ -141,14 +144,14 @@ class Main {
 				for (i in switches)
 					switch i {
 						case KeyOnly(k):
-							if(sw.aliases.contains(k))
+							if (sw.aliases.contains(k))
 								cmd_switches.set(id, null);
 							else {
 								Log.warning('Unknown switch \'$k\', ignoring.');
 							}
 
 						case KeyValue(k, v):
-							if(sw.aliases.contains(k))
+							if (sw.aliases.contains(k))
 								cmd_switches.set(id, v);
 							else {
 								Log.warning('Unknown switch \'$k\', ignoring.');
@@ -160,12 +163,12 @@ class Main {
 	}
 
 	public static function logo() {
-		Sys.println("     _                             
+		println("     _                             
     / \\   _ __ ___ __ _ _ __   ___ 
    / _ \\ | '__/ __/ _` | '_ \\ / _ \\
   / ___ \\| | | (_| (_| | | | |  __/
  /_/   \\_\\_|  \\___\\__,_|_| |_|\\___|");
-		Sys.println('Arcane Version : ${arcane.Lib.version}');
+		println('Arcane Version : ${arcane.Lib.version}');
 	}
 }
 
@@ -186,7 +189,7 @@ class HelpCommand implements ICommand {
 		};
 
 	public function run(args:Array<String>, switches:Map<String, Null<String>>) {
-		if(args.length == 0) {
+		if (args.length == 0) {
 			Main.logo();
 			generalHelp();
 		} else
@@ -194,7 +197,7 @@ class HelpCommand implements ICommand {
 	}
 
 	public function commandHelp(id:String) {
-		if(@:privateAccess !Main.commands.exists(id)) {
+		if (@:privateAccess !Main.commands.exists(id)) {
 			Log.error("Unkown command '" + id + "'");
 			Log.println("Run 'arcane help' to see a list of all commands.");
 			return;
@@ -205,12 +208,12 @@ class HelpCommand implements ICommand {
 		buf.add("Usage : arcane " + id + " " + [for (a in doc.args) a.optional ? ("(" + a.id + ")") : ("<" + a.id + ">")].join(" "));
 		buf.add("\n\n");
 
-		if(doc.switches.count() > 0) {
+		if (doc.switches.count() > 0) {
 			buf.add("Switches :\n");
 			buf.indent(function() {
 				for (value in doc.switches) {
 					var str = value.aliases.join(", ");
-					if(value.has_value)
+					if (value.has_value)
 						str += "=<value>";
 					var length = 30 - str.length;
 					str += [for (_ in 0...length) " "].join("");
@@ -219,7 +222,7 @@ class HelpCommand implements ICommand {
 				}
 			});
 		}
-		Sys.println(buf.dump());
+		println(buf.dump());
 	}
 
 	public function generalHelp() {
@@ -238,7 +241,7 @@ class HelpCommand implements ICommand {
 			for (key => value in @:privateAccess Main.global_switches)
 				@:privateAccess {
 				var str = value.aliases.join(", ");
-				if(value.has_value)
+				if (value.has_value)
 					str += "=<value>";
 				var length = 30 - str.length;
 				str += [for (_ in 0...length) " "].join("");
@@ -246,7 +249,7 @@ class HelpCommand implements ICommand {
 				buf.add(str);
 			}
 		});
-		Sys.println(buf.dump());
+		println(buf.dump());
 	};
 }
 
@@ -277,7 +280,7 @@ class CreateCommand implements ICommand {
 		};
 
 	public function run(args:Array<String>, switches:Map<String, Null<String>>) {
-		Sys.println("Not implemented yet.");
+		println("Not implemented yet.");
 	}
 }
 

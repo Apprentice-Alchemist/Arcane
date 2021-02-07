@@ -1,6 +1,5 @@
 package asl;
 
-import asl.Ast.FunType;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 
@@ -17,7 +16,7 @@ class Macros {
 			a.push(cls.name);
 			name = StringTools.replace(a.join(""), ".", "_");
 		}
-		if(cls.meta.has(":vertex")) {
+		if (cls.meta.has(":vertex")) {
 			var vert_string = cls.meta.extract(":vertex")[0].params[0].getValue();
 			fields.push({
 				name: "get_vertex_src",
@@ -29,7 +28,7 @@ class Macros {
 				access: [AOverride]
 			});
 		}
-		if(cls.meta.has(":fragment")) {
+		if (cls.meta.has(":fragment")) {
 			var frag_string = cls.meta.extract(":fragment")[0].params[0].getValue();
 			fields.push({
 				name: "get_fragment_src",
@@ -65,21 +64,24 @@ class Macros {
 
 	public static function makeShader(name:String, b:String, vertex:Bool):String {
 		#if !display
-		if(haxe.macro.Context.defined("display"))
+		if (haxe.macro.Context.defined("display"))
 			return b;
 		var input:String = ".tmp/" + name + "." + (vertex ? "vert" : "frag") + ".glsl";
 		var output:String = ".tmp/" + name + "." + (vertex ? "vert" : "frag") + (haxe.macro.Context.defined("js") ? ".essl" : ".d3d11");
-		if(sys.FileSystem.exists(input) && sys.io.File.getContent(input) == b && sys.FileSystem.exists(output)) {
+		if (!haxe.macro.Context.defined("shader_clean")
+			&& sys.FileSystem.exists(input)
+			&& sys.io.File.getContent(input) == b
+			&& sys.FileSystem.exists(output)) {
 			var s = sys.io.File.getBytes(output).toHex();
 			return s;
 		}
 		sys.io.File.saveContent(input, b);
 		var ret = 1;
-		if(haxe.macro.Context.defined("js"))
-			ret = Sys.command("krafix", ["essl", input, output, ".tmp", "windows","--quiet"]);
+		if (haxe.macro.Context.defined("js"))
+			ret = Sys.command("krafix", ["essl", input, output, ".tmp", "windows", "--quiet"]);
 		else
-			ret = Sys.command("krafix", ["d3d11", input, output, ".tmp", "windows","--quiet"]);
-		if(ret != 0)
+			ret = Sys.command("krafix", ["d3d11", input, output, ".tmp", "windows", "--quiet"]);
+		if (ret != 0)
 			haxe.macro.Context.error("Shader compilation failed.", haxe.macro.Context.currentPos());
 		var s = sys.io.File.getBytes(output).toHex();
 		return s;

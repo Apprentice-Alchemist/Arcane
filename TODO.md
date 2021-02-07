@@ -12,7 +12,7 @@
             - [ ] ITexture
                 - [ ] mipmaps
                 - [ ] texture params
-                - [ ] upload texture data
+                - [x] upload texture data
         - [ ] IAudioDriver
             - How should the api look?
         - [ ] ISystem
@@ -37,7 +37,7 @@
         - [x] Graphics ~~Unless I forgot something~~
             - [x] Stencil, depth & co
             - [ ] Texture stuff
-                - [ ] Figure out how to upload texture data correctly
+                - [x] Figure out how to upload texture data correctly
         - [ ] Audio
         - [ ] System
         - [ ] Input

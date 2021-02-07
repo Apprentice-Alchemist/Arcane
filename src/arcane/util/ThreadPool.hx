@@ -3,7 +3,6 @@ package arcane.util;
 #if !target.threaded
 #error "ThreadPool only works on multithreaded targets"
 #end
-
 import sys.thread.Thread;
 import sys.thread.Deque;
 import sys.thread.Mutex;
@@ -22,7 +21,7 @@ private enum ThreadMessage {
 private class Task {
 	public var in_data:Null<Dynamic>;
 	public var out_data:Null<Dynamic>;
-	public var error_data:Null<Dynamic>;
+	public var error_data(default, set):Null<Dynamic>;
 	public var is_errored:Bool;
 	public var is_executed:Bool;
 	public var on_execute:Task->Void;
@@ -32,12 +31,19 @@ private class Task {
 	public function new(_in, exec, comp, err) {
 		in_data = _in;
 		out_data = null;
-		error_data = null;
 		is_errored = false;
+		error_data = null;
 		is_executed = false;
 		on_execute = exec;
 		on_complete = comp;
 		on_error = err;
+	}
+
+	private inline function set_error_data(d) {
+		error_data = d;
+		if (d != null)
+			is_errored = true;
+		return d;
 	}
 
 	public function execute() {
@@ -51,7 +57,7 @@ private class Task {
 	}
 
 	public function complete() {
-		if(is_errored)
+		if (is_errored)
 			on_error(this);
 		else
 			on_complete(this);
@@ -72,6 +78,10 @@ private class ThreadData {
 		thread = Thread.create(work);
 	}
 
+	public inline function send(m:ThreadMessage) {
+		this.thread.sendMessage(m);
+	}
+
 	function work() {
 		var sleeping = true;
 		while (true) {
@@ -83,7 +93,7 @@ private class ThreadData {
 					break;
 				case _:
 			}
-			if(!sleeping) {
+			if (!sleeping) {
 				mutex.acquire();
 				var t:Array<Task> = [];
 				var val = tasks.pop(false);
@@ -109,18 +119,18 @@ private class ThreadData {
 	}
 }
 
-@:nullSafety(StrictThreaded)
+@:nullSafety(Strict)
 class ThreadPool {
 	public var threads:Array<ThreadData> = [];
 
-	private var ml_ev:arcane.util.Nullable<haxe.MainLoop.MainEvent>;
+	private var ml_ev:Null<haxe.MainLoop.MainEvent>;
 
 	private function create():Void {
-		if(threads.length > 0)
+		if (threads.length > 0)
 			return;
 		threads = [for (_ in 0...4) new ThreadData()];
 		ml_ev = haxe.MainLoop.add(process);
-		ml_ev!.isBlocking = false;
+		ml_ev.isBlocking = false;
 	}
 
 	public function new() {
@@ -136,8 +146,8 @@ class ThreadPool {
 		t.mutex.acquire();
 		t.tasks.push(new Task(_in, exec, comp, err));
 		t.mutex.release();
-		if(wake_thread)
-			t.thread.sendMessage((Wake:ThreadMessage));
+		if (wake_thread)
+			t.thread.sendMessage((Wake : ThreadMessage));
 	}
 
 	public function process():Void {
@@ -155,16 +165,17 @@ class ThreadPool {
 	public function awaken():Void {
 		create();
 		for (thread in threads) {
-			thread.thread.sendMessage((Wake : ThreadMessage));
+			thread.send(Wake);
 		}
 	}
 
 	public function dispose():Void {
 		for (thread in threads) {
-			thread.thread.sendMessage((Die : ThreadMessage));
+			thread.send(Die);
 		}
 		threads = [];
-		ml_ev!.stop();
+		if (ml_ev != null)
+			ml_ev.stop();
 		ml_ev = null;
 	}
 }

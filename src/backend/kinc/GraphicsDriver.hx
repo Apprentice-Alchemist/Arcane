@@ -1,10 +1,10 @@
 package backend.kinc;
 
-import kinc.g4.RenderTarget;
-import kinc.g4.Pipeline.StencilAction;
 import arcane.Utils.assert;
-import kinc.g4.Graphics4;
 import arcane.spec.IGraphicsDriver;
+import kinc.g4.Graphics4;
+import kinc.g4.Pipeline.StencilAction;
+import kinc.g4.RenderTarget;
 
 class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
@@ -21,10 +21,9 @@ class VertexBuffer implements IVertexBuffer {
 				case Float2: kinc.g4.VertexStructure.VertexData.Float2;
 				case Float3: kinc.g4.VertexStructure.VertexData.Float3;
 				case Float4: kinc.g4.VertexStructure.VertexData.Float4;
-					// case Float4x4: kinc.g4.VertexStructure.VertexData.Float4X4;
 			});
 		}
-		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, DynamicUsage, 0);
+		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, desc.dyn ? DynamicUsage : StaticUsage, 0);
 	}
 
 	public function upload(start:Int = 0, arr:Array<Float>) {
@@ -40,6 +39,8 @@ class VertexBuffer implements IVertexBuffer {
 	public function dispose() {
 		buf.destroy();
 		struc.destroy();
+		buf = null;
+		struc = null;
 	}
 }
 
@@ -55,7 +56,9 @@ class IndexBuffer implements IIndexBuffer {
 
 	public function upload(start:Int = 0, arr:Array<Int>) {
 		var x = buf.lock();
+		#if debug
 		assert(start + arr.length <= desc.size, "Trying to upload index data outside of buffer bounds!");
+		#end
 		for (i in 0...arr.length)
 			x[i + start] = arr[i];
 		buf.unlock();
@@ -63,6 +66,7 @@ class IndexBuffer implements IIndexBuffer {
 
 	public function dispose() {
 		buf.destroy();
+		buf = null;
 	}
 }
 
@@ -77,40 +81,33 @@ class Texture implements ITexture {
 	public function new(desc:TextureDesc) {
 		this.desc = desc;
 
-		if(desc.isRenderTarget) {
+		if (desc.isRenderTarget) {
 			renderTarget = RenderTarget.create(desc.width, desc.height, 24, false, Format32Bit, 8, 0);
 		} else {
 			tex = new kinc.g4.Texture();
-			img.initFromBytes(desc.data, desc.width, desc.height, cast kinc.Image.ImageFormat.FORMAT_RGBA32);
-			tex.initFromImage(img);
-			img.destroy();
-			// tex.init(desc.width, desc.height, FORMAT_RGBA32);
-			// if(desc.data != null) {
-			// 	var p = 0;
-			// 	var data = tex.lock();
-			// 	var stride = tex.stride();
-			// 	for (y in 0...desc.height) {
-			// 		for (x in 0...desc.width) {
-			// 			// data[y * stride * 4 + x * 4 + 0] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 0);
-			// 			// data[y * stride * 4 + x * 4 + 1] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 1);
-			// 			// data[y * stride * 4 + x * 4 + 2] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 2);
-			// 			// data[y * stride * 4 + x * 4 + 3] = desc.data.get((desc.height - y) * desc.width * 4 + x * 4 + 3);
-
-			// 			// data[x * desc.width * 4 + y * 4 + 0] = desc.data.get(p++);
-			// 			// data[x * desc.width * 4 + y * 4 + 1] = desc.data.get(p++);
-			// 			// data[x * desc.width * 4 + y * 4 + 2] = desc.data.get(p++);
-			// 			// data[x * desc.width * 4 + y * 4 + 3] = desc.data.get(p++);
-			// 		}
-			// 	}
-			// 	tex.unlock();
-			// }
+			tex.init(desc.width, desc.height, FORMAT_RGBA32);
+			if (desc.data != null) {
+				var data = tex.lock();
+				var stride = tex.stride();
+				for (y in 0...desc.height) {
+					for (x in 0...desc.width) {
+						data[y * stride + x * 4 + 0] = desc.data.get((y * desc.width + x) * 4 + 0);
+						data[y * stride + x * 4 + 1] = desc.data.get((y * desc.width + x) * 4 + 1);
+						data[y * stride + x * 4 + 2] = desc.data.get((y * desc.width + x) * 4 + 2);
+						data[y * stride + x * 4 + 3] = desc.data.get((y * desc.width + x) * 4 + 4);
+					}
+				}
+				tex.unlock();
+			}
 		}
 	}
 
+	public function upload(data:haxe.io.Bytes):Void {}
+
 	public function dispose():Void {
-		if(tex != null)
+		if (tex != null)
 			tex.destroy();
-		if(renderTarget != null)
+		if (renderTarget != null)
 			renderTarget.destroy();
 		tex = null;
 		renderTarget = null;
@@ -126,7 +123,7 @@ class Shader implements IShader {
 		this.desc = desc;
 		var bytes = desc.data;
 		#if krafix
-		if(desc.fromGlslSrc) {
+		if (desc.fromGlslSrc) {
 			var len = 0, out = new hl.Bytes(1024 * 1024);
 			compileShader(@:privateAccess bytes.toString().toUtf8(), out, len, switch kinc.System.getGraphicsApi() {
 				case D3D9: "d3d9";
@@ -136,14 +133,14 @@ class Shader implements IShader {
 				case Metal: "metal";
 				case Vulkan: "vulkan";
 			}, switch Sys.systemName().toLowerCase() {
-					case "windows": "windows";
-					case "linux": "linux";
-					case "mac": "mac";
-					case _: throw "unsupported system";
-				}, switch desc.kind {
-					case Vertex: "vert";
-					case Fragment: "frag";
-				});
+				case "windows": "windows";
+				case "linux": "linux";
+				case "mac": "mac";
+				case _: throw "unsupported system";
+			}, switch desc.kind {
+				case Vertex: "vert";
+				case Fragment: "frag";
+			});
 			bytes = out.toBytes(len);
 		}
 		#end
@@ -197,7 +194,6 @@ class Pipeline implements IPipeline {
 				case Float2: kinc.g4.VertexStructure.VertexData.Float2;
 				case Float3: kinc.g4.VertexStructure.VertexData.Float3;
 				case Float4: kinc.g4.VertexStructure.VertexData.Float4;
-					// case Float4x4: kinc.g4.VertexStructure.VertexData.Float4X4;
 			});
 		}
 
@@ -271,6 +267,7 @@ class Pipeline implements IPipeline {
 
 	public function dispose():Void {
 		state.destroy();
+		state = null;
 	}
 }
 
@@ -292,11 +289,11 @@ class GraphicsDriver implements IGraphicsDriver {
 
 	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
 		var flags = 0;
-		if(col != null)
+		if (col != null)
 			flags |= 1;
-		if(depth != null)
+		if (depth != null)
 			flags |= 2;
-		if(stencil != null)
+		if (stencil != null)
 			flags |= 3;
 		var col:Int = col == null ? 0 : col;
 		var depth:hl.F32 = cast depth == null ? 0 : depth;
@@ -321,7 +318,7 @@ class GraphicsDriver implements IGraphicsDriver {
 	public function createPipeline(desc:PipelineDesc):IPipeline return new Pipeline(desc);
 
 	public function setRenderTarget(?t:ITexture) {
-		if(t == null) {
+		if (t == null) {
 			Graphics4.restoreRenderTarget();
 			return;
 		}
@@ -345,11 +342,10 @@ class GraphicsDriver implements IGraphicsDriver {
 	public function setTextureUnit(u:ITextureUnit, t:ITexture) {
 		var tex:Texture = cast t;
 		var unit:TU = cast u;
-		if(tex.desc.isRenderTarget) {
+		if (tex.desc.isRenderTarget) {
 			tex.renderTarget.useColorAsTexture(unit.tu);
 		} else {
 			Graphics4.setTexture(unit.tu, tex.tex);
-			// Graphics4.setTextureMagnificationFilter(unit.tu,POINT);
 		}
 	}
 
@@ -358,14 +354,14 @@ class GraphicsDriver implements IGraphicsDriver {
 	}
 
 	public function draw(start:Int = 0, count:Int = -1):Void {
-		if(count < 0)
+		if (count < 0)
 			Graphics4.drawIndexedVertices();
 		else
 			Graphics4.drawIndexedVerticesFromTo(start, count);
 	}
 
 	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {
-		if(count < 0)
+		if (count < 0)
 			Graphics4.drawIndexedVerticesInstanced(instanceCount);
 		else
 			Graphics4.drawIndexedVerticesInstancedFromTo(instanceCount, start, count);

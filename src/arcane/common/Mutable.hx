@@ -17,9 +17,12 @@ class Mutable<T> extends arcane.signal.SignalDispatcher {
 	}
 
 	public override function new(?v:T, ?getFunc:Void->Null<T>) {
-		if (v != null) value = v;
-		if (getFunc != null) this.getFunc = getFunc
-		else this.getFunc = () -> value;
+		if (v != null)
+			value = v;
+		if (getFunc != null)
+			this.getFunc = getFunc
+		else
+			this.getFunc = () -> value;
 		super();
 	}
 }

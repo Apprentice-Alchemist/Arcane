@@ -1,6 +1,8 @@
+--debug
+
 -cp test
 -cp src
+
 -main Main
+
 -js out/app.js
---debug
--D js-es=6

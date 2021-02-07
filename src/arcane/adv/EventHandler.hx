@@ -3,7 +3,6 @@ package arcane.adv;
 #if !hscript
 #error "Hscript is required for EventHandler"
 #end
-
 import arcane.signal.Signal;
 import hscript.Parser;
 import hscript.Interp;
