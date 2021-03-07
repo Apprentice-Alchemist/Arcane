@@ -59,7 +59,7 @@ private class GlobalSwitch {
 				if (has_value)
 					if (aliases.contains(k)) {
 						if (!executed)
-							action();
+							action(v);
 						return true;
 					}
 		}
@@ -168,7 +168,7 @@ class Main {
    / _ \\ | '__/ __/ _` | '_ \\ / _ \\
   / ___ \\| | | (_| (_| | | | |  __/
  /_/   \\_\\_|  \\___\\__,_|_| |_|\\___|");
-		println('Arcane Version : ${arcane.Lib.version}');
+		println('Arcane ${arcane.Lib.version}');
 	}
 }
 

@@ -1,10 +1,12 @@
--cp src
 -cp test
-
+-lib Arcane
 -main Main
 -lib kinc
 -lib format
 
 --debug
 
+-D arcane-event-loop-array
+-D asl-shader-bin=out/shaders
+-D shader-clean
 -hl out/out.hl

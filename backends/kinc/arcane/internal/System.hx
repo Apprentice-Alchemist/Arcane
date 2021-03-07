@@ -1,8 +1,8 @@
-package backend.kinc;
+package arcane.internal;
 
-import arcane.spec.ISystem;
-import arcane.spec.IGraphicsDriver;
 import arcane.spec.IAudioDriver;
+import arcane.spec.IGraphicsDriver;
+import arcane.spec.ISystem;
 
 @:access(arcane)
 class System implements ISystem {

@@ -3,9 +3,10 @@ package arcane.util;
 #if !target.threaded
 #error "ThreadPool only works on multithreaded targets"
 #end
-import sys.thread.Thread;
+
 import sys.thread.Deque;
 import sys.thread.Mutex;
+import sys.thread.Thread;
 
 private enum ThreadStatus {
 	Awake;
@@ -51,7 +52,6 @@ private class Task {
 			on_execute(this);
 		} catch (e) {
 			error_data = e;
-			is_errored = true;
 		}
 		is_executed = true;
 	}

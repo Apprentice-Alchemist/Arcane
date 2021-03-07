@@ -1,4 +1,4 @@
-package backend.html5;
+package arcane.internal;
 
 import arcane.spec.IAudioDriver;
 import arcane.spec.IGraphicsDriver;

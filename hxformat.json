@@ -4,13 +4,21 @@
         "anonFunctionBody": "keep",
         "functionBody": "keep"
     },
-    "whitespace":{
+    "whitespace": {
         "addLineCommentSpace": true,
         "binopPolicy": "around",
         "compressSuccessiveParenthesis": true
     },
-    "wrapping":{
-        "opAddSubChain": {"defaultWrap":"keep"},
-        "callParameter": {"defaultWrap": "keep","defaultLocation": "afterLast"}
+    "wrapping": {
+        "opAddSubChain": {
+            "defaultWrap": "keep"
+        },
+        "callParameter": {
+            "defaultWrap": "keep",
+            "defaultLocation": "afterLast"
+        },
+        "casePattern": {
+            "defaultWrap": "noWrap"
+        }
     }
 }

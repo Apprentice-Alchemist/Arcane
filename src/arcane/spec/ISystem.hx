@@ -10,7 +10,7 @@ typedef SystemOptions = {
 	var height:Int;
 	var windowX:Int;
 	var windowY:Int;
-	var windowTitle:Int;
+	var windowTitle:String;
 	var ?html5:{
 		var ?canvas_id:String;
 	}

@@ -1,4 +1,5 @@
-package backend.kinc;
+package arcane.internal;
+
 
 import arcane.Utils.assert;
 import arcane.spec.IGraphicsDriver;
@@ -17,10 +18,10 @@ class VertexBuffer implements IVertexBuffer {
 		this.struc = new kinc.g4.VertexStructure();
 		for (el in desc.layout) {
 			struc.add(el.name, switch el.kind {
-				case Float1: kinc.g4.VertexStructure.VertexData.Float1;
-				case Float2: kinc.g4.VertexStructure.VertexData.Float2;
-				case Float3: kinc.g4.VertexStructure.VertexData.Float3;
-				case Float4: kinc.g4.VertexStructure.VertexData.Float4;
+				case Float1: Float1;
+				case Float2: Float2;
+				case Float3: Float3;
+				case Float4: Float4;
 			});
 		}
 		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, desc.dyn ? DynamicUsage : StaticUsage, 0);
@@ -55,10 +56,10 @@ class IndexBuffer implements IIndexBuffer {
 	}
 
 	public function upload(start:Int = 0, arr:Array<Int>) {
-		var x = buf.lock();
 		#if debug
 		assert(start + arr.length <= desc.size, "Trying to upload index data outside of buffer bounds!");
 		#end
+		var x = buf.lock();
 		for (i in 0...arr.length)
 			x[i + start] = arr[i];
 		buf.unlock();
@@ -122,7 +123,7 @@ class Shader implements IShader {
 	public function new(desc:ShaderDesc) {
 		this.desc = desc;
 		var bytes = desc.data;
-		#if krafix
+		/*#if krafix
 		if (desc.fromGlslSrc) {
 			var len = 0, out = new hl.Bytes(1024 * 1024);
 			compileShader(@:privateAccess bytes.toString().toUtf8(), out, len, switch kinc.System.getGraphicsApi() {
@@ -143,7 +144,7 @@ class Shader implements IShader {
 			});
 			bytes = out.toBytes(len);
 		}
-		#end
+		#end*/
 		shader = kinc.g4.Shader.create(bytes, switch desc.kind {
 			case Vertex: VertexShader;
 			case Fragment: FragmentShader;

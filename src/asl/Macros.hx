@@ -1,9 +1,12 @@
 package asl;
 
+#if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
+import sys.FileSystem;
 
 using haxe.macro.Tools;
+#end
 
 class Macros {
 	#if macro
@@ -40,34 +43,17 @@ class Macros {
 				access: [AOverride]
 			});
 		}
-
-		// var fragment_field = Lambda.find(fields, item -> item.name == "FRAGMENT_SRC");
-		// assert(fragment_field != null, () -> Context.error('Did not find field FRAGMENT_SRC.', cls.pos));
-		// fields.remove(fragment_field);
-		// var vertex_field = Lambda.find(fields, item -> item.name == "VERTEX_SRC");
-		// assert(vertex_field != null, () -> Context.error('Did not find field VERTEX_SRC.', cls.pos));
-		// fields.remove(vertex_field);
-
-		// var fragment_expr = switch fragment_field.kind {
-		// 	case FVar(t, e): e;
-		// 	default: Context.error('Expected FVar(t, e) but got ${fragment_field.kind}', fragment_field.pos);
-		// }
-
-		// var vertex_expr = switch vertex_field.kind {
-		// 	case FVar(t, e): e;
-		// 	default: Context.error('Expected FVar(t, e) but got ${vertex_field.kind}', vertex_field.pos);
-		// }
-		// cls.meta.add("vertex_src", [Parser.parse(vertex_expr)], cls.pos);
-		// cls.meta.add("fragment_src", [Parser.parse(fragment_expr)], cls.pos);
 		return fields;
+		// Compiler
 	}
 
 	public static function makeShader(name:String, b:String, vertex:Bool):String {
 		#if !display
 		if (haxe.macro.Context.defined("display"))
 			return b;
-		var input:String = ".tmp/" + name + "." + (vertex ? "vert" : "frag") + ".glsl";
-		var output:String = ".tmp/" + name + "." + (vertex ? "vert" : "frag") + (haxe.macro.Context.defined("js") ? ".essl" : ".d3d11");
+		var shader_bin = Context.defined("asl-shader-bin") ? Context.definedValue("asl-shader-bin") : ".tmp";
+		var input:String = shader_bin + "/" + name + "." + (vertex ? "vert" : "frag") + ".glsl";
+		var output:String = shader_bin + "/" + name + "." + (vertex ? "vert" : "frag") + (haxe.macro.Context.defined("js") ? ".essl" : ".d3d11");
 		if (!haxe.macro.Context.defined("shader_clean")
 			&& sys.FileSystem.exists(input)
 			&& sys.io.File.getContent(input) == b
@@ -75,12 +61,14 @@ class Macros {
 			var s = sys.io.File.getBytes(output).toHex();
 			return s;
 		}
+		if (!FileSystem.exists(shader_bin))
+			FileSystem.createDirectory(shader_bin);
 		sys.io.File.saveContent(input, b);
 		var ret = 1;
 		if (haxe.macro.Context.defined("js"))
-			ret = Sys.command("krafix", ["essl", input, output, ".tmp", "windows", "--quiet"]);
+			ret = Sys.command("krafix", ["essl", input, output, shader_bin, "windows" #if (!asl_debug), "--quiet" #end]);
 		else
-			ret = Sys.command("krafix", ["d3d11", input, output, ".tmp", "windows", "--quiet"]);
+			ret = Sys.command("krafix", ["d3d11", input, output, shader_bin, "windows" #if (!asl_debug), "--quiet" #end]);
 		if (ret != 0)
 			haxe.macro.Context.error("Shader compilation failed.", haxe.macro.Context.currentPos());
 		var s = sys.io.File.getBytes(output).toHex();

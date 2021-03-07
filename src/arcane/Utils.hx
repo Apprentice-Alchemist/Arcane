@@ -47,12 +47,12 @@ class Utils {
 	/**
 	 * Assertion helper.
 	 * Enable with `-D arcane_assert`, disable with `-D arcane_no_assert`.
-	 * Always enable when compiling with `--debug`.
+	 * Always enabled when compiling with `--debug`.
 	 */
-	public static macro function assert(b, msg:String = "assert") {
+	@:noUsing public static macro function assert(b, msg:String = "assert") {
 		if ((Context.defined("debug") || Context.defined("arcane_assert")) && !Context.defined("arcane_no_assert"))
 			return macro if (!$b)
-				throw $v{msg} + " " + $v{b.toString()} + " != true"
+				throw $v{msg} + " (" + $v{b.toString()} + ") != true"
 			else
 				$b;
 		else

@@ -57,7 +57,7 @@ class Assets {
 		#end
 	}
 
-	public static function preload(onProgress:Float->Void, handle_error:(file:String, err:Dynamic) -> Void, onComplete:Void->Void):Void {
+	public static function preload(onProgress:Float->Void, handle_error:AssetError -> Void, onComplete:Void->Void):Void {
 		#if target.threaded
 		thread_pool.addTask(null, task -> {
 			task.out_data = loadManifest();
@@ -79,7 +79,7 @@ class Assets {
 					}
 				}, function(error) {
 					errored_files++;
-					handle_error(x, error);
+					handle_error(error);
 				});
 			}
 		#if target.threaded
@@ -125,7 +125,7 @@ class Assets {
 		var xhr = new js.html.XMLHttpRequest();
 		xhr.open('GET', path, true);
 		xhr.responseType = js.html.XMLHttpRequestResponseType.ARRAYBUFFER;
-		xhr.onerror = function(e) err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
+		// xhr.onerror = function(e) err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
 		xhr.onload = function(e) {
 			if (xhr.status != 200) {
 				err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));

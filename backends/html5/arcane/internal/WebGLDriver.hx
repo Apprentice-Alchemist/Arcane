@@ -1,5 +1,6 @@
-package backend.html5;
+package arcane.internal;
 
+import arcane.Utils.assert;
 import arcane.spec.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.html.webgl.Buffer;
@@ -12,7 +13,6 @@ import js.html.webgl.UniformLocation;
 import js.lib.Float32Array;
 import js.lib.Uint16Array;
 import js.lib.Uint32Array;
-
 private class Base<T> {
 	public var desc(default, null):T;
 
@@ -123,6 +123,9 @@ private class Shader extends Base<ShaderDesc> implements IShader {
 	private var shader:js.html.webgl.Shader;
 
 	override function init() {
+		assert(desc.data != null);
+		assert((try desc.data.toHex() catch(_) null) != null);
+		assert((try desc.data.toString() catch (_) null) != null);
 		this.shader = driver.gl.createShader(desc.kind.match(Vertex) ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
 		driver.gl.shaderSource(shader, desc.data.toString());
 		driver.gl.compileShader(shader);
@@ -304,8 +307,8 @@ private class Texture extends Base<TextureDesc> implements ITexture {
 	}
 }
 
-@:allow(backend.html5)
-@:access(backend.html5)
+@:allow(arcane.internal)
+@:access(arcane.internal)
 class WebGLDriver implements IGraphicsDriver {
 	var canvas:CanvasElement;
 	var gl:GL;

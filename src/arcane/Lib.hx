@@ -1,11 +1,10 @@
 package arcane;
 
-import arcane.spec.ISystem;
-import arcane.spec.IGraphicsDriver;
-import arcane.spec.IAudioDriver;
-import arcane.signal.Signal;
-import arcane.signal.SignalDispatcher;
 import arcane.common.Version;
+import arcane.signal.SignalDispatcher;
+import arcane.spec.IAudioDriver;
+import arcane.spec.IGraphicsDriver;
+import arcane.spec.ISystem;
 
 @:nullSafety
 @:allow(arcane.internal)
@@ -21,7 +20,8 @@ class Lib {
 	private static var init_done:Bool = false;
 
 	#if target.threaded
-	private static var mainThread:sys.thread.Thread = cast null;
+	@:nullSafety(Off)
+	private static var mainThread:sys.thread.Thread;
 	#end
 
 	/**
@@ -33,14 +33,7 @@ class Lib {
 		#if target.threaded
 		mainThread = sys.thread.Thread.current();
 		#end
-		if (backend == null)
-			#if kinc
-			backend = new backend.kinc.System();
-			#elseif js
-			backend = new backend.html5.System();
-			#else
-			backend = new backend.empty.System();
-			#end
+		backend = new arcane.internal.System();
 		initCb = cb;
 		backend.init(cast {}, onInit);
 	}
@@ -58,11 +51,17 @@ class Lib {
 		initCb();
 	}
 
+	@:noCompletion private static var __event_loop_arr:Array<Void->Void> = [];
+
 	static function update(dt:Float):Void {
 		fps = 1 / (dt);
-		// Ensure haxe.Timer
+		// Ensure haxe.Timer works
 		#if ((target.threaded && !cppia) && haxe_ver >= 4.2)
+		#if arcane_event_loop_array
+		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), __event_loop_arr);
+		#else
 		mainThread.events.progress();
+		#end
 		#else // MainLoop.tick() is automatically called by the main thread's event loop.
 		@:privateAccess haxe.MainLoop.tick();
 		#end
