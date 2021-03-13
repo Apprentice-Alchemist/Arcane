@@ -1,16 +1,14 @@
 -cp src
 arcane.Lib
+arcane.internal.System
+arcane
 --each
 
-backend.html5.System
-backend.html5.WebGLDriver
 -js out.js
 --no-output
 
 --next
 
 -lib kinc
-backend.kinc.System
-backend.kinc.GraphicsDriver
 -hl out.hl
 --no-output
