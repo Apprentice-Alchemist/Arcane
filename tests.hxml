@@ -1,14 +1,13 @@
 -cp src
 arcane.Lib
 arcane.internal.System
-arcane
 --each
-
+arcane.common
 -js out.js
 --no-output
 
 --next
-
+arcane
 -lib kinc
 -hl out.hl
 --no-output
