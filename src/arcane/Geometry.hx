@@ -21,7 +21,7 @@ class Geometry {
 			p.z *= factor;
 		}
 	}
-	
+
 	public function unindex():Void {
 		if (idx != null && points != null && points.length != idx.length) {
 			var p = [];
@@ -40,21 +40,14 @@ class Geometry {
 		}
 	}
 
-	public function makeBuffers(driver:IGraphicsDriver):{
-		var vertex:IVertexBuffer;
-		var index:IIndexBuffer;
-	} {
+	public function makeBuffers(driver:IGraphicsDriver):{vertex:IVertexBuffer, index:IIndexBuffer} {
 		var layout:InputLayout = [];
 		layout.push({name: "pos", kind: Float3});
 		if (uvs != null)
 			layout.push({name: "uv", kind: Float2});
-
-		assert(points != null);
-		if (points == null)
-			throw "";
 		var ret = {
 			vertex: driver.createVertexBuffer({layout: layout, size: points.length, dyn: false}),
-			index: driver.createIndexBuffer({size: idx == null ? points.length : idx.length, is32: points.length > (Math.pow(2, 8) - 1)})
+			index: driver.createIndexBuffer({size: idx == null ? points.length : idx.length, is32: false /*points.length > (Math.pow(2, 8) - 1)*/})
 		}
 		var vert = [];
 		for (i in 0...points.length) {

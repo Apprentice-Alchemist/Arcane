@@ -49,5 +49,5 @@ abstract Color(Int) from Int to Int {
 		return this & 0xffffff;
 
 	private inline function toString():String
-		return "0x" + StringTools.hex(a, 2) + StringTools.hex(r, 2) + StringTools.hex(g, 2) + StringTools.hex(b, 2);
+		return "0x" + StringTools.hex(this, 8);
 }

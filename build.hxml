@@ -1,5 +1,5 @@
 -cp test
--lib Arcane
+-cp src
 -main Main
 -lib kinc
 -lib format
@@ -9,4 +9,6 @@
 -D arcane-event-loop-array
 -D asl-shader-bin=out/shaders
 -D shader-clean
+# -D opengl
+-D absolute-path
 -hl out/out.hl

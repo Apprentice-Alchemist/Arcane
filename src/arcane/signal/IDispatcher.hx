@@ -1,5 +1,6 @@
 package arcane.signal;
 
+/*
 #if macro
 import haxe.macro.Expr.Field;
 import haxe.macro.Context;
@@ -110,3 +111,4 @@ class MacroDispatcher {
 	}
 }
 #end
+*/

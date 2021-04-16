@@ -1,5 +1,6 @@
 package arcane.common;
 
+// causes a `copy(fpu,cpu)` error on hashlink
 // @:eager private typedef Float = arcane.FastFloat;
 
 @:forward
@@ -145,9 +146,9 @@ abstract Matrix3(Mat3Internal) {
 		var b3 = inline new Vector3(b._13, b._23, b._33);
 
 		return new Matrix3(
-			a1.dot(b1), a1.dot(b2), a1.dot(b3),
-			a2.dot(b1), a2.dot(b2), a2.dot(b3),
-			a3.dot(b1), a3.dot(b2), a3.dot(b3)
+			inline a1.dot(b1), inline a1.dot(b2), inline a1.dot(b3),
+			inline a2.dot(b1), inline a2.dot(b2), inline a2.dot(b3),
+			inline a3.dot(b1), inline a3.dot(b2), inline a3.dot(b3)
 		);
 	}
 
@@ -165,7 +166,7 @@ abstract Matrix3(Mat3Internal) {
 		var a2 = inline new Vector3(a._21, a._22, a._23);
 		var a3 = inline new Vector3(a._31, a._32, a._33);
 
-		return new Vector3(a1.dot(b), a2.dot(b), a3.dot(b));
+		return new Vector3(inline a1.dot(b), inline a2.dot(b), inline a3.dot(b));
 	}
 }
 
@@ -217,33 +218,82 @@ abstract Matrix4(Mat4Internal) {
 
 	public inline static function translation(x:Float, y:Float, z:Float):Matrix4 {
 		return new Matrix4(
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			x, y, z, 1
-		);
-	}
-
-	public inline static function orthogonalProjection(left:Float, right:Float, bottom:Float, top:Float, zn:Float, zf:Float):Matrix4 {
-		var tx:Float = -(right + left) / (right - left);
-		var ty:Float = -(top + bottom) / (top - bottom);
-		var tz:Float = -(zf + zn) / (zf - zn);
-		return new Matrix4(
-			2.0 / (right - left), 0, 0, tx,
-			0, 2.0 / (top - bottom), 0, ty,
-			0, 0, -1.0 / (zf - zn), tz,
+			1, 0, 0, x,
+			0, 1, 0, y,
+			0, 0, 1, z,
 			0, 0, 0, 1
 		);
 	}
 
-	public inline static function perspectiveProjection(fovY:Float, aspect:Float, zn:Float, zf:Float):Matrix4 {
-		var uh = 1.0 / Math.tan(fovY / 2);
-		var uw = uh / aspect;
+	public inline static function homogeneousOrthographic(left:Float, right:Float, top:Float, bottom:Float, near:Float, far:Float):Matrix4 {
+		final a = 2 / (right - left);
+		final b = 2 / (top - bottom);
+		final c = -2 / (far - near);
+
 		return new Matrix4(
-			uw, 0, 0, 0,
-			0, uh, 0, 0,
-			0, 0, (zf + zn) / (zn - zf), 2 * zf * zn / (zn - zf),
-			0, 0, -1, 0
+			a, 0, 0, -(right + left) / (right - left),
+			0, b, 0, -(top + bottom) / (top - bottom),
+			0, 0, c, -(far + near) / (far - near),
+			0, 0, 0, 1
+		);
+	}
+
+	public inline static function heterogeneousOrthographic(left:Float, right:Float, top:Float, bottom:Float, near:Float, far:Float):Matrix4 {
+		final a = 2 / (right - left);
+		final b = 2 / (top - bottom);
+		final c = -1 / (far - near);
+
+		return new Matrix4(
+			a, 0, 0, -(right + left) / (right - left),
+			0, b, 0, -(top + bottom) / (top - bottom),
+			0, 0, c, -near / (far - near),
+			0, 0, 0, 1
+		);
+	}
+
+	/**
+	 * Create a perspective matrix.
+	 * @param _fov    Vertical FOV in degrees.
+	 * @param _aspect Aspect ratio.
+	 * @param _near   Near clipping distance.
+	 * @param _far    Far clipping distance.
+	 */
+	public inline static function homogeneousPerspective(fov:Float, aspect:Float, near:Float, far:Float):Matrix4 {
+		final tanHalfFov = Math.tan(fov / 2);
+		final a = 1 / (aspect * tanHalfFov);
+		final b = 1 / tanHalfFov;
+		final c = -(far + near) / (far - near);
+		final d = -1;
+		final e = -(2 * far * near) / (far - near);
+
+		return new Matrix4(
+			a, 0, 0, 0,
+			0, b, 0, 0,
+			0, 0, c, e,
+			0, 0, d, 0
+		);
+	}
+
+	/**
+	 * Create a perspective matrix.
+	 * @param _fov    - Vertical FOV of this perspective.
+	 * @param _aspect - Aspect ratio.
+	 * @param _near   - near clipping.
+	 * @param _far    - far clipping.
+	 */
+	public inline static function heterogeneousPerspective(fov:Float, aspect:Float, near:Float, far:Float):Matrix4 {
+		final tanHalfFov = Math.tan(fov / 2);
+		final a = 1 / (aspect * tanHalfFov);
+		final b = 1 / tanHalfFov;
+		final c = far / (near - far);
+		final d = -1;
+		final e = -(far * near) / (far - near);
+
+		return new Matrix4(
+			a, 0, 0, 0,
+			0, b, 0, 0,
+			0, 0, c, e,
+			0, 0, d, 0
 		);
 	}
 
@@ -318,10 +368,10 @@ abstract Matrix4(Mat4Internal) {
 		var b4 = inline new Vector4(b._14, b._24, b._34, b._44);
 
 		return new Matrix4(
-			a1.dot(b1), a1.dot(b2), a1.dot(b3), a1.dot(b4),
-			a2.dot(b1), a2.dot(b2), a2.dot(b3), a2.dot(b4),
-			a3.dot(b1), a3.dot(b2), a3.dot(b3), a3.dot(b4),
-			a4.dot(b1), a4.dot(b2), a4.dot(b3), a4.dot(b4)
+			inline a1.dot(b1), inline a1.dot(b2), inline a1.dot(b3), inline a1.dot(b4),
+			inline a2.dot(b1), inline a2.dot(b2), inline a2.dot(b3), inline a2.dot(b4),
+			inline a3.dot(b1), inline a3.dot(b2), inline a3.dot(b3), inline a3.dot(b4),
+			inline a4.dot(b1), inline a4.dot(b2), inline a4.dot(b3), inline a4.dot(b4)
 		);
 	}
 
@@ -339,7 +389,7 @@ abstract Matrix4(Mat4Internal) {
 		var a2 = inline new Vector4(a._21, a._22, a._23, a._24);
 		var a3 = inline new Vector4(a._31, a._32, a._33, a._34);
 		var a4 = inline new Vector4(a._41, a._42, a._43, a._44);
-		return new Vector4(a1.dot(b), a2.dot(b), a3.dot(b), a4.dot(b));
+		return new Vector4(inline a1.dot(b), inline a2.dot(b), inline a3.dot(b), inline a4.dot(b));
 	}
 
 	@:op(A == B) inline static function equal(a:Matrix4, b:Matrix4) {
@@ -347,12 +397,12 @@ abstract Matrix4(Mat4Internal) {
 			&& a._31 == b._31 && a._32 == b._32 && a._33 == b._33 && a._34 == b._34 && a._41 == b._41 && a._42 == b._42 && a._43 == b._43 && a._44 == b._44;
 	}
 
-	@:to inline function toArray():Array<arcane.FastFloat> {
+	@:to inline function toArray():Array<Float> {
 		return [
-			this._11, this._12, this._13, this._14,
-			this._21, this._22, this._23, this._24,
-			this._31, this._32, this._33, this._34,
-			this._41, this._42, this._43, this._44
+			this._11, this._21, this._31, this._41,
+			this._12, this._22, this._32, this._42,
+			this._13, this._23, this._33, this._43,
+			this._14, this._24, this._34, this._44
 		];
 	}
 }

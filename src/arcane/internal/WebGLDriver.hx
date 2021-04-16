@@ -1,6 +1,5 @@
 package arcane.internal;
 
-import arcane.Utils.assert;
 import arcane.spec.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.html.webgl.Buffer;
@@ -13,6 +12,8 @@ import js.html.webgl.UniformLocation;
 import js.lib.Float32Array;
 import js.lib.Uint16Array;
 import js.lib.Uint32Array;
+
+@:access(WebGLDriver)
 private class Base<T> {
 	public var desc(default, null):T;
 
@@ -87,13 +88,12 @@ private class IndexBuffer extends Base<IndexBufferDesc> implements IIndexBuffer 
 	private var buf:Buffer;
 
 	override function init() {
-		if (desc.is32) {
-			untyped alert("WebGL does not support 32 bit index buffers. Have a nice day.");
-			throw "See previous alert";
+		if (desc.is32 && !this.driver.supportsFeature(UIntIndexBuffer)) {
+			throw "32bit buffers are not supported without webgl2 support or the OES_element_index_uint extension.";
 		}
 		this.buf = driver.gl.createBuffer();
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
-		this.driver.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, desc.size * 2, GL.STATIC_DRAW);
+		this.driver.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, desc.size * (desc.is32 ? 4 : 2), GL.STATIC_DRAW);
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 	}
 
@@ -124,7 +124,7 @@ private class Shader extends Base<ShaderDesc> implements IShader {
 
 	override function init() {
 		assert(desc.data != null);
-		assert((try desc.data.toHex() catch(_) null) != null);
+		assert((try desc.data.toHex() catch (_) null) != null);
 		assert((try desc.data.toString() catch (_) null) != null);
 		this.shader = driver.gl.createShader(desc.kind.match(Vertex) ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
 		driver.gl.shaderSource(shader, desc.data.toString());
@@ -153,6 +153,10 @@ private class ConstantLocation implements IConstantLocation {
 		this.name = name;
 		this.uniform = uniform;
 	}
+
+	function toString() {
+		return '#ConstantLocation : $name with $type at uniform $uniform';
+	}
 }
 
 private class TextureUnit implements ITextureUnit {
@@ -166,7 +170,7 @@ private class TextureUnit implements ITextureUnit {
 		this.uniform = uniform;
 	}
 
-	inline function toString() {
+	function toString() {
 		return '#TextureUnit : $name at $index';
 	}
 }
@@ -215,8 +219,8 @@ private class Pipeline extends Base<PipelineDesc> implements IPipeline {
 		for (i in locs)
 			if (i.name == name || i.name == (name + "[0]"))
 				return i;
-		trace("Warning : Uniform " + name + " not found.");
-		return null;
+		Log.warn("Uniform " + name + " not found.");
+		return new ConstantLocation("invalid", -1, null);
 	}
 
 	public function getTextureUnit(name:String):ITextureUnit {
@@ -225,8 +229,8 @@ private class Pipeline extends Base<PipelineDesc> implements IPipeline {
 		for (i in tus)
 			if (i.name == name)
 				return i;
-		trace("Warning : Sampler " + name + " not found.");
-		return null;
+		Log.warn("Sampler " + name + " not found.");
+		return new TextureUnit("invalid", -1,null);
 	}
 
 	public function dispose():Void {
@@ -310,6 +314,8 @@ private class Texture extends Base<TextureDesc> implements ITexture {
 @:allow(arcane.internal)
 @:access(arcane.internal)
 class WebGLDriver implements IGraphicsDriver {
+	public final renderTargetFlipY:Bool = true;
+
 	var canvas:CanvasElement;
 	var gl:GL;
 
@@ -330,7 +336,7 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function supportsFeature(f:GraphicsDriverFeature)
 		return switch f {
-			case ThirtyTwoBitIndexBuffers: hasGL2 || gl.getExtension(OES_element_index_uint) != null;
+			case UIntIndexBuffer: hasGL2 || gl.getExtension(OES_element_index_uint) != null;
 			case InstancedRendering: hasGL2 || gl.getExtension(ANGLE_instanced_arrays) != null;
 		}
 
@@ -368,7 +374,7 @@ class WebGLDriver implements IGraphicsDriver {
 
 	@:noCompletion var enabled_things:Map<Int, Bool> = new Map();
 
-	private function enable(cap:Int, b:Bool) {
+	function enable(cap:Int, b:Bool) {
 		if (b) {
 			if (!enabled_things.exists(cap) || !enabled_things.get(cap)) {
 				gl.enable(cap);
@@ -418,7 +424,7 @@ class WebGLDriver implements IGraphicsDriver {
 		else
 			return new Pipeline(this, desc);
 
-	private static function convertBlend(b:Blend):Int {
+	static function convertBlend(b:Blend):Int {
 		return switch b {
 			case One: GL.ONE;
 			case Zero: GL.ZERO;
@@ -433,7 +439,7 @@ class WebGLDriver implements IGraphicsDriver {
 		}
 	}
 
-	private static function convertOperation(o:Operation) {
+	static function convertOperation(o:Operation) {
 		return switch o {
 			case Add: GL.FUNC_ADD;
 			case Sub: GL.FUNC_SUBTRACT;
@@ -443,7 +449,7 @@ class WebGLDriver implements IGraphicsDriver {
 		}
 	}
 
-	private static function convertCompare(c:Compare) {
+	static function convertCompare(c:Compare) {
 		return switch c {
 			case Always: GL.ALWAYS;
 			case Never: GL.NEVER;
@@ -456,7 +462,7 @@ class WebGLDriver implements IGraphicsDriver {
 		}
 	}
 
-	private static function convertStencil(c:StencilOp) {
+	static function convertStencil(c:StencilOp) {
 		return switch c {
 			case Keep:
 				GL.KEEP;
@@ -483,17 +489,19 @@ class WebGLDriver implements IGraphicsDriver {
 		gl.useProgram(state.program);
 		curPipeline = state;
 		var desc = p.desc;
-		if (desc.culling != null) {
-			enable(GL.CULL_FACE, true);
-			gl.cullFace(switch desc.culling {
-				case None: GL.NONE;
-				case Back: GL.BACK;
-				case Front: GL.FRONT;
-				case Both: GL.FRONT_AND_BACK;
-			});
-		} else {
-			enable(GL.CULL_FACE, false);
-		}
+		switch desc.culling {
+			case None, null:
+				enable(GL.CULL_FACE, false);
+			case Back:
+				enable(GL.CULL_FACE, true);
+				gl.cullFace(GL.BACK);
+			case Front:
+				enable(GL.CULL_FACE, true);
+				gl.cullFace(GL.FRONT);
+			case Both:
+				enable(GL.CULL_FACE, true);
+				gl.cullFace(GL.FRONT_AND_BACK);
+		};
 		if (desc.blend != null) {
 			enable(GL.BLEND, true);
 			gl.blendFuncSeparate(convertBlend(desc.blend.src), convertBlend(desc.blend.dst), convertBlend(desc.blend.alphaSrc),
@@ -563,15 +571,20 @@ class WebGLDriver implements IGraphicsDriver {
 	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void {
 		var unit:TextureUnit = cast t;
 		var texture:Texture = cast tex;
+		if(unit.index == -1) {
+			return;
+		}
 		gl.uniform1i(unit.uniform, unit.index);
 		gl.activeTexture(GL.TEXTURE0 + unit.index);
 		gl.bindTexture(GL.TEXTURE_2D, texture.texture);
 	}
 
-	public function setConstantLocation(l:IConstantLocation, a:Array<arcane.FastFloat>):Void {
+	public function setConstantLocation(l:IConstantLocation, a:Array<Float>):Void {
 		var loc:ConstantLocation = cast l;
 		var l = loc.uniform;
-		assert(l != null);
+		if (loc.type == -1) {
+			return;
+		}
 		var a = new Float32Array(a);
 		switch loc.type {
 			case GL.FLOAT_VEC2:
@@ -591,7 +604,7 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function draw(start:Int = 0, count:Int = -1):Void {
 		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, curIndexBuffer.buf);
-		gl.drawElements(GL.TRIANGLES, count == -1 ? curIndexBuffer.desc.size : count, GL.UNSIGNED_SHORT, start);
+		gl.drawElements(GL.TRIANGLES, count == -1 ? curIndexBuffer.desc.size : count, curIndexBuffer.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start);
 	}
 
 	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {}

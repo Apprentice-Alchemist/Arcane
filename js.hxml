@@ -1,14 +1,12 @@
---debug
+-cp backends/html5
+-cp test
+-cp src
+-main Main
 
 -lib format
 
--cp test
--cp src
--cp backends/html5
-
--main Main
+--debug
 
 -D asl-shader-bin=out/shaders
 -D shader-clean
-
--js out/app.js
+-js out/html5/app.js

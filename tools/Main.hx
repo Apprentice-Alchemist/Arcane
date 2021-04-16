@@ -284,6 +284,22 @@ class CreateCommand implements ICommand {
 	}
 }
 
+class ServerCommand implements ICommand {
+	public function doc() return null;
+
+	public function run(args:Array<String>, switches:Map<String, Null<String>>) {
+		// final s = new sys.net.Socket();
+		// s.listen(100);
+		// s.accept();
+		// final t = new hl.uv.Tcp();
+		// t.listen(100,() -> {
+		// 	t.
+		// });
+	}
+
+	public function new() {}
+}
+
 class LineBuf {
 	var buf:StringBuf;
 	var indt = "";

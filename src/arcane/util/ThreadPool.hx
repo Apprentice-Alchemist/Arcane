@@ -3,7 +3,6 @@ package arcane.util;
 #if !target.threaded
 #error "ThreadPool only works on multithreaded targets"
 #end
-
 import sys.thread.Deque;
 import sys.thread.Mutex;
 import sys.thread.Thread;
@@ -78,79 +77,64 @@ private class ThreadData {
 		thread = Thread.create(work);
 	}
 
-	public inline function send(m:ThreadMessage) {
-		this.thread.sendMessage(m);
-	}
+	// public inline function send(m:ThreadMessage) {
+	// 	this.thread.sendMessage(m);
+	// }
 
 	function work() {
-		var sleeping = true;
 		while (true) {
-			var _msg:Null<ThreadMessage> = Thread.readMessage(false);
-			switch _msg {
-				case Wake:
-					sleeping = false;
-				case Die:
-					break;
-				case _:
-			}
-			if (!sleeping) {
-				mutex.acquire();
-				var t:Array<Task> = [];
-				var val = tasks.pop(false);
-				while (val != null) {
-					t.push(val);
-					val = tasks.pop(false);
-				}
-				mutex.release();
+			if (Thread.readMessage(false) != null)
+				break;
+			mutex.acquire();
+			var task = tasks.pop(false);
+			mutex.release();
 
-				for (i in t) {
-					i.execute();
-				}
-
+			if (task != null) {
+				task.execute();
 				mutex.acquire();
-				for (i in t) {
-					completed_tasks.push(i);
-				}
-				sleeping = true;
+				completed_tasks.push(task);
 				mutex.release();
+				Sys.sleep(1 / 1000);
+			} else {
+				Sys.sleep(1 / 1000);
 			}
-			Sys.sleep(0.1);
 		}
 	}
 }
 
 @:nullSafety(Strict)
 class ThreadPool {
-	public var threads:Array<ThreadData> = [];
+	private final threads:Array<ThreadData>;
 
-	private var ml_ev:Null<haxe.MainLoop.MainEvent>;
+	private final ml_ev:#if (haxe >= "4.2.0" && target.threaded) sys.thread.EventLoop.EventHandler #else haxe.MainLoop.MainEvent #end;
+	private final owner_thread:Thread;
 
-	private function create():Void {
-		if (threads.length > 0)
-			return;
-		threads = [for (_ in 0...4) new ThreadData()];
+	public function new(count:Int = 4) {
+		threads = [while (count-- > 0) new ThreadData()];
+		owner_thread = Thread.current();
+		#if (haxe >= "4.2.0" && target.threaded)
+		ml_ev = owner_thread.events.repeat(process, 5);
+		#else
 		ml_ev = haxe.MainLoop.add(process);
 		ml_ev.isBlocking = false;
-	}
-
-	public function new() {
-		create();
+		#end
 	}
 
 	private var _ct:Int = 0;
 
-	public function addTask(_in, exec, comp, err, wake_thread = true):Void {
-		create();
-		var id = _ct >= threads.length ? (_ct = 0) : _ct++;
-		var t = threads[id];
+	/**
+	 * Add a task to be executed on another thread.
+	 */
+	public function addTask(_in:Null<Dynamic>, execute:Task->Void, complete:Task->Void, error:Task->Void, wake_thread:Bool = true):Void {
+		var t = threads[_ct >= threads.length ? (_ct = 0) : _ct++];
 		t.mutex.acquire();
-		t.tasks.push(new Task(_in, exec, comp, err));
+		t.tasks.push(new Task(_in, execute, complete, error));
 		t.mutex.release();
-		if (wake_thread)
-			t.thread.sendMessage((Wake : ThreadMessage));
+		// if (wake_thread)
+		// 	t.thread.sendMessage((Wake : ThreadMessage));
 	}
 
-	public function process():Void {
+	function process():Void {
 		for (thread in threads) {
 			thread.mutex.acquire();
 			var task = thread.completed_tasks.pop(false);
@@ -163,19 +147,22 @@ class ThreadPool {
 	}
 
 	public function awaken():Void {
-		create();
-		for (thread in threads) {
-			thread.send(Wake);
-		}
+		// for (thread in threads) {
+		// 	thread.send(Wake);
+		// }
 	}
 
+	/**
+	 * Disposes of all threads. Tasks still queued might or might now be executed.
+	 * The pool should not be used after this.
+	 */
 	public function dispose():Void {
-		for (thread in threads) {
-			thread.send(Die);
-		}
-		threads = [];
-		if (ml_ev != null)
-			ml_ev.stop();
-		ml_ev = null;
+		while (threads.length > 0)
+			@:nullSafety(Off) threads.pop().thread.sendMessage(1);
+		#if (haxe >= "4.2.0" && target.threaded)
+		owner_thread.events.cancel(ml_ev);
+		#else
+		ml_ev.stop();
+		#end
 	}
 }

@@ -29,40 +29,40 @@ class Lib {
 	 * Behaviour of methods in this class (and other classes) is undefined before this function is called.
 	 * @param cb
 	 */
-	public static function init(cb:Void->Void):Void {
+	public static function init(cb:() -> Void):Void {
 		#if target.threaded
 		mainThread = sys.thread.Thread.current();
 		#end
-		backend = new arcane.internal.System();
-		initCb = cb;
-		backend.init(cast {}, onInit);
+		backend = #if js new arcane.internal.HTML5System() #elseif (hl && kinc) new arcane.internal.KincSystem() #else new arcane.internal.System() #end;
+
+		backend.init(cast {}, () -> {
+			init_done = true;
+			if (backend.isFeatureSupported(Graphics3D))
+				gdriver = backend.createGraphicsDriver();
+			if (backend.isFeatureSupported(Audio))
+				adriver = backend.createAudioDriver();
+			cb();
+		});
 	}
 
-	private static dynamic function initCb():Void {}
-
-	static function onInit():Void {
-		init_done = true;
-		if (backend == null)
-			return;
-		if (backend.isFeatureSupported(Graphics3D))
-			gdriver = backend.createGraphicsDriver();
-		if (backend.isFeatureSupported(Audio))
-			adriver = backend.createAudioDriver();
-		initCb();
-	}
-
+	#if arcane_event_loop_array
 	@:noCompletion private static var __event_loop_arr:Array<Void->Void> = [];
-
+	#end
+	/**
+	 * Handle update stuff.
+	 * @param dt Delta t in seconds.
+	 */
 	static function update(dt:Float):Void {
 		fps = 1 / (dt);
 		// Ensure haxe.Timer works
-		#if ((target.threaded && !cppia) && haxe_ver >= 4.2)
+		#if ((target.threaded && !cppia) && haxe >= version("4.2.0"))
+		// MainLoop.tick() is automatically called by the main thread's event loop.
 		#if arcane_event_loop_array
 		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), __event_loop_arr);
 		#else
 		mainThread.events.progress();
 		#end
-		#else // MainLoop.tick() is automatically called by the main thread's event loop.
+		#else
 		@:privateAccess haxe.MainLoop.tick();
 		#end
 		for (o in __updates)
@@ -71,9 +71,11 @@ class Lib {
 			gdriver.present();
 	}
 
-	public static function time():Float return backend == null ? 0 : backend.time();
+	public static function time():Float {
+		return backend == null ? 0 : backend.time();
+	}
 
-	private static var __updates = new Array<Float->Void>();
+	private static var __updates = new List<Float->Void>();
 
 	/**
 	 * The passed function will be called every time Lib.update is called by the backend.
@@ -81,13 +83,13 @@ class Lib {
 	 * dt is in seconds.
 	 */
 	public static function addUpdate(cb:(dt:Float) -> Void):Void {
-		__updates.push(cb);
+		__updates.add(cb);
 	}
 
 	/**
 	 * Removes the passed function from the update list.
 	 */
-	public static function removeUpdate(cb:Float->Void):Void {
+	public static function removeUpdate(cb:(dt:Float) -> Void):Void {
 		__updates.remove(cb);
 	}
 

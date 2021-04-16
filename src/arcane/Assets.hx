@@ -5,6 +5,11 @@ import arcane.util.ThreadPool;
 #end
 import haxe.io.Bytes;
 
+enum AssetError {
+	NotFound(path:String);
+	Other(path:String, ?msg:String);
+}
+
 @:nullSafety(Strict)
 class Assets {
 	static var bytes_cache:Map<String, Bytes> = new Map();
@@ -25,7 +30,7 @@ class Assets {
 
 	private static function get_thread_pool():ThreadPool {
 		if (_thread_pool == null) {
-			_thread_pool = new ThreadPool();
+			_thread_pool = new ThreadPool(16);
 		}
 		return _thread_pool;
 	}
@@ -57,7 +62,7 @@ class Assets {
 		#end
 	}
 
-	public static function preload(onProgress:Float->Void, handle_error:AssetError -> Void, onComplete:Void->Void):Void {
+	public static function preload(onProgress:(f:Float)->Void, handle_error:(error:AssetError)->Void, onComplete:()->Void):Void {
 		#if target.threaded
 		thread_pool.addTask(null, task -> {
 			task.out_data = loadManifest();
@@ -98,6 +103,7 @@ class Assets {
 
 	/**
 	 * Load bytes from a file.
+	 * Not supported on javascript.
 	 * @param path Path to the file from which the bytes should be loaded.
 	 * @param cache Wether to cache the bytes for use with `getBytes`.
 	 */
@@ -118,14 +124,12 @@ class Assets {
 	 * @param cb
 	 * @param err
 	 * @param cache Wether to cache the bytes in `bytes_cache` for further use with getBytes.
-	 * @param preloading = false
 	 */
-	public static function loadBytesAsync(path:String, cb:Bytes->Void, err:AssetError->Void, cache = true, preloading = false) {
+	public static function loadBytesAsync(path:String, cb:(bytes:Bytes)->Void, err:(error:AssetError)->Void, cache:Bool = true) {
 		#if js
 		var xhr = new js.html.XMLHttpRequest();
 		xhr.open('GET', path, true);
 		xhr.responseType = js.html.XMLHttpRequestResponseType.ARRAYBUFFER;
-		// xhr.onerror = function(e) err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
 		xhr.onload = function(e) {
 			if (xhr.status != 200) {
 				err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
@@ -136,7 +140,10 @@ class Assets {
 				bytes_cache.set(path, data);
 			cb(data);
 		}
+		xhr.onprogress = () -> trace("onprogress");
+		xhr.onloadstart = () -> trace("onloadstart");
 		xhr.send();
+		trace("xhr sent");
 		#elseif target.threaded
 		thread_pool.addTask(path, function(t) {
 			final path:String = cast t.in_data;
@@ -155,14 +162,9 @@ class Assets {
 			cb(data);
 		}, function(t) {
 			err(cast t.error_data);
-		}, !preloading);
+		});
 		#else
 		cb(loadBytes(path, cache));
 		#end
 	}
-}
-
-enum AssetError {
-	NotFound(path:String);
-	Other(path:String, ?msg:String);
 }

@@ -29,11 +29,11 @@ class System implements ISystem {
 		return 0.0;
 	}
 
-	public function width():Float {
-		return 0.0;
+	public function width():Int {
+		return 0;
 	}
 
-	public function height():Float {
-		return 0.0;
+	public function height():Int {
+		return 0;
 	}
 }

@@ -1,10 +1,5 @@
 package arcane.spec;
 
-enum GraphicsDriverFeature {
-	ThirtyTwoBitIndexBuffers;
-	InstancedRendering;
-}
-
 enum ShaderKind {
 	Vertex;
 	Fragment;
@@ -35,12 +30,6 @@ enum Blend {
 	OneMinusSrcColor;
 	OneMinusDstAlpha;
 	OneMinusDstColor;
-	// only supported on WebGL
-	// ConstantColor;
-	// ConstantAlpha;
-	// OneMinusConstantColor;
-	// OneMinusConstantAlpha;
-	// SrcAlphaSaturate;
 }
 
 enum Compare {
@@ -120,9 +109,9 @@ typedef InputLayout = Array<{var name:String; var kind:VertexData;}>;
 @:structInit class PipelineDesc {
 	public var blend:BlendDesc = {};
 	public var stencil:StencilDesc = {};
-	public var culling:Face = Back;
-	public var depthWrite:Bool = true;
-	public var depthTest:Compare = Less;
+	public var culling:Face = None;
+	public var depthWrite:Bool = false;
+	public var depthTest:Compare = Always;
 	public var inputLayout:InputLayout;
 	public var vertexShader:IShader;
 	public var fragmentShader:IShader;
@@ -136,7 +125,7 @@ typedef InputLayout = Array<{var name:String; var kind:VertexData;}>;
 
 @:structInit class IndexBufferDesc {
 	public var size:Int;
-	public var is32:Bool = false;
+	public var is32:Bool = true;
 }
 
 @:structInit class TextureDesc {
@@ -158,7 +147,7 @@ typedef InputLayout = Array<{var name:String; var kind:VertexData;}>;
 	 */
 	public var kind:ShaderKind;
 
-	@:optional public var fromGlslSrc:Bool = false;
+	// @:optional public var fromGlslSrc:Bool = false;
 }
 
 interface IDisposable {
@@ -171,7 +160,7 @@ interface IDisposable {
 interface IDescribed<T> {
 	/**
 	 * The descriptor associated with this object.
-	 * Editing the descriptors fields after object creation will not have any effect on the object.
+	 * Editing the descriptor's fields after object creation will not have any effect on the object.
 	 */
 	public var desc(default, null):T;
 }
@@ -208,7 +197,14 @@ interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
 	public function upload(bytes:haxe.io.Bytes):Void;
 }
 
+enum GraphicsDriverFeature {
+	UIntIndexBuffer;
+	InstancedRendering;
+}
+
 interface IGraphicsDriver {
+	public final renderTargetFlipY:Bool;
+
 	public function supportsFeature(f:GraphicsDriverFeature):Bool;
 	public function dispose():Void;
 
@@ -229,8 +225,7 @@ interface IGraphicsDriver {
 	public function setVertexBuffer(b:IVertexBuffer):Void;
 	public function setIndexBuffer(b:IIndexBuffer):Void;
 	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
-	public function setConstantLocation(l:IConstantLocation, f:Array<arcane.FastFloat>):Void;
-
+	public function setConstantLocation(l:IConstantLocation, f:Array<Float>):Void;
 	public function draw(start:Int = 0, count:Int = -1):Void;
 	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void;
 }

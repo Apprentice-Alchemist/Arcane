@@ -7,6 +7,7 @@ import format.png.Reader as PngReader;
 import format.png.Tools as PngTools;
 #end
 
+@:nullSafety(Strict)
 class Image {
 	/**
 	 * The format of the image.
@@ -63,7 +64,7 @@ class Image {
 				var p = 0;
 				inline function bget(i) return data.get(i);
 				inline function bset(i, v) data.set(i, v);
-				for (i in 0...data.length >> 2) {
+				for (_ in 0...data.length >> 2) {
 					var b = bget(p);
 					var g = bget(p + 1);
 					var r = bget(p + 2);
@@ -73,12 +74,12 @@ class Image {
 					bset(p++, b);
 					bset(p++, a);
 				}
-			// return true;
+
 			case [BGRA, ARGB] | [ARGB, BGRA]:
 				var p = 0;
 				inline function bget(i) return data.get(i);
 				inline function bset(i, v) data.set(i, v);
-				for (i in 0...data.length >> 2) {
+				for (_ in 0...data.length >> 2) {
 					var b = bget(p);
 					var g = bget(p + 1);
 					var r = bget(p + 2);
@@ -88,13 +89,11 @@ class Image {
 					bset(p++, g);
 					bset(p++, b);
 				}
-			// return true;
-
 			case [ARGB, RGBA]:
 				var p = 0;
 				inline function bget(i) return data.get(i);
 				inline function bset(i, v) data.set(i, v);
-				for (i in 0...data.length >> 2) {
+				for (_ in 0...data.length >> 2) {
 					var a = bget(p);
 					var r = bget(p + 1);
 					var g = bget(p + 2);
@@ -104,12 +103,11 @@ class Image {
 					bset(p++, b);
 					bset(p++, a);
 				}
-			// return true;
 			case [RGBA, ARGB]:
 				var p = 0;
 				inline function bget(i) return data.get(i);
 				inline function bset(i, v) data.set(i, v);
-				for (i in 0...data.length >> 2) {
+				for (_ in 0...data.length >> 2) {
 					var r = bget(p);
 					var g = bget(p + 1);
 					var b = bget(p + 2);
@@ -119,7 +117,6 @@ class Image {
 					bset(p++, g);
 					bset(p++, b);
 				}
-			// return true;
 			default:
 				return false;
 		}

@@ -5,7 +5,7 @@ import arcane.spec.IGraphicsDriver;
 import arcane.spec.ISystem;
 
 @:access(arcane)
-class System implements ISystem {
+class KincSystem implements ISystem {
 	public function isFeatureSupported(f:SystemFeature):Bool
 		return switch f {
 			case Graphics3D: true;
@@ -34,8 +34,10 @@ class System implements ISystem {
 		arcane.Lib.update(curtime - lastTime);
 		lastTime = curtime;
 		kinc.g4.Graphics4.swapBuffers();
-	} catch (e)
+	} catch (e) {
 		trace(e.details());
+		kinc.System.stop();
+	}
 
 	public function shutdown()
 		kinc.System.stop();
@@ -44,17 +46,17 @@ class System implements ISystem {
 		return null;
 
 	public function createGraphicsDriver():Null<IGraphicsDriver>
-		return new GraphicsDriver();
+		return new KincDriver();
 
 	public function language():String
-		return kinc.System.language();
+		return kinc.System.language().toString();
 
 	public function time():Float
 		return kinc.System.time();
 
-	public function width():Float
+	public function width():Int
 		return kinc.System.width();
 
-	public function height():Float
+	public function height():Int
 		return kinc.System.height();
 }

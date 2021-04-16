@@ -2,15 +2,15 @@
 arcane.Lib
 --each
 
-backend.html5.System
-backend.html5.WebGLDriver
+arcane.internal.HTML5System
+arcane.internal.WebGLDriver
 -js out.js
 --no-output
 
 --next
 
 -lib kinc
-backend.kinc.System
-backend.kinc.GraphicsDriver
+arcane.internal.KincSystem
+arcane.internal.KincDriver
 -hl out.hl
 --no-output

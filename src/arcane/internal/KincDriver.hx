@@ -1,7 +1,5 @@
 package arcane.internal;
 
-
-import arcane.Utils.assert;
 import arcane.spec.IGraphicsDriver;
 import kinc.g4.Graphics4;
 import kinc.g4.Pipeline.StencilAction;
@@ -28,13 +26,11 @@ class VertexBuffer implements IVertexBuffer {
 	}
 
 	public function upload(start:Int = 0, arr:Array<Float>) {
-		#if debug
-		assert(start + arr.length <= desc.size * buf.stride(), "Trying to upload vertex data outside of buffer bounds!");
-		#end
-		var v = buf.lock(start, arr.length);
+		assert(start + arr.length <= buf.stride(), "Trying to upload vertex data outside of buffer bounds!");
+		var v = buf.lockAll();
 		for (i in 0...arr.length)
-			v[i] = arr[i];
-		buf.unlock(arr.length);
+			v[start + i] = arr[i];
+		buf.unlockAll();
 	}
 
 	public function dispose() {
@@ -52,14 +48,13 @@ class IndexBuffer implements IIndexBuffer {
 
 	public function new(desc:IndexBufferDesc) {
 		this.desc = desc;
-		this.buf = new kinc.g4.IndexBuffer(desc.size, desc.is32 ? IbFormat32BIT : IbFormat16BIT);
+		// 16 bit buffers are broken in kinc
+		this.buf = new kinc.g4.IndexBuffer(desc.size, IbFormat32BIT /*desc.is32 ? IbFormat32BIT : IbFormat16BIT*/);
 	}
 
 	public function upload(start:Int = 0, arr:Array<Int>) {
-		#if debug
 		assert(start + arr.length <= desc.size, "Trying to upload index data outside of buffer bounds!");
-		#end
-		var x = buf.lock();
+		var x:hl.BytesAccess<Int> = buf.lock();
 		for (i in 0...arr.length)
 			x[i + start] = arr[i];
 		buf.unlock();
@@ -72,8 +67,6 @@ class IndexBuffer implements IIndexBuffer {
 }
 
 class Texture implements ITexture {
-	public static var img:kinc.Image = new kinc.Image();
-
 	public var desc(default, null):TextureDesc;
 
 	public var tex:kinc.g4.Texture;
@@ -88,22 +81,24 @@ class Texture implements ITexture {
 			tex = new kinc.g4.Texture();
 			tex.init(desc.width, desc.height, FORMAT_RGBA32);
 			if (desc.data != null) {
-				var data = tex.lock();
-				var stride = tex.stride();
-				for (y in 0...desc.height) {
-					for (x in 0...desc.width) {
-						data[y * stride + x * 4 + 0] = desc.data.get((y * desc.width + x) * 4 + 0);
-						data[y * stride + x * 4 + 1] = desc.data.get((y * desc.width + x) * 4 + 1);
-						data[y * stride + x * 4 + 2] = desc.data.get((y * desc.width + x) * 4 + 2);
-						data[y * stride + x * 4 + 3] = desc.data.get((y * desc.width + x) * 4 + 4);
-					}
-				}
-				tex.unlock();
+				upload(desc.data);
 			}
 		}
 	}
 
-	public function upload(data:haxe.io.Bytes):Void {}
+	public function upload(data:haxe.io.Bytes):Void {
+		var t = tex.lock();
+		var stride = tex.stride();
+		for (y in 0...desc.height) {
+			for (x in 0...desc.width) {
+				t[y * stride + x * 4 + 0] = data.get((y * desc.width + x) * 4 + 0);
+				t[y * stride + x * 4 + 1] = data.get((y * desc.width + x) * 4 + 1);
+				t[y * stride + x * 4 + 2] = data.get((y * desc.width + x) * 4 + 2);
+				t[y * stride + x * 4 + 3] = data.get((y * desc.width + x) * 4 + 4);
+			}
+		}
+		tex.unlock();
+	}
 
 	public function dispose():Void {
 		if (tex != null)
@@ -123,28 +118,28 @@ class Shader implements IShader {
 	public function new(desc:ShaderDesc) {
 		this.desc = desc;
 		var bytes = desc.data;
-		/*#if krafix
-		if (desc.fromGlslSrc) {
-			var len = 0, out = new hl.Bytes(1024 * 1024);
-			compileShader(@:privateAccess bytes.toString().toUtf8(), out, len, switch kinc.System.getGraphicsApi() {
-				case D3D9: "d3d9";
-				case D3D11: "d3d11";
-				case D3D12: "d3d11";
-				case OpenGL: "essl";
-				case Metal: "metal";
-				case Vulkan: "vulkan";
-			}, switch Sys.systemName().toLowerCase() {
-				case "windows": "windows";
-				case "linux": "linux";
-				case "mac": "mac";
-				case _: throw "unsupported system";
-			}, switch desc.kind {
-				case Vertex: "vert";
-				case Fragment: "frag";
-			});
-			bytes = out.toBytes(len);
-		}
-		#end*/
+		// #if krafix
+		// 	if (desc.fromGlslSrc) {
+		// 		var len = 0, out = new hl.Bytes(1024 * 1024);
+		// 		compileShader(@:privateAccess bytes.toString().toUtf8(), out, len, switch kinc.System.getGraphicsApi() {
+		// 			case D3D9: "d3d9";
+		// 			case D3D11: "d3d11";
+		// 			case D3D12: "d3d11";
+		// 			case OpenGL: "essl";
+		// 			case Metal: "metal";
+		// 			case Vulkan: "vulkan";
+		// 		}, switch Sys.systemName().toLowerCase() {
+		// 			case "windows": "windows";
+		// 			case "linux": "linux";
+		// 			case "mac": "mac";
+		// 			case _: throw "unsupported system";
+		// 		}, switch desc.kind {
+		// 			case Vertex: "vert";
+		// 			case Fragment: "frag";
+		// 		});
+		// 		bytes = out.toBytes(len);
+		// 	}
+		// #end
 		shader = kinc.g4.Shader.create(bytes, switch desc.kind {
 			case Vertex: VertexShader;
 			case Fragment: FragmentShader;
@@ -155,10 +150,10 @@ class Shader implements IShader {
 		shader.destroy();
 	}
 
-	#if krafix
-	@:hlNative("krafix", "compile_shader")
-	static function compileShader(src:hl.Bytes, out:hl.Bytes, outlen:hl.Ref<Int>, targetlang:String, system:String, type:String) {}
-	#end
+	// #if krafix
+	// @:hlNative("krafix", "compile_shader")
+	// static function compileShader(src:hl.Bytes, out:hl.Bytes, outlen:hl.Ref<Int>, targetlang:String, system:String, type:String) {}
+	// #end
 }
 
 class TU implements ITextureUnit {
@@ -185,6 +180,7 @@ class Pipeline implements IPipeline {
 
 		assert(desc.vertexShader.desc.kind.match(Vertex));
 		assert(desc.fragmentShader.desc.kind.match(Fragment));
+		
 		state.vertex_shader = @:privateAccess cast(desc.vertexShader, Shader).shader;
 		state.fragment_shader = @:privateAccess cast(desc.fragmentShader, Shader).shader;
 
@@ -212,7 +208,7 @@ class Pipeline implements IPipeline {
 			case None: NOTHING;
 			case Back: COUNTER_CLOCKWISE;
 			case Front: CLOCKWISE;
-			case Both: throw "";
+			case Both: throw "assert";
 		}
 
 		state.depth_write = desc.depthWrite;
@@ -225,39 +221,45 @@ class Pipeline implements IPipeline {
 		state.compile();
 	}
 
-	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingOperation return switch b {
-		case One: ONE;
-		case Zero: ZERO;
-		case SrcAlpha: SOURCE_ALPHA;
-		case SrcColor: SOURCE_COLOR;
-		case DstAlpha: DEST_ALPHA;
-		case DstColor: DEST_COLOR;
-		case OneMinusSrcAlpha: INV_SOURCE_ALPHA;
-		case OneMinusSrcColor: INV_SOURCE_COLOR;
-		case OneMinusDstAlpha: INV_DEST_ALPHA;
-		case OneMinusDstColor: INV_DEST_COLOR;
+	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingOperation {
+		return switch b {
+			case One: ONE;
+			case Zero: ZERO;
+			case SrcAlpha: SOURCE_ALPHA;
+			case SrcColor: SOURCE_COLOR;
+			case DstAlpha: DEST_ALPHA;
+			case DstColor: DEST_COLOR;
+			case OneMinusSrcAlpha: INV_SOURCE_ALPHA;
+			case OneMinusSrcColor: INV_SOURCE_COLOR;
+			case OneMinusDstAlpha: INV_DEST_ALPHA;
+			case OneMinusDstColor: INV_DEST_COLOR;
+		}
 	}
 
-	private static inline function convertStencilOp(c:StencilOp):StencilAction return switch c {
-		case Keep: KEEP;
-		case Zero: ZERO;
-		case Replace: REPLACE;
-		case Increment: INCREMENT;
-		case IncrementWrap: INCREMENT_WRAP;
-		case Decrement: DECREMENT;
-		case DecrementWrap: DECREMENT_WRAP;
-		case Invert: INVERT;
+	private static inline function convertStencilOp(c:StencilOp):StencilAction {
+		return switch c {
+			case Keep: KEEP;
+			case Zero: ZERO;
+			case Replace: REPLACE;
+			case Increment: INCREMENT;
+			case IncrementWrap: INCREMENT_WRAP;
+			case Decrement: DECREMENT;
+			case DecrementWrap: DECREMENT_WRAP;
+			case Invert: INVERT;
+		}
 	}
 
-	private static inline function convertCompare(c:Compare):kinc.g4.Pipeline.CompareMode return switch c {
-		case Always: ALWAYS;
-		case Never: NEVER;
-		case Equal: EQUAL;
-		case NotEqual: NOT_EQUAL;
-		case Greater: GREATER;
-		case GreaterEqual: GREATER_EQUAL;
-		case Less: LESS;
-		case LessEqual: LESS_EQUAL;
+	private static inline function convertCompare(c:Compare):kinc.g4.Pipeline.CompareMode {
+		return switch c {
+			case Always: ALWAYS;
+			case Never: NEVER;
+			case Equal: EQUAL;
+			case NotEqual: NOT_EQUAL;
+			case Greater: GREATER;
+			case GreaterEqual: GREATER_EQUAL;
+			case Less: LESS;
+			case LessEqual: LESS_EQUAL;
+		}
 	}
 
 	public function getConstantLocation(name:String)
@@ -273,20 +275,27 @@ class Pipeline implements IPipeline {
 }
 
 @:access(arcane.backend.kinc)
-class GraphicsDriver implements IGraphicsDriver {
-	public var window:Int;
+class KincDriver implements IGraphicsDriver {
+	public final renderTargetFlipY:Bool;
+
+	var window:Int;
 
 	public function supportsFeature(f:GraphicsDriverFeature):Bool
 		return switch f {
-			case ThirtyTwoBitIndexBuffers: true;
+			case UIntIndexBuffer: true;
 			case InstancedRendering: true;
 		}
 
-	public function new(window:Int = 0) this.window = window;
+	public function new(window:Int = 0) {
+		this.window = window;
+		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
+	}
 
 	public function dispose():Void {};
 
-	public function begin():Void Graphics4.begin(window);
+	public function begin():Void {
+		Graphics4.begin(window);
+	}
 
 	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
 		var flags = 0;
@@ -302,21 +311,35 @@ class GraphicsDriver implements IGraphicsDriver {
 		Graphics4.clear(flags, col, depth, stencil);
 	}
 
-	public function end():Void Graphics4.end(window);
+	public function end():Void {
+		Graphics4.end(window);
+	}
 
-	public function flush():Void Graphics4.flush();
+	public function flush():Void {
+		Graphics4.flush();
+	}
 
-	public function present():Void {} // Graphics4.swapBuffers is for all windows, so it is handled in System
+	public function present():Void {}
 
-	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer return new VertexBuffer(desc);
+	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer {
+		return new VertexBuffer(desc);
+	}
 
-	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer return new IndexBuffer(desc);
+	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer {
+		return new IndexBuffer(desc);
+	}
 
-	public function createTexture(desc:TextureDesc):ITexture return new Texture(desc);
+	public function createTexture(desc:TextureDesc):ITexture {
+		return new Texture(desc);
+	}
 
-	public function createShader(desc:ShaderDesc):IShader return new Shader(desc);
+	public function createShader(desc:ShaderDesc):IShader {
+		return new Shader(desc);
+	}
 
-	public function createPipeline(desc:PipelineDesc):IPipeline return new Pipeline(desc);
+	public function createPipeline(desc:PipelineDesc):IPipeline {
+		return new Pipeline(desc);
+	}
 
 	public function setRenderTarget(?t:ITexture) {
 		if (t == null) {
@@ -350,8 +373,8 @@ class GraphicsDriver implements IGraphicsDriver {
 		}
 	}
 
-	public function setConstantLocation(cl:IConstantLocation, floats:Array<hl.F32>) {
-		Graphics4.setFloats(cast(cl, CL).cl, floats);
+	public function setConstantLocation(cl:IConstantLocation, floats:Array<Float>) {
+		Graphics4.setFloats(cast(cl, CL).cl, [for (f in floats) (f : Single)]);
 	}
 
 	public function draw(start:Int = 0, count:Int = -1):Void {

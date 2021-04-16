@@ -44,17 +44,31 @@ class Macros {
 			});
 		}
 		return fields;
-		// Compiler
 	}
 
-	public static function makeShader(name:String, b:String, vertex:Bool):String {
+	static function makeShader(name:String, b:String, vertex:Bool):String {
 		#if !display
 		if (haxe.macro.Context.defined("display"))
 			return b;
+		var platform = if (Context.defined("js")) "html5" else switch Sys.systemName() {
+			case "Windows": "windows";
+			case "Mac": "osx";
+			case s: "linux";
+		}
+
+		var lang = switch platform {
+			case "windows": if(Context.defined("opengl")) "glsl" else "d3d11";
+			case "html5": "essl";
+			case "mac": "metal";
+			case "linux": if(Context.defined("vulkan")) "spirv" else "essl";
+			case _: throw "unkown platform " + platform;
+		}
+
 		var shader_bin = Context.defined("asl-shader-bin") ? Context.definedValue("asl-shader-bin") : ".tmp";
-		var input:String = shader_bin + "/" + name + "." + (vertex ? "vert" : "frag") + ".glsl";
-		var output:String = shader_bin + "/" + name + "." + (vertex ? "vert" : "frag") + (haxe.macro.Context.defined("js") ? ".essl" : ".d3d11");
-		if (!haxe.macro.Context.defined("shader_clean")
+		var input:String = '$shader_bin/$name.${vertex ? "vert" : "frag"}.glsl';
+		var output = '$shader_bin/$name.${vertex ? "vert" : "frag"}.$platform.$lang';
+
+		if (!haxe.macro.Context.defined("shader-clean")
 			&& sys.FileSystem.exists(input)
 			&& sys.io.File.getContent(input) == b
 			&& sys.FileSystem.exists(output)) {
@@ -64,11 +78,7 @@ class Macros {
 		if (!FileSystem.exists(shader_bin))
 			FileSystem.createDirectory(shader_bin);
 		sys.io.File.saveContent(input, b);
-		var ret = 1;
-		if (haxe.macro.Context.defined("js"))
-			ret = Sys.command("krafix", ["essl", input, output, shader_bin, "windows" #if (!asl_debug), "--quiet" #end]);
-		else
-			ret = Sys.command("krafix", ["d3d11", input, output, shader_bin, "windows" #if (!asl_debug), "--quiet" #end]);
+		var ret = Sys.command("krafix", [lang, input, output, shader_bin, platform #if (!asl_debug), "--quiet" #end]);
 		if (ret != 0)
 			haxe.macro.Context.error("Shader compilation failed.", haxe.macro.Context.currentPos());
 		var s = sys.io.File.getBytes(output).toHex();
