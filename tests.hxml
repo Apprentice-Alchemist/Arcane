@@ -1,5 +1,6 @@
 -cp src
 arcane.Lib
+arcane.signal
 --each
 
 arcane.internal.HTML5System
@@ -8,7 +9,7 @@ arcane.internal.WebGLDriver
 --no-output
 
 --next
-
+arcane
 -lib kinc
 arcane.internal.KincSystem
 arcane.internal.KincDriver
