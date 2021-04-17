@@ -1,5 +1,6 @@
 package arcane;
 
+import haxe.macro.Expr;
 #if macro
 import haxe.macro.Context;
 
@@ -49,13 +50,27 @@ class Utils {
 	 * Enable with `-D arcane_assert`, disable with `-D arcane_no_assert`.
 	 * Always enabled when compiling with `--debug`.
 	 */
-	@:noUsing public static macro function assert(b, msg:String = "assertion failed : ") {
-		if ((Context.defined("debug") || Context.defined("arcane_assert")) && !Context.defined("arcane_no_assert"))
-			return macro if (!$b)
-				throw $v{msg} + " (" + $v{b.toString()} + ") != true"
+	@:noUsing public static macro function assert(b:haxe.macro.Expr.ExprOf<Bool>, msg:String = "assertion failed : "):haxe.macro.Expr.ExprOf<Bool> {
+		if ((Context.defined("debug") || Context.defined("arcane_assert") || Context.defined("ci"))
+			&& !Context.defined("arcane_no_assert"))
+			return @:pos(b.pos) macro if (!$b)
+				throw $v{msg} + " (" + $v{b.toString()} + ")"
 			else
-				$b;
+				true;
 		else
-			return macro $b;
+			return b;
+	}
+
+	/**
+	 * Uses the appropriate ci assert helper, or falls back to `arcane.Utils.assert`.
+	 * @param b 
+	 * @param msg 
+	 */
+	@:noUsing public static macro function ciAssert(b:haxe.macro.Expr.ExprOf<Bool>, msg:String = "assertion failed :"):haxe.macro.Expr.ExprOf<Bool> {
+		if (Context.defined("ci") && Context.defined("utest")) {
+			return macro @:pos(b.pos) utest.Assert.isTrue($b, $v{msg} + " (" + $v{b.toString()} + ")");
+		} else {
+			return macro @:pos(b.pos) arcane.Utils.assert($b, $v{msg});
+		}
 	}
 }

@@ -9,9 +9,23 @@ class System implements ISystem {
 
 	public function new() {}
 
-	public function init(opts, cb:Void->Void):Void {}
+	public function init(opts, cb:Void->Void):Void {
+		cb();
+		var stamp = haxe.Timer.stamp();
+		while (true) {
+			var t = haxe.Timer.stamp();
+			arcane.Lib.update(t - stamp);
+			stamp = t;
+			if (sd)
+				break;
+		}
+	}
 
-	public function shutdown():Void {}
+	private var sd = false;
+
+	public function shutdown():Void {
+		sd = true;
+	}
 
 	public function createAudioDriver():Null<IAudioDriver> {
 		return null;

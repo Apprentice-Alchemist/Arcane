@@ -1,7 +1,10 @@
 package arcane.common;
 
+// TODO : should other and build fields be checked in == and > < <= >=?
+
 @:forward
 @:nullSafety
+@:pure
 abstract Version(Ver) {
 	static final reg:EReg = ~/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/i;
 
@@ -53,6 +56,14 @@ abstract Version(Ver) {
 		return b > a;
 	}
 
+	@:op(A <= B) public static inline function smallereq(a:Version, b:Version):Bool {
+		return equals(a, b) || smaller(a, b);
+	}
+
+	@:op(A >= B) public static inline function greatereq(a:Version, b:Version):Bool {
+		return equals(a, b) || greater(a, b);
+	}
+
 	@:from inline static function fromString(s:String) {
 		return new Version(s);
 	}
@@ -69,4 +80,12 @@ class Ver {
 	public var patch:Int;
 	public var other:Null<String>;
 	public var build:Null<String>;
+
+	public inline function new(major:Int, minor:Int, patch:Int, other:Null<String>, build:Null<String>) {
+		this.major = major;
+		this.minor = minor;
+		this.patch = patch;
+		this.other = other;
+		this.build = build;
+	}
 }

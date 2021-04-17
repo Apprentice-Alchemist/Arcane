@@ -3,8 +3,8 @@ package arcane.common;
 // causes a `copy(fpu,cpu)` error on hashlink
 // @:eager private typedef Float = arcane.FastFloat;
 
+@:pure
 @:forward
-@:forward.new
 abstract Vector3(Vec3Internal) {
 	public inline static function empty():Vector3 {
 		return new Vector3(0, 0, 0);
@@ -13,10 +13,18 @@ abstract Vector3(Vec3Internal) {
 	public inline function dot(b:Vector3):Float {
 		return this.x * b.x + this.y * b.y + this.z * b.z;
 	}
+
+	public inline function new(x:Float, y:Float, z:Float) {
+		this = new Vec3Internal(x, y, z);
+	}
+
+	@:op(A == B) inline static function equals(a:Vector3, b:Vector3) {
+		return a.x == b.x && a.y == b.y && a.z == b.z;
+	}
 }
 
+@:pure
 @:forward
-@:forward.new
 abstract Vector4(Vec4Internal) {
 	public inline static function empty():Vector4 {
 		return new Vector4(0, 0, 0, 0);
@@ -29,42 +37,47 @@ abstract Vector4(Vec4Internal) {
 	public inline function mult(b:Vector4):Vector4 {
 		return new Vector4(this.x * b.x, this.y * b.y, this.z * b.z, this.w * b.w);
 	}
+
+	public inline function new(x:Float, y:Float, z:Float, w:Float) {
+		this = new Vec4Internal(x, y, z, w);
+	}
+
+	@:op(A == B) inline static function equals(a:Vector4,b:Vector4) {
+		return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
+	}
 }
 
+@:pure
 @:forward
-@:forward.new
 abstract Matrix3(Mat3Internal) {
 	public static inline function rotationX(alpha:Float):Matrix3 {
-		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
-		m._22 = ca;
-		m._23 = -sa;
-		m._32 = sa;
-		m._33 = ca;
-		return m;
+		return new Matrix3(
+			1, 0, 0,
+			0, ca, -sa,
+			0, sa, ca
+		);
 	}
 
 	public static inline function rotationY(alpha:Float):Matrix3 {
-		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
-		m._11 = ca;
-		m._13 = sa;
-		m._31 = -sa;
-		m._33 = ca;
-		return m;
+		return new Matrix3(
+			ca, 0, sa,
+			0, 1, 0,
+			-sa, 0, ca
+		);
 	}
 
 	public static inline function rotationZ(alpha:Float):Matrix3 {
-		var m = identity();
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
-		m._11 = ca;
-		m._12 = -sa;
-		m._21 = sa;
-		m._22 = ca;
-		return m;
+		return new Matrix3(
+			ca, -sa, 0,
+			sa, 1, 0,
+			ca, 0, 1
+		);
 	}
 
 	public inline static function identity():Matrix3 {
@@ -88,6 +101,14 @@ abstract Matrix3(Mat3Internal) {
 			this._11, this._21, this._31,
 			this._12, this._22, this._32,
 			this._13, this._23, this._33
+		);
+	}
+
+	public inline function new(_11:Float, _12:Float, _13:Float, _21:Float, _22:Float, _23:Float, _31:Float, _32:Float, _33:Float) {
+		this = new Mat3Internal(
+			_11, _12, _13,
+			_21, _22, _23,
+			_31, _32, _33
 		);
 	}
 
@@ -170,9 +191,8 @@ abstract Matrix3(Mat3Internal) {
 	}
 }
 
-@:forward.new
-@:forward
 @:pure
+@:forward
 abstract Matrix4(Mat4Internal) {
 	public static inline function scale(x:Float, y:Float, z:Float):Matrix4 {
 		return new Matrix4(
@@ -294,6 +314,16 @@ abstract Matrix4(Mat4Internal) {
 			0, b, 0, 0,
 			0, 0, c, e,
 			0, 0, d, 0
+		);
+	}
+
+	public inline function new(_11:Float, _12:Float, _13:Float, _14:Float, _21:Float, _22:Float, _23:Float, _24:Float, _31:Float, _32:Float, _33:Float,
+			_34:Float, _41:Float, _42:Float, _43:Float, _44:Float) {
+		this = new Mat4Internal(
+			_11, _12, _13, _14,
+			_21, _22, _23, _24,
+			_31, _32, _33, _34,
+			_41, _42, _43, _44
 		);
 	}
 

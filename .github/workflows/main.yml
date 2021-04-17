@@ -10,15 +10,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        haxe: [4.1.4,4.2.0]
+        haxe: [4.1.0,4.1.5,4.2.0]
     steps:
-    - name: Install Haxe
-      uses: krdlab/setup-haxe@master
+    - uses: krdlab/setup-haxe@master
       with:
           haxe-version: ${{ matrix.haxe }}
-    - name: Checkout
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
     - name: Build
-      run: |
-        haxelib git kinc https://github.com/Apprentice-Alchemist/KincHL
-        haxe tests.hxml
+      run: haxe tests.hxml

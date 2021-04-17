@@ -1,17 +1,16 @@
 -cp src
+-cp tests
+
+-lib utest
+-D ci
+
+# Include classes in compilation for a basic "does it compile check".
 arcane.Lib
-arcane.signal
---each
+arcane.common
+arcane.util.Log
+arcane.Spec
+arcane.Image
+arcane.Assets
 
-arcane.internal.HTML5System
-arcane.internal.WebGLDriver
--js out.js
---no-output
-
---next
-arcane
--lib kinc
-arcane.internal.KincSystem
-arcane.internal.KincDriver
--hl out.hl
---no-output
+-m Main
+--interp
