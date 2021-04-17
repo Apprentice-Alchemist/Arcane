@@ -8,7 +8,7 @@
 arcane.Lib
 arcane.common
 arcane.util.Log
-arcane.Spec
+arcane.spec
 arcane.Image
 arcane.Assets
 
