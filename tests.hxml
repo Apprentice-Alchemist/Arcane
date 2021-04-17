@@ -1,7 +1,7 @@
 -cp src
 -cp tests
 
--lib utest
+-lib utest:1.13.2
 -D ci
 
 # Include classes in compilation for a basic "does it compile check".
