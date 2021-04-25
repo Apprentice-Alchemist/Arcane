@@ -24,8 +24,8 @@ class Lib {
 		mouseUp: new Event(),
 		mouseScroll: new Event<Float>()
 	}
-	// public static var adriver(default, null):Null<AudioDriver>;
 
+	// public static var adriver(default, null):Null<AudioDriver>;
 	#if target.threaded
 	@:nullSafety(Off)
 	private static var mainThread:sys.thread.Thread;

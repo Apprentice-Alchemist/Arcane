@@ -52,7 +52,8 @@ class Geometry {
 			vert.push(points[i].x);
 			vert.push(points[i].y);
 			vert.push(points[i].z);
-			if (uvs != null) @:nullSafety(Off) {
+			if (uvs != null)
+				@:nullSafety(Off) {
 				vert.push(uvs[i].u);
 				vert.push(uvs[i].v);
 			}

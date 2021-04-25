@@ -65,6 +65,7 @@ class Assets {
 		return arcane.internal.Macros.initManifest();
 		#end
 	}
+
 	/**
 	 * Preload all assets for further use with Assets.getBytes.
 	 * @param onProgress called every time an individual asset is loaded

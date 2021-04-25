@@ -34,13 +34,14 @@ class Event {
 						var listeners:List<$ftype> = new List();
 
 						public function new() {}
+
 						/**
 						 * Adds a listener. Does not overwrite previous instances of itself.
 						 */
 						public function add(cb:$ftype) {
 							listeners.add(cb);
 						}
-                        
+
 						/**
 						 * Removes a listener. Only removes the first found instance of itself.
 						 */
@@ -65,12 +66,12 @@ class Event {
 										type: p
 									}
 							],
-							ret: macro :Void,
-                            expr: macro for (l in listeners) l($a{Lambda.mapi(cparams,(i, _) -> macro $i{'a$i'})}),
+							ret: macro:Void,
+							expr: macro for (l in listeners) l($a{Lambda.mapi(cparams, (i, _) -> macro $i{'a$i'})}),
 						}),
 						pos: base.pos,
-                        access: [APublic],
-                        doc: "Trigger all added listeners"
+						access: [APublic],
+						doc: "Trigger all added listeners"
 					});
 
 					Context.defineType(base);

@@ -17,7 +17,7 @@ class KincSystem implements ISystem {
 			kinc.input.Keyboard.setKeyDownCallback(keycode -> {
 				arcane.Lib.input.keyDown.trigger(cast keycode);
 			});
-			kinc.input.Mouse.setScrollCallback((_,delta) -> {
+			kinc.input.Mouse.setScrollCallback((_, delta) -> {
 				arcane.Lib.input.mouseScroll.trigger(delta);
 			});
 			cb();

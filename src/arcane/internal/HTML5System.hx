@@ -6,13 +6,13 @@ import js.html.webgl.GL;
 
 @:access(arcane)
 class HTML5System implements ISystem {
-
 	public function new() {}
 
 	public var canvas:js.html.CanvasElement;
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
-		if(!js.Browser.supported) throw "expected a browser environment";
+		if (!js.Browser.supported)
+			throw "expected a browser environment";
 		try {
 			var cdef = haxe.macro.Compiler.getDefine("arcane.html5.canvas");
 			var cid = (opts != null && opts.html5 != null && opts.html5.canvas_id != null) ? opts.html5.canvas_id : ((cdef == "1" || cdef == null) ? "arcane" : cdef);

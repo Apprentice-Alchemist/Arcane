@@ -19,8 +19,8 @@ class Shader {
 
 	public function make(d:IGraphicsDriver) {
 		return {
-			vertex : getVertex(d),
-			fragment : getFragment(d)
+			vertex: getVertex(d),
+			fragment: getFragment(d)
 		}
 	}
 

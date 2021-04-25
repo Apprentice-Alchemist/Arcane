@@ -570,8 +570,8 @@ class WebGLDriver implements IGraphicsDriver {
 		for (i in curVertexBuffer.layout) {
 			gl.enableVertexAttribArray(i.index);
 			gl.vertexAttribPointer(i.index, i.size, GL.FLOAT, false, curVertexBuffer.stride * 4, i.pos * 4);
-			if(instancedRendering) {
-				gl2.vertexAttribDivisor(i.index,0);
+			if (instancedRendering) {
+				gl2.vertexAttribDivisor(i.index, 0);
 			}
 			++enabledVertexAttribs;
 		}
@@ -623,9 +623,9 @@ class WebGLDriver implements IGraphicsDriver {
 	}
 
 	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {
-		if(instancedRendering) {
-			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER,curIndexBuffer.buf);
-			gl2.drawElementsInstanced(GL.TRIANGLES, count == -1 ? curIndexBuffer.desc.size : count, curIndexBuffer.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start,instanceCount);
+		if (instancedRendering) {
+			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, curIndexBuffer.buf);
+			gl2.drawElementsInstanced(GL.TRIANGLES, count == -1 ? curIndexBuffer.desc.size : count, curIndexBuffer.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start, instanceCount);
 		}
 	}
 }

@@ -1,25 +1,25 @@
 package arcane.signal;
 
 /*
-#if macro
-import haxe.macro.Expr.Field;
-import haxe.macro.Context;
+	#if macro
+	import haxe.macro.Expr.Field;
+	import haxe.macro.Context;
 
-using haxe.macro.Tools;
-#end
+	using haxe.macro.Tools;
+	#end
 
-// @:autoBuild(arcane.signal.IDispatcher.MacroDispatcher.build())
+	// @:autoBuild(arcane.signal.IDispatcher.MacroDispatcher.build())
 
-@:remove
-interface IDispatcher {
+	@:remove
+	interface IDispatcher {
 	public function dispatch<T:Dynamic>(s:Signal<T>):Void;
 	public function listen<T:Dynamic>(name:String, cb:Signal<T>->Void):Void;
 	public function hasListener<T:Dynamic>(name:String):Bool;
 	public function removeListener<T:Dynamic>(name:String, cb:Signal<T>->Void):Void;
-}
+	}
 
-#if macro
-class MacroDispatcher {
+	#if macro
+	class MacroDispatcher {
 	public static function build():Array<Field> {
 		var SD = haxe.macro.Context.getType("arcane.signal.SignalDispatcher").getClass();
 		var fields = haxe.macro.Context.getBuildFields();
@@ -109,6 +109,6 @@ class MacroDispatcher {
 		fields.push(removeListener);
 		return fields;
 	}
-}
-#end
-*/
+	}
+	#end
+ */

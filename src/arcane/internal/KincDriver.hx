@@ -397,9 +397,9 @@ class KincDriver implements IGraphicsDriver {
 			tex.renderTarget.useColorAsTexture(unit.tu);
 		} else {
 			Graphics4.setTexture(unit.tu, tex.tex);
-			Graphics4.setTextureMagnificationFilter(unit.tu,POINT);
-			Graphics4.setTextureMinificationFilter(unit.tu,POINT);
-			Graphics4.setTextureMipmapFilter(unit.tu,POINT);
+			// Graphics4.setTextureMagnificationFilter(unit.tu, POINT);
+			// Graphics4.setTextureMinificationFilter(unit.tu, POINT);
+			// Graphics4.setTextureMipmapFilter(unit.tu, POINT);
 		}
 	}
 

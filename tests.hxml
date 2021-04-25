@@ -7,8 +7,7 @@
 # Include classes in compilation for a basic "does it compile check".
 arcane.Lib
 arcane.common
-arcane.util.Log
-arcane.spec
+arcane.util
 arcane.Image
 arcane.Assets
 

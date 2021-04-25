@@ -7,58 +7,13 @@ import sys.thread.Deque;
 import sys.thread.Mutex;
 import sys.thread.Thread;
 
-private enum ThreadStatus {
-	Awake;
-	Sleeping;
-}
-
-private enum ThreadMessage {
-	Wake;
-	Die;
-}
-
-// @:nullSafety(StrictThreaded)
-// private class Task {
-// 	public var out_data:Null<Dynamic>;
-// 	public var error_data:Null<Dynamic>;
-
-// 	public var on_execute:Dynamic->Void;
-// 	public var on_complete:Dynamic->Void;
-// 	public var on_error:Dynamic->Void;
-
-// 	public function new(exec, comp, err) {
-// 		// in_data = _in;
-// 		out_data = null;
-
-// 		error_data = null;
-
-// 		on_execute = exec;
-// 		on_complete = comp;
-// 		on_error = err;
-// 	}
-
-// 	public function execute() {
-// 		try {
-// 			on_execute(in_data);
-// 		} catch (e) {
-// 			error_data = cast e;
-// 		}
-// 	}
-
-// 	public function complete() {
-// 		if (error_data != null)
-// 			on_error(error_data);
-// 		else
-// 			on_complete(out_data);
-// 	}
-// }
-
 @:nullSafety(StrictThreaded)
+@:allow(arcane.util.ThreadPool)
 private class Worker {
-	public var thread:Thread;
-	public var mutex:Mutex;
-	public var tasks:Deque<() -> (() -> Void)>;
-	public var completed_tasks:Deque<() -> Void>;
+	var thread:Thread;
+	var mutex:Mutex;
+	var tasks:Deque<() -> (() -> Void)>;
+	var completed_tasks:Deque<() -> Void>;
 
 	public function new() {
 		mutex = new Mutex();
@@ -108,13 +63,16 @@ class ThreadPool {
 
 	/**
 	 * Add a task to be executed on another thread.
+	 * @param execute
+	 * @param complete
+	 * @param err
 	 */
-	public function addTask<R>(execute:() -> R, complete:R->Void,?err:haxe.Exception->Void):Void {
+	public function addTask<R>(execute:() -> R, complete:R->Void, ?err:haxe.Exception->Void):Void {
 		final error:haxe.Exception->Void = err == null ? e -> trace("Unhandled exception in threadpool : " + e.message) : err;
-		var t = threads[_ct >= threads.length ? (_ct = 0) : _ct++];
+		var t = threads[_ct >= threads.length ? --_ct : _ct++];
 		t.mutex.acquire();
 		t.tasks.push(() -> {
-			var r = try execute() catch(e) return () -> error(e);
+			var r = try execute() catch (e) return () -> error(e);
 			return () -> complete(r);
 		});
 		t.mutex.release();

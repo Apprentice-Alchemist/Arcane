@@ -42,7 +42,7 @@ abstract Vector4(Vec4Internal) {
 		this = new Vec4Internal(x, y, z, w);
 	}
 
-	@:op(A == B) inline static function equals(a:Vector4,b:Vector4) {
+	@:op(A == B) inline static function equals(a:Vector4, b:Vector4) {
 		return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 	}
 }

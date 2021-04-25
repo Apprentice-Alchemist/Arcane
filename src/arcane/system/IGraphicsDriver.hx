@@ -1,6 +1,5 @@
 package arcane.system;
 
-
 enum ShaderKind {
 	Vertex;
 	Fragment;
@@ -177,6 +176,7 @@ interface IPipeline extends IDisposable extends IDescribed<PipelineDesc> {
 	 * @return IConstantLocation
 	 */
 	public function getConstantLocation(name:String):IConstantLocation;
+
 	/**
 	 * Get a texture unit. (Sampler in opengl.)
 	 * If there is no texture unit with the given name, return an invalid texture unit.
