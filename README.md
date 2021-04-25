@@ -1,4 +1,5 @@
 # Arcane
+[![CI](https://github.com/Apprentice-Alchemist/Arcane/actions/workflows/main.yml/badge.svg)](https://github.com/Apprentice-Alchemist/Arcane/actions/workflows/main.yml)
 
 Yet another open source game engine.
 
