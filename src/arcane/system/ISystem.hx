@@ -1,9 +1,4 @@
-package arcane.spec;
-
-enum SystemFeature {
-	Graphics3D;
-	Audio;
-}
+package arcane.system;
 
 typedef SystemOptions = {
 	var width:Int;
@@ -17,10 +12,9 @@ typedef SystemOptions = {
 }
 
 interface ISystem {
-	public function isFeatureSupported(e:SystemFeature):Bool;
 	public function init(options:SystemOptions, cb:Void->Void):Void;
 	public function shutdown():Void;
-	public function createAudioDriver():Null<IAudioDriver>;
+	// public function createAudioDriver():Null<IAudioDriver>;
 	public function createGraphicsDriver():Null<IGraphicsDriver>;
 	public function language():String;
 	public function time():Float;

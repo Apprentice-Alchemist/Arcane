@@ -2,13 +2,9 @@ package arcane.common;
 
 import haxe.Constraints;
 
-private typedef Destroyable = {
-	function destroy():Void;
-}
-
 @:generic
 @:nullSafety
-class ObjectPool<T:Constructible<Void->Void> & Destroyable> {
+class ObjectPool<T:Constructible<Void->Void>> {
 	public var count(default, null):Int;
 
 	private var pool:Array<T>;
@@ -30,7 +26,6 @@ class ObjectPool<T:Constructible<Void->Void> & Destroyable> {
 			return;
 		var index = pool.indexOf(obj);
 		if (index == -1 || index >= count) {
-			obj.destroy();
 			pool[count++] = obj;
 		}
 	}

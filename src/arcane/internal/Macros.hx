@@ -1,8 +1,9 @@
 package arcane.internal;
 
 #if macro
-import haxe.macro.Compiler;
 import haxe.macro.Context;
+import haxe.macro.Compiler;
+import haxe.macro.Expr;
 
 using haxe.macro.Tools;
 #end

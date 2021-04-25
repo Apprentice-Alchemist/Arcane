@@ -1,6 +1,7 @@
 package arcane.internal;
 
-import arcane.spec.IGraphicsDriver;
+import js.html.webgl.extension.ANGLEInstancedArrays;
+import arcane.system.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.html.webgl.Buffer;
 import js.html.webgl.Framebuffer;
@@ -35,7 +36,7 @@ private class Base<T> {
 	}
 }
 
-private class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
+class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
 	private var buf:Buffer;
 	var stride:Int;
 	var layout:Array<{
@@ -84,12 +85,12 @@ private class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuff
 	}
 }
 
-private class IndexBuffer extends Base<IndexBufferDesc> implements IIndexBuffer {
+class IndexBuffer extends Base<IndexBufferDesc> implements IIndexBuffer {
 	private var buf:Buffer;
 
 	override function init() {
-		if (desc.is32 && !this.driver.supportsFeature(UIntIndexBuffer)) {
-			throw "32bit buffers are not supported without webgl2 support or the OES_element_index_uint extension.";
+		if (desc.is32 && !this.driver.uintIndexBuffers) {
+			throw "32bit buffers are not supported without webgl2 or the OES_element_index_uint extension.";
 		}
 		this.buf = driver.gl.createBuffer();
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
@@ -119,13 +120,12 @@ private class IndexBuffer extends Base<IndexBufferDesc> implements IIndexBuffer 
 	}
 }
 
-private class Shader extends Base<ShaderDesc> implements IShader {
+class Shader extends Base<ShaderDesc> implements IShader {
 	private var shader:js.html.webgl.Shader;
 
 	override function init() {
 		assert(desc.data != null);
-		assert((try desc.data.toHex() catch (_) null) != null);
-		assert((try desc.data.toString() catch (_) null) != null);
+
 		this.shader = driver.gl.createShader(desc.kind.match(Vertex) ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
 		driver.gl.shaderSource(shader, desc.data.toString());
 		driver.gl.compileShader(shader);
@@ -143,7 +143,7 @@ private class Shader extends Base<ShaderDesc> implements IShader {
 	}
 }
 
-private class ConstantLocation implements IConstantLocation {
+class ConstantLocation implements IConstantLocation {
 	public var type:Int;
 	public var name:String;
 	public var uniform:UniformLocation;
@@ -159,7 +159,7 @@ private class ConstantLocation implements IConstantLocation {
 	}
 }
 
-private class TextureUnit implements ITextureUnit {
+class TextureUnit implements ITextureUnit {
 	public var index:Int;
 	public var name:String;
 	public var uniform:UniformLocation;
@@ -175,7 +175,7 @@ private class TextureUnit implements ITextureUnit {
 	}
 }
 
-private class Pipeline extends Base<PipelineDesc> implements IPipeline {
+class Pipeline extends Base<PipelineDesc> implements IPipeline {
 	var program:Program;
 	var locs:Array<ConstantLocation>;
 	var tus:Array<TextureUnit>;
@@ -230,7 +230,7 @@ private class Pipeline extends Base<PipelineDesc> implements IPipeline {
 			if (i.name == name)
 				return i;
 		Log.warn("Sampler " + name + " not found.");
-		return new TextureUnit("invalid", -1,null);
+		return new TextureUnit("invalid", -1, null);
 	}
 
 	public function dispose():Void {
@@ -241,7 +241,7 @@ private class Pipeline extends Base<PipelineDesc> implements IPipeline {
 	}
 }
 
-private class Texture extends Base<TextureDesc> implements ITexture {
+class Texture extends Base<TextureDesc> implements ITexture {
 	var texture:js.html.webgl.Texture;
 	var frameBuffer:Framebuffer;
 	var renderBuffer:Renderbuffer;
@@ -315,6 +315,8 @@ private class Texture extends Base<TextureDesc> implements ITexture {
 @:access(arcane.internal)
 class WebGLDriver implements IGraphicsDriver {
 	public final renderTargetFlipY:Bool = true;
+	public final instancedRendering:Bool;
+	public final uintIndexBuffers:Bool;
 
 	var canvas:CanvasElement;
 	var gl:GL;
@@ -332,13 +334,23 @@ class WebGLDriver implements IGraphicsDriver {
 		this.canvas = canvas;
 		this.gl = gl;
 		this.hasGL2 = hasGL2;
-	}
 
-	public function supportsFeature(f:GraphicsDriverFeature)
-		return switch f {
-			case UIntIndexBuffer: hasGL2 || gl.getExtension(OES_element_index_uint) != null;
-			case InstancedRendering: hasGL2 || gl.getExtension(ANGLE_instanced_arrays) != null;
+		if (hasGL2) {
+			this.instancedRendering = true;
+			this.uintIndexBuffers = true;
+		} else {
+			this.uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
+			var ext = gl.getExtension(ANGLE_instanced_arrays);
+			if (ext != null) {
+				this.instancedRendering = true;
+				Reflect.setField(gl, "drawElementsInstanced", ext.drawElementsInstancedANGLE);
+				Reflect.setField(gl, "drawArraysInstanced", ext.drawArraysInstancedANGLE);
+				Reflect.setField(gl, "vertexAtribDivisor", ext.vertexAttribDivisorANGLE);
+			} else {
+				this.instancedRendering = false;
+			}
 		}
+	}
 
 	public function check():Bool {
 		return gl != null && !gl.isContextLost();
@@ -558,6 +570,9 @@ class WebGLDriver implements IGraphicsDriver {
 		for (i in curVertexBuffer.layout) {
 			gl.enableVertexAttribArray(i.index);
 			gl.vertexAttribPointer(i.index, i.size, GL.FLOAT, false, curVertexBuffer.stride * 4, i.pos * 4);
+			if(instancedRendering) {
+				gl2.vertexAttribDivisor(i.index,0);
+			}
 			++enabledVertexAttribs;
 		}
 	}
@@ -571,7 +586,7 @@ class WebGLDriver implements IGraphicsDriver {
 	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void {
 		var unit:TextureUnit = cast t;
 		var texture:Texture = cast tex;
-		if(unit.index == -1) {
+		if (unit.index == -1) {
 			return;
 		}
 		gl.uniform1i(unit.uniform, unit.index);
@@ -607,5 +622,10 @@ class WebGLDriver implements IGraphicsDriver {
 		gl.drawElements(GL.TRIANGLES, count == -1 ? curIndexBuffer.desc.size : count, curIndexBuffer.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start);
 	}
 
-	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {}
+	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {
+		if(instancedRendering) {
+			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER,curIndexBuffer.buf);
+			gl2.drawElementsInstanced(GL.TRIANGLES, count == -1 ? curIndexBuffer.desc.size : count, curIndexBuffer.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start,instanceCount);
+		}
+	}
 }

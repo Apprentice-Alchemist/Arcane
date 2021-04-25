@@ -5,3 +5,4 @@ res
 .vscode
 .tmp
 *.hdll
+hlprofile.dump

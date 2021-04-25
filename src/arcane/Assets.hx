@@ -1,5 +1,6 @@
 package arcane;
 
+import arcane.util.Result;
 #if target.threaded
 import arcane.util.ThreadPool;
 #end
@@ -26,17 +27,17 @@ class Assets {
 	 */
 	public static var thread_pool(get, never):ThreadPool;
 
-	@:noCompletion private static var _thread_pool:Null<ThreadPool>;
+	@:noCompletion static var _thread_pool:Null<ThreadPool>;
 
-	private static function get_thread_pool():ThreadPool {
+	static function get_thread_pool():ThreadPool {
 		if (_thread_pool == null) {
-			_thread_pool = new ThreadPool(16);
+			_thread_pool = new ThreadPool(4);
 		}
 		return _thread_pool;
 	}
 	#end
 
-	public static function loadManifest():Array<String> {
+	static function loadManifest():Array<String> {
 		#if (sys && !arcane_use_manifest)
 		var manifest = [];
 		var pathes:Array<String> = (cast(haxe.macro.Compiler.getDefine("resourcesPath") != null ? haxe.macro.Compiler.getDefine("resourcesPath") : "res"))
@@ -54,20 +55,27 @@ class Assets {
 			}
 		}
 		for (path in pathes) {
-			readRec(sys.FileSystem.readDirectory(path), path);
+			if (sys.FileSystem.exists(path) && sys.FileSystem.isDirectory(path))
+				readRec(sys.FileSystem.readDirectory(path), path);
+			else
+				Log.warn('$path is does not exists or is not a directory.');
 		}
 		return manifest;
 		#else
 		return arcane.internal.Macros.initManifest();
 		#end
 	}
-
-	public static function preload(onProgress:(f:Float)->Void, handle_error:(error:AssetError)->Void, onComplete:()->Void):Void {
+	/**
+	 * Preload all assets for further use with Assets.getBytes.
+	 * @param onProgress called every time an individual asset is loaded
+	 * @param handle_error called when an error occurs (ex an asset from the manifest can't be found)
+	 * @param onComplete called once all assets have been loaded
+	 * @return Void
+	 */
+	public static function preload(onProgress:(f:Float) -> Void, handle_error:(error:AssetError) -> Void, onComplete:() -> Void):Void {
 		#if target.threaded
-		thread_pool.addTask(null, task -> {
-			task.out_data = loadManifest();
-		}, task -> {
-			Assets.manifest = cast(task.out_data);
+		thread_pool.addTask(() -> loadManifest(), manifest -> {
+			Assets.manifest = manifest;
 		#else
 		Assets.manifest = loadManifest();
 		#end
@@ -88,7 +96,7 @@ class Assets {
 				});
 			}
 		#if target.threaded
-		}, task -> {});
+		});
 		#end
 	}
 
@@ -125,7 +133,7 @@ class Assets {
 	 * @param err
 	 * @param cache Wether to cache the bytes in `bytes_cache` for further use with getBytes.
 	 */
-	public static function loadBytesAsync(path:String, cb:(bytes:Bytes)->Void, err:(error:AssetError)->Void, cache:Bool = true) {
+	public static function loadBytesAsync(path:String, cb:(bytes:Bytes) -> Void, err:(error:AssetError) -> Void, cache:Bool = true) {
 		#if js
 		var xhr = new js.html.XMLHttpRequest();
 		xhr.open('GET', path, true);
@@ -140,28 +148,26 @@ class Assets {
 				bytes_cache.set(path, data);
 			cb(data);
 		}
-		xhr.onprogress = () -> trace("onprogress");
-		xhr.onloadstart = () -> trace("onloadstart");
 		xhr.send();
-		trace("xhr sent");
 		#elseif target.threaded
-		thread_pool.addTask(path, function(t) {
-			final path:String = cast t.in_data;
+		thread_pool.addTask(() -> {
 			if (sys.FileSystem.exists(path)) {
 				try
-					t.out_data = sys.io.File.getBytes(path)
+					Success(sys.io.File.getBytes(path))
 				catch (e)
-					t.error_data = (Other(path, e.message) : AssetError);
+					Failure(Other(path, e.message));
 			} else {
-				t.error_data = (NotFound(path) : AssetError);
+				Failure(NotFound(path));
 			}
-		}, function(t) {
-			final data:Bytes = cast t.out_data;
-			if (cache)
-				bytes_cache.set(path, data);
-			cb(data);
-		}, function(t) {
-			err(cast t.error_data);
+		}, result -> {
+			switch result {
+				case Success(data):
+					if (cache)
+						bytes_cache.set(path, data);
+					cb(data);
+				case Failure(e):
+					err(e);
+			}
 		});
 		#else
 		cb(loadBytes(path, cache));

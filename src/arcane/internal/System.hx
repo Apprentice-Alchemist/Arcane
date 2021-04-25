@@ -1,23 +1,29 @@
 package arcane.internal;
 
-import arcane.spec.IAudioDriver;
-import arcane.spec.IGraphicsDriver;
-import arcane.spec.ISystem;
+import arcane.system.IGraphicsDriver;
+import arcane.system.ISystem;
+
+#if js
+typedef System = HTML5System;
+typedef GraphicsDriver = WebGLDriver;
+#elseif (hl && kinc)
+typedef System = KincSystem;
+typedef GraphicsDriver = KincDriver;
+#else
+typedef GraphicsDriver = IGraphicsDriver;
 
 class System implements ISystem {
-	public function isFeatureSupported(f:SystemFeature):Bool return false;
-
 	public function new() {}
 
 	public function init(opts, cb:Void->Void):Void {
 		cb();
 		var stamp = haxe.Timer.stamp();
 		while (true) {
-			var t = haxe.Timer.stamp();
-			arcane.Lib.update(t - stamp);
-			stamp = t;
 			if (sd)
 				break;
+			var dt = haxe.Timer.stamp() - stamp;
+			stamp += dt;
+			arcane.Lib.update(dt);
 		}
 	}
 
@@ -27,9 +33,9 @@ class System implements ISystem {
 		sd = true;
 	}
 
-	public function createAudioDriver():Null<IAudioDriver> {
-		return null;
-	}
+	// public function createAudioDriver():Null<IAudioDriver> {
+	// 	return null;
+	// }
 
 	public function createGraphicsDriver():Null<IGraphicsDriver> {
 		return null;
@@ -51,3 +57,4 @@ class System implements ISystem {
 		return 0;
 	}
 }
+#end

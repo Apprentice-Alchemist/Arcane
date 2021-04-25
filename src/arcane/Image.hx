@@ -52,9 +52,9 @@ class Image {
 	 * Tries to convert the image's pixel data to a specific format.
 	 * Returns true if the conversion was successful and false if it wasn't.
 	 * Currently supported conversions :
-	 * - BGRA -> RGBA | ARGB
-	 * - RGBA -> BGRA | ARGB
-	 * - ARGB -> BGRA | RGBA
+	 * - BGRA to RGBA or ARGB
+	 * - RGBA to BGRA or ARGB
+	 * - ARGB to BGRA or RGBA
 	 */
 	public function convert(to:PixelFormat):Bool {
 		if (format == to)
@@ -129,15 +129,17 @@ class Image {
 	 * Requires the `format` haxelib.
 	 * @param b raw png bytes
 	 */
-	public static function fromPngBytes(b:haxe.io.Bytes):Null<Image> {
+	public static function fromPngBytes(b:haxe.io.Bytes):Image {
 		#if format
 		var reader = new PngReader(new BytesInput(b));
 		var data = reader.read();
 		var header = PngTools.getHeader(data);
 		var bytes = PngTools.extract32(data);
-		return new Image(header.width, header.height, BGRA, bytes);
+		var image = new Image(header.width, header.height, BGRA, bytes);
+		image.convert(RGBA);
+		return image;
 		#else
-		return null;
+		throw "please install the format haxelib";
 		#end
 	}
 

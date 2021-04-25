@@ -17,58 +17,48 @@ private enum ThreadMessage {
 	Die;
 }
 
-@:nullSafety(StrictThreaded)
-private class Task {
-	public var in_data:Null<Dynamic>;
-	public var out_data:Null<Dynamic>;
-	public var error_data(default, set):Null<Dynamic>;
-	public var is_errored:Bool;
-	public var is_executed:Bool;
-	public var on_execute:Task->Void;
-	public var on_complete:Task->Void;
-	public var on_error:Task->Void;
+// @:nullSafety(StrictThreaded)
+// private class Task {
+// 	public var out_data:Null<Dynamic>;
+// 	public var error_data:Null<Dynamic>;
 
-	public function new(_in, exec, comp, err) {
-		in_data = _in;
-		out_data = null;
-		is_errored = false;
-		error_data = null;
-		is_executed = false;
-		on_execute = exec;
-		on_complete = comp;
-		on_error = err;
-	}
+// 	public var on_execute:Dynamic->Void;
+// 	public var on_complete:Dynamic->Void;
+// 	public var on_error:Dynamic->Void;
 
-	private inline function set_error_data(d) {
-		error_data = d;
-		if (d != null)
-			is_errored = true;
-		return d;
-	}
+// 	public function new(exec, comp, err) {
+// 		// in_data = _in;
+// 		out_data = null;
 
-	public function execute() {
-		try {
-			on_execute(this);
-		} catch (e) {
-			error_data = e;
-		}
-		is_executed = true;
-	}
+// 		error_data = null;
 
-	public function complete() {
-		if (is_errored)
-			on_error(this);
-		else
-			on_complete(this);
-	}
-}
+// 		on_execute = exec;
+// 		on_complete = comp;
+// 		on_error = err;
+// 	}
+
+// 	public function execute() {
+// 		try {
+// 			on_execute(in_data);
+// 		} catch (e) {
+// 			error_data = cast e;
+// 		}
+// 	}
+
+// 	public function complete() {
+// 		if (error_data != null)
+// 			on_error(error_data);
+// 		else
+// 			on_complete(out_data);
+// 	}
+// }
 
 @:nullSafety(StrictThreaded)
-private class ThreadData {
+private class Worker {
 	public var thread:Thread;
 	public var mutex:Mutex;
-	public var tasks:Deque<Task>;
-	public var completed_tasks:Deque<Task>;
+	public var tasks:Deque<() -> (() -> Void)>;
+	public var completed_tasks:Deque<() -> Void>;
 
 	public function new() {
 		mutex = new Mutex();
@@ -77,40 +67,34 @@ private class ThreadData {
 		thread = Thread.create(work);
 	}
 
-	// public inline function send(m:ThreadMessage) {
-	// 	this.thread.sendMessage(m);
-	// }
-
 	function work() {
 		while (true) {
 			if (Thread.readMessage(false) != null)
 				break;
-			mutex.acquire();
-			var task = tasks.pop(false);
-			mutex.release();
+			// mutex.acquire();
+			var task = tasks.pop(true);
+			// mutex.release();
 
 			if (task != null) {
-				task.execute();
-				mutex.acquire();
-				completed_tasks.push(task);
-				mutex.release();
-				Sys.sleep(1 / 1000);
-			} else {
-				Sys.sleep(1 / 1000);
+				var f = task();
+				// mutex.acquire();
+				completed_tasks.push(f);
+				// mutex.release();
 			}
+			Sys.sleep(1 / 1000);
 		}
 	}
 }
 
 @:nullSafety(Strict)
 class ThreadPool {
-	private final threads:Array<ThreadData>;
+	private final threads:Array<Worker>;
 
 	private final ml_ev:#if (haxe >= "4.2.0" && target.threaded) sys.thread.EventLoop.EventHandler #else haxe.MainLoop.MainEvent #end;
 	private final owner_thread:Thread;
 
 	public function new(count:Int = 4) {
-		threads = [while (count-- > 0) new ThreadData()];
+		threads = [while (count-- > 0) new Worker()];
 		owner_thread = Thread.current();
 		#if (haxe >= "4.2.0" && target.threaded)
 		ml_ev = owner_thread.events.repeat(process, 5);
@@ -125,31 +109,27 @@ class ThreadPool {
 	/**
 	 * Add a task to be executed on another thread.
 	 */
-	public function addTask(_in:Null<Dynamic>, execute:Task->Void, complete:Task->Void, error:Task->Void, wake_thread:Bool = true):Void {
+	public function addTask<R>(execute:() -> R, complete:R->Void,?err:haxe.Exception->Void):Void {
+		final error:haxe.Exception->Void = err == null ? e -> trace("Unhandled exception in threadpool : " + e.message) : err;
 		var t = threads[_ct >= threads.length ? (_ct = 0) : _ct++];
 		t.mutex.acquire();
-		t.tasks.push(new Task(_in, execute, complete, error));
+		t.tasks.push(() -> {
+			var r = try execute() catch(e) return () -> error(e);
+			return () -> complete(r);
+		});
 		t.mutex.release();
-		// if (wake_thread)
-		// 	t.thread.sendMessage((Wake : ThreadMessage));
 	}
 
 	function process():Void {
 		for (thread in threads) {
-			thread.mutex.acquire();
+			// thread.mutex.acquire();
 			var task = thread.completed_tasks.pop(false);
 			while (task != null) {
-				task.complete();
+				task();
 				task = thread.completed_tasks.pop(false);
 			}
-			thread.mutex.release();
+			// thread.mutex.release();
 		}
-	}
-
-	public function awaken():Void {
-		// for (thread in threads) {
-		// 	thread.send(Wake);
-		// }
 	}
 
 	/**

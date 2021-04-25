@@ -47,18 +47,13 @@ class Utils {
 
 	/**
 	 * Assertion helper.
-	 * Enable with `-D arcane_assert`, disable with `-D arcane_no_assert`.
-	 * Always enabled when compiling with `--debug`.
 	 */
 	@:noUsing public static macro function assert(b:haxe.macro.Expr.ExprOf<Bool>, msg:String = "assertion failed : "):haxe.macro.Expr.ExprOf<Bool> {
-		if ((Context.defined("debug") || Context.defined("arcane_assert") || Context.defined("ci"))
-			&& !Context.defined("arcane_no_assert"))
-			return @:pos(b.pos) macro if (!$b)
-				throw $v{msg} + " (" + $v{b.toString()} + ")"
-			else
-				true;
-		else
-			return b;
+		return macro @:pos(b.pos) if (!$b) {
+			throw $v{msg} + " (" + $v{b.toString()} + ")";
+		} else {
+			true;
+		}
 	}
 
 	/**

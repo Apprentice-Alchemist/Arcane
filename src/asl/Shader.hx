@@ -1,16 +1,15 @@
 package asl;
 
-import arcane.spec.IGraphicsDriver;
+import arcane.system.IGraphicsDriver;
 import haxe.io.Bytes;
 
 /**
  * Shader base class, extend and use @:vertex and @:fragment metadata to supply glsl source code.
  * The glsl code will be converted to the appropriate shader language at compile time.
  */
-#if !(eval || macro)
+#if !macro
 @:autoBuild(asl.Macros.buildShader())
 #end
-@:allow(arcane)
 class Shader {
 	function get_vertex_src():String return "";
 
@@ -18,12 +17,11 @@ class Shader {
 
 	public function new() {}
 
-	public var vertex:IShader;
-	public var fragment:IShader;
-
-	public function init(d:IGraphicsDriver) {
-		this.vertex = getVertex(d);
-		this.fragment = getFragment(d);
+	public function make(d:IGraphicsDriver) {
+		return {
+			vertex : getVertex(d),
+			fragment : getFragment(d)
+		}
 	}
 
 	public function getVertex(driver:IGraphicsDriver):IShader {

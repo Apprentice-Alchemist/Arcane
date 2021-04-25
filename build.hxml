@@ -5,10 +5,16 @@
 -lib format
 
 --debug
-
+--no-inline
 -D arcane-event-loop-array
 -D asl-shader-bin=out/shaders
 -D shader-clean
+# -D keep-inline-positions
+-D hl-ver=1.11.0
 # -D opengl
 -D absolute-path
+--macro nullSafety("arcane",Strict)
+--macro nullSafety("asl",Strict)
+--macro nullSafety("a2d",Strict)
+--macro nullSafety("Main",Strict)
 -hl out/out.hl

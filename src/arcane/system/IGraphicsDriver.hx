@@ -1,4 +1,5 @@
-package arcane.spec;
+package arcane.system;
+
 
 enum ShaderKind {
 	Vertex;
@@ -143,21 +144,21 @@ typedef InputLayout = Array<{var name:String; var kind:VertexData;}>;
 	public var data:haxe.io.Bytes;
 
 	/**
-	 * What kind of shader it is, right now only Vertex and Fragment shaders are supported
+	 * The kind of shader.
 	 */
 	public var kind:ShaderKind;
 
 	// @:optional public var fromGlslSrc:Bool = false;
 }
 
-interface IDisposable {
+private interface IDisposable {
 	/**
 	 * Dispose native resources. The object should not be used after this function has been called.
 	 */
 	public function dispose():Void;
 }
 
-interface IDescribed<T> {
+private interface IDescribed<T> {
 	/**
 	 * The descriptor associated with this object.
 	 * Editing the descriptor's fields after object creation will not have any effect on the object.
@@ -169,7 +170,19 @@ interface ITextureUnit {}
 interface IConstantLocation {}
 
 interface IPipeline extends IDisposable extends IDescribed<PipelineDesc> {
+	/**
+	 * Get a constant location. (Uniform in opengl.)
+	 * If there is no constant location with the given name, return an invalid constant location.
+	 * @param name 
+	 * @return IConstantLocation
+	 */
 	public function getConstantLocation(name:String):IConstantLocation;
+	/**
+	 * Get a texture unit. (Sampler in opengl.)
+	 * If there is no texture unit with the given name, return an invalid texture unit.
+	 * @param name 
+	 * @return ITextureUnit
+	 */
 	public function getTextureUnit(name:String):ITextureUnit;
 }
 
@@ -197,15 +210,11 @@ interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
 	public function upload(bytes:haxe.io.Bytes):Void;
 }
 
-enum GraphicsDriverFeature {
-	UIntIndexBuffer;
-	InstancedRendering;
-}
-
 interface IGraphicsDriver {
 	public final renderTargetFlipY:Bool;
+	public final instancedRendering:Bool;
+	public final uintIndexBuffers:Bool;
 
-	public function supportsFeature(f:GraphicsDriverFeature):Bool;
 	public function dispose():Void;
 
 	public function begin():Void;

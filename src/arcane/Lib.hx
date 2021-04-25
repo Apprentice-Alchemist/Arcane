@@ -2,9 +2,10 @@ package arcane;
 
 import arcane.common.Version;
 import arcane.signal.SignalDispatcher;
-import arcane.spec.IAudioDriver;
-import arcane.spec.IGraphicsDriver;
-import arcane.spec.ISystem;
+import arcane.internal.System;
+import arcane.system.ISystem;
+import arcane.system.IGraphicsDriver;
+import arcane.signal.Event;
 
 @:nullSafety
 @:allow(arcane.internal)
@@ -15,9 +16,15 @@ class Lib {
 
 	public static var backend(default, null):Null<ISystem>;
 	public static var gdriver(default, null):Null<IGraphicsDriver>;
-	public static var adriver(default, null):Null<IAudioDriver>;
 
-	private static var init_done:Bool = false;
+	public static final input = {
+		keyDown: new Event<Int>(),
+		keyUp: new Event<Int>(),
+		mouseDown: new Event(),
+		mouseUp: new Event(),
+		mouseScroll: new Event<Float>()
+	}
+	// public static var adriver(default, null):Null<AudioDriver>;
 
 	#if target.threaded
 	@:nullSafety(Off)
@@ -33,21 +40,20 @@ class Lib {
 		#if target.threaded
 		mainThread = sys.thread.Thread.current();
 		#end
-		backend = #if js new arcane.internal.HTML5System() #elseif (hl && kinc) new arcane.internal.KincSystem() #else new arcane.internal.System() #end;
+		var backend = new arcane.internal.System();
 
 		backend.init(cast {}, () -> {
-			init_done = true;
-			if (backend.isFeatureSupported(Graphics3D))
-				gdriver = backend.createGraphicsDriver();
-			if (backend.isFeatureSupported(Audio))
-				adriver = backend.createAudioDriver();
+			gdriver = backend.createGraphicsDriver();
+			// adriver = backend.createAudioDriver();
+			arcane.Lib.backend = backend;
 			cb();
 		});
 	}
 
 	#if arcane_event_loop_array
-	@:noCompletion private static var __event_loop_arr:Array<Void->Void> = [];
+	static var __event_loop_arr:Array<() -> Void> = [];
 	#end
+
 	/**
 	 * Handle update stuff.
 	 * @param dt Delta t in seconds.
@@ -57,7 +63,8 @@ class Lib {
 		// Ensure haxe.Timer works
 		#if ((target.threaded && !cppia) && haxe >= version("4.2.0"))
 		// MainLoop.tick() is automatically called by the main thread's event loop.
-		#if arcane_event_loop_array
+		#if (arcane_event_loop_array && !eval)
+		// @:nullSafety(Off) because __progress is inline and certain parts of it make null safety angry.
 		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), __event_loop_arr);
 		#else
 		mainThread.events.progress();
@@ -67,15 +74,23 @@ class Lib {
 		#end
 		for (o in __updates)
 			o(dt);
-		if (gdriver != null)
+		#if hl_profile
+		hl.Profile.event(-1); // pause
+		#end
+		if (gdriver != null) {
 			gdriver.present();
+		}
+		#if hl_profile
+		hl.Profile.event(0); // next frame
+		hl.Profile.event(-2); // resume
+		#end
 	}
 
 	public static function time():Float {
 		return backend == null ? 0 : backend.time();
 	}
 
-	private static var __updates = new List<Float->Void>();
+	private static var __updates = new List<(dt:Float) -> Void>();
 
 	/**
 	 * The passed function will be called every time Lib.update is called by the backend.
@@ -102,6 +117,9 @@ class Lib {
 			gdriver.dispose();
 		if (backend != null)
 			backend.shutdown();
+		#if hl_profile
+		hl.Profile.dump();
+		#end
 		#if sys
 		Sys.exit(code);
 		#end

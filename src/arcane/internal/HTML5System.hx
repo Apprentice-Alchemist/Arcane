@@ -1,24 +1,18 @@
 package arcane.internal;
 
-import arcane.spec.IAudioDriver;
-import arcane.spec.IGraphicsDriver;
-import arcane.spec.ISystem;
+import arcane.system.IGraphicsDriver;
+import arcane.system.ISystem;
 import js.html.webgl.GL;
 
 @:access(arcane)
 class HTML5System implements ISystem {
-	public function isFeatureSupported(f:SystemFeature):Bool {
-		return switch f {
-			case Graphics3D: true;
-			case Audio: true;
-		}
-	}
 
 	public function new() {}
 
 	public var canvas:js.html.CanvasElement;
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
+		if(!js.Browser.supported) throw "expected a browser environment";
 		try {
 			var cdef = haxe.macro.Compiler.getDefine("arcane.html5.canvas");
 			var cid = (opts != null && opts.html5 != null && opts.html5.canvas_id != null) ? opts.html5.canvas_id : ((cdef == "1" || cdef == null) ? "arcane" : cdef);
@@ -48,9 +42,9 @@ class HTML5System implements ISystem {
 
 	public function shutdown() {}
 
-	public function createAudioDriver():Null<IAudioDriver> {
-		return null;
-	}
+	// public function createAudioDriver():Null<IAudioDriver> {
+	// 	return null;
+	// }
 
 	public function createGraphicsDriver():Null<IGraphicsDriver> {
 		var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});

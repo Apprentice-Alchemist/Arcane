@@ -3,19 +3,15 @@ package arcane.signal;
 #if macro
 import haxe.macro.Expr;
 import haxe.macro.Context;
-
-using haxe.macro.Tools;
 #end
-using StringTools;
-using Lambda;
 
 #if !macro
-@:generic @:genericBuild(arcane.signal.Event.build())
+@:genericBuild(arcane.signal.Event.build())
 class Event<Rest> {}
 #else
 class Event {
 	public static function build() {
-		switch haxe.macro.Context.getLocalType() {
+		switch Context.getLocalType() {
 			case TInst(_.get().name => "Event", params):
 				var name = "Event" + params.length;
 				try {
@@ -23,32 +19,36 @@ class Event {
 					return TPath({
 						pack: ["arcane", "signal"],
 						name: name,
-						params: [for (p in params) TPType(p.toComplexType())]
+						params: [for (t in params) TPType(Context.toComplexType(t))]
 					});
 				} catch (_) {
 					var cparams = [
-						for (idx => _ in params)
+						for (i in 0...params.length)
 							TPath({
 								pack: [],
-								name: "T" + idx
+								name: "T" + i
 							})
 					];
 					var ftype:ComplexType = TFunction(cparams, macro:Void);
-					var base = macro class {
+					var base = macro class $name {
 						var listeners:List<$ftype> = new List();
 
 						public function new() {}
-
+						/**
+						 * Adds a listener. Does not overwrite previous instances of itself.
+						 */
 						public function add(cb:$ftype) {
 							listeners.add(cb);
 						}
-
+                        
+						/**
+						 * Removes a listener. Only removes the first found instance of itself.
+						 */
 						public function remove(cb:$ftype) {
 							listeners.remove(cb);
 						}
 					};
 					base.pack = ["arcane", "signal"];
-					base.name = name;
 					base.params = [
 						for (i => p in params)
 							{
@@ -59,24 +59,25 @@ class Event {
 						name: "trigger",
 						kind: FFun({
 							args: [
-								for (idx => p in cparams)
+								for (i => p in cparams)
 									{
-										name: "a" + idx,
+										name: "a" + i,
 										type: p
 									}
 							],
-							ret: macro:Void,
-							expr: macro for (l in listeners) l($a{cparams.mapi((i, _) -> macro $i{'a$i'})})
+							ret: macro :Void,
+                            expr: macro for (l in listeners) l($a{Lambda.mapi(cparams,(i, _) -> macro $i{'a$i'})}),
 						}),
 						pos: base.pos,
-						access: [APublic]
+                        access: [APublic],
+                        doc: "Trigger all added listeners"
 					});
 
 					Context.defineType(base);
 					return TPath({
 						pack: ["arcane", "signal"],
 						name: name,
-						params: [for (p in params) TPType(p.toComplexType())]
+						params: [for (t in params) TPType(Context.toComplexType(t))]
 					});
 				}
 			default:
