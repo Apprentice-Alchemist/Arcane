@@ -18,11 +18,11 @@ class ObjectPool<T:Constructible<Void->Void>> {
 		if (count == 0) {
 			return new T();
 		}
-		return pool[--count];
+		return (pool[--count]:T); // just in case they suddenly decide to type array.get as Null<T>
 	}
 
 	public function put(obj:T):Void {
-		if (obj == null)
+		if (obj == null) // you never know
 			return;
 		var index = pool.indexOf(obj);
 		if (index == -1 || index >= count) {

@@ -20,6 +20,14 @@ class Geometry {
 		}
 	}
 
+	public function translate(x:Float, y:Float, z:Float) {
+		for (p in points) {
+			p.x += x;
+			p.y += y;
+			p.z += z;
+		}
+	}
+
 	public function unindex():Void {
 		if (idx != null && points != null && points.length != idx.length) {
 			var p = [];

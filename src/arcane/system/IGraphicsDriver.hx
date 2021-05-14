@@ -154,7 +154,7 @@ private interface IDisposable {
 	/**
 	 * Dispose native resources. The object should not be used after this function has been called.
 	 */
-	public function dispose():Void;
+	function dispose():Void;
 }
 
 private interface IDescribed<T> {
@@ -162,7 +162,7 @@ private interface IDescribed<T> {
 	 * The descriptor associated with this object.
 	 * Editing the descriptor's fields after object creation will not have any effect on the object.
 	 */
-	public var desc(default, null):T;
+	var desc(default, null):T;
 }
 
 interface ITextureUnit {}
@@ -175,7 +175,7 @@ interface IPipeline extends IDisposable extends IDescribed<PipelineDesc> {
 	 * @param name 
 	 * @return IConstantLocation
 	 */
-	public function getConstantLocation(name:String):IConstantLocation;
+	function getConstantLocation(name:String):IConstantLocation;
 
 	/**
 	 * Get a texture unit. (Sampler in opengl.)
@@ -183,7 +183,7 @@ interface IPipeline extends IDisposable extends IDescribed<PipelineDesc> {
 	 * @param name 
 	 * @return ITextureUnit
 	 */
-	public function getTextureUnit(name:String):ITextureUnit;
+	function getTextureUnit(name:String):ITextureUnit;
 }
 
 interface IShader extends IDisposable extends IDescribed<ShaderDesc> {}
@@ -194,7 +194,7 @@ interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDesc>
 	 * @param start
 	 * @param arr
 	 */
-	public function upload(start:Int = 0, arr:Array<Float>):Void;
+	function upload(start:Int = 0, arr:Array<Float>):Void;
 }
 
 interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
@@ -203,38 +203,39 @@ interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
 	 * @param start
 	 * @param arr
 	 */
-	public function upload(start:Int = 0, arr:Array<Int>):Void;
+	function upload(start:Int = 0, arr:Array<Int>):Void;
 }
 
 interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
-	public function upload(bytes:haxe.io.Bytes):Void;
+	function upload(bytes:haxe.io.Bytes):Void;
 }
 
 interface IGraphicsDriver {
-	public final renderTargetFlipY:Bool;
-	public final instancedRendering:Bool;
-	public final uintIndexBuffers:Bool;
+	final renderTargetFlipY:Bool;
+	final instancedRendering:Bool;
+	final uintIndexBuffers:Bool;
 
-	public function dispose():Void;
+	function dispose():Void;
 
-	public function begin():Void;
-	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void;
-	public function end():Void;
-	public function flush():Void;
-	public function present():Void;
+	function begin():Void;
+	function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void;
+	function end():Void;
+	function flush():Void;
+	function present():Void;
 
-	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer;
-	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer;
-	public function createTexture(desc:TextureDesc):ITexture;
-	public function createShader(desc:ShaderDesc):IShader;
-	public function createPipeline(desc:PipelineDesc):IPipeline;
+	function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer;
+	function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer;
+	function createTexture(desc:TextureDesc):ITexture;
+	function createShader(desc:ShaderDesc):IShader;
+	function createPipeline(desc:PipelineDesc):IPipeline;
 
-	public function setRenderTarget(?t:ITexture):Void;
-	public function setPipeline(p:IPipeline):Void;
-	public function setVertexBuffer(b:IVertexBuffer):Void;
-	public function setIndexBuffer(b:IIndexBuffer):Void;
-	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
-	public function setConstantLocation(l:IConstantLocation, f:Array<Float>):Void;
-	public function draw(start:Int = 0, count:Int = -1):Void;
-	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void;
+	function setRenderTarget(?t:ITexture):Void;
+	function setPipeline(p:IPipeline):Void;
+	function setVertexBuffer(b:IVertexBuffer):Void;
+	function setIndexBuffer(b:IIndexBuffer):Void;
+	function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
+	function setConstantLocation(l:IConstantLocation, f:Array<Float>):Void;
+	
+	function draw(start:Int = 0, count:Int = -1):Void;
+	function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void;
 }

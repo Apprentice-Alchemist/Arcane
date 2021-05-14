@@ -7,10 +7,21 @@ enum Result<S, F> {
 }
 
 class ResultUtil {
-	public function success<S, F>(r:Result<S, F>):S {
-		return switch r {
-			case Success(s): s;
-			case Failure(_): throw "expected success";
+	public function expect<S, F>(r:Result<S, F>, message = "expected success"):S {
+		switch r {
+			case Success(s):
+				return s;
+			case Failure(_):
+				throw message;
+		}
+	}
+
+	public function fail<S, F>(r:Result<S, F>, message = "expected failure"):F {
+		switch r {
+			case Success(_):
+				throw message;
+			case Failure(f):
+				return f;
 		}
 	}
 }

@@ -13,7 +13,9 @@ typedef GraphicsDriver = KincDriver;
 typedef GraphicsDriver = IGraphicsDriver;
 
 class System implements ISystem {
-	public function new() {}
+	public function new() {
+		window = new Window();
+	}
 
 	public function init(opts, cb:Void->Void):Void {
 		cb();
@@ -23,7 +25,7 @@ class System implements ISystem {
 				break;
 			var dt = haxe.Timer.stamp() - stamp;
 			stamp += dt;
-			arcane.Lib.update(dt);
+			arcane.Lib.handle_update(dt);
 		}
 	}
 
@@ -37,12 +39,12 @@ class System implements ISystem {
 	// 	return null;
 	// }
 
-	public function createGraphicsDriver():Null<IGraphicsDriver> {
+	public function createGraphicsDriver(?opts):Null<IGraphicsDriver> {
 		return null;
 	}
 
 	public function language():String {
-		return "";
+		return "en";
 	}
 
 	public function time():Float {
@@ -56,5 +58,72 @@ class System implements ISystem {
 	public function height():Int {
 		return 0;
 	}
+
+
+	public var window(default, null):IWindow;
+
+	function lockMouse():Void;
+
+	function unlockMouse():Void;
+
+	function canLockMouse():Bool;
+
+	function isMouseLocked():Bool;
+
+	function showMouse():Void;
+
+	function hideMouse():Void;
+}
+
+private class Window implements IWindow {
+	public var title(get, set):String;
+	public var x(get, never):Int;
+	public var y(get, never):Int;
+	public var width(get, never):Int;
+	public var height(get, never):Int;
+	public var vsync(get, never):Bool;
+	public var mode(get, set):WindowMode;
+
+	public function new() {}
+
+	public function get_title():String {
+		return "";
+	}
+
+	public function set_title(value:String):String {
+		return value;
+	}
+
+	public function get_x():Int {
+		return 0;
+	}
+
+	public function get_y():Int {
+		return 0;
+	}
+
+	public function get_width():Int {
+		return 800;
+	}
+
+	public function get_height():Int {
+		return 600;
+	}
+
+	public function get_vsync():Bool {
+		return true;
+	}
+
+	public function get_mode():WindowMode {
+		return Windowed;
+	}
+
+	public function set_mode(value:WindowMode):WindowMode {
+		return value;
+	}
+
+	public function move(x:Int, y:Int) {}
+
+	public function resize(width:Int, height:Int) {}
 }
 #end

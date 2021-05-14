@@ -9,6 +9,8 @@ class Main {
 		runner.addCases(common);
 		var report = new PlainTextReport(runner, report -> {
 			arcane.util.Log.println(report.getResults());
+			// prevent utest from calling Sys.exit(0) because all calls to Sys.exit
+			// make the compiler exit with non zero exit code, thus making the CI fail
 			throw new ExitException(@:privateAccess report.result.stats.isOk);
 		});
 		@:privateAccess {

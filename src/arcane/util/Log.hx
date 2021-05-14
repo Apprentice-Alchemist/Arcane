@@ -22,9 +22,13 @@ class Log {
 	public static var is_verbose:Bool = false;
 	public static var warning_disabled:Bool = false;
 
-	public static function setColor(color:Color, style:Style = Style.Normal):String {
+	public static inline function setColor(color:Color, style:Style = Style.Normal):String {
+		#if arcane_log_color
 		var id = (color == Color.None) ? "" : ';$color';
 		return "\033[" + 0 + id + "m";
+		#else
+		return "";
+		#end
 	}
 
 	public static function println(msg:String):Void {

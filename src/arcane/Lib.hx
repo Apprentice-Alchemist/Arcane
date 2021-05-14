@@ -7,7 +7,7 @@ import arcane.system.ISystem;
 import arcane.system.IGraphicsDriver;
 import arcane.signal.Event;
 
-@:nullSafety
+@:nullSafety(Strict)
 @:allow(arcane.internal)
 class Lib {
 	public static var version(default, never):Version = new Version("0.0.1");
@@ -42,7 +42,17 @@ class Lib {
 		#end
 		var backend = new arcane.internal.System();
 
-		backend.init(cast {}, () -> {
+		backend.init({
+			window_options: {
+				x: -1,
+				y: -1,
+				width: 500,
+				height: 500,
+				title: "Arcane Window",
+				vsync: true,
+				mode: Windowed
+			}
+		}, () -> {
 			gdriver = backend.createGraphicsDriver();
 			// adriver = backend.createAudioDriver();
 			arcane.Lib.backend = backend;
@@ -58,7 +68,7 @@ class Lib {
 	 * Handle update stuff.
 	 * @param dt Delta t in seconds.
 	 */
-	static function update(dt:Float):Void {
+	static function handle_update(dt:Float):Void {
 		fps = 1 / (dt);
 		// Ensure haxe.Timer works
 		#if ((target.threaded && !cppia) && haxe >= version("4.2.0"))
@@ -72,8 +82,7 @@ class Lib {
 		#else
 		@:privateAccess haxe.MainLoop.tick();
 		#end
-		for (o in __updates)
-			o(dt);
+		update.trigger(dt);
 		#if hl_profile
 		hl.Profile.event(-1); // pause
 		#end
@@ -90,24 +99,8 @@ class Lib {
 		return backend == null ? 0 : backend.time();
 	}
 
-	private static var __updates = new List<(dt:Float) -> Void>();
-
-	/**
-	 * The passed function will be called every time Lib.update is called by the backend.
-	 * 
-	 * dt is in seconds.
-	 */
-	public static function addUpdate(cb:(dt:Float) -> Void):Void {
-		__updates.add(cb);
-	}
-
-	/**
-	 * Removes the passed function from the update list.
-	 */
-	public static function removeUpdate(cb:(dt:Float) -> Void):Void {
-		__updates.remove(cb);
-	}
-
+	public static final update:Event<(dt:Float)->Void> = new arcane.signal.Event<(dt:Float)->Void>();
+	public static final onEvent = new arcane.signal.Event<arcane.system.Event>();
 	/**
 	 * Execute the appropriate shutdown procedures, and exit the application.
 	 * @param code Exit code

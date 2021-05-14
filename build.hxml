@@ -4,11 +4,15 @@
 -lib kinc
 -lib format
 
+-lib heaps
+
 --debug
---no-inline
+
 -D arcane-event-loop-array
 -D asl-shader-bin=out/shaders
 -D shader-clean
+-D arcane-log-color
+# -D arcane-use-manifest
 # -D keep-inline-positions
 -D hl-ver=1.11.0
 # -D opengl

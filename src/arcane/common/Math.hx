@@ -278,13 +278,12 @@ abstract Matrix4(Mat4Internal) {
 		final c = -(far + near) / (far - near);
 		final d = -1;
 		final e = -(2 * far * near) / (far - near);
-		// final c = 1,d = 0,e = 0;
 
 		return new Matrix4(
 			a, 0, 0, 0,
 			0, b, 0, 0,
 			0, 0, c, e,
-			0, 0, /*d*/ 0, 0
+			0, 0, d, 0
 		);
 	}
 

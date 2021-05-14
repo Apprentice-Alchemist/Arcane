@@ -39,8 +39,8 @@ class Assets {
 
 	static function loadManifest():Array<String> {
 		#if (sys && !arcane_use_manifest)
-		var manifest = [];
-		var pathes:Array<String> = (cast(haxe.macro.Compiler.getDefine("resourcesPath") != null ? haxe.macro.Compiler.getDefine("resourcesPath") : "res"))
+		final manifest = [];
+		final pathes:Array<String> = (cast(haxe.macro.Compiler.getDefine("resourcesPath") != null ? haxe.macro.Compiler.getDefine("resourcesPath") : "res"))
 			.split(",");
 		function readRec(f:Array<String>, basePath:String) {
 			for (f1 in f) {
@@ -75,14 +75,14 @@ class Assets {
 	 */
 	public static function preload(onProgress:(f:Float) -> Void, handle_error:(error:AssetError) -> Void, onComplete:() -> Void):Void {
 		#if target.threaded
-		thread_pool.addTask(() -> loadManifest(), manifest -> {
+		thread_pool.addTask(loadManifest, manifest -> {
 			Assets.manifest = manifest;
 		#else
 		Assets.manifest = loadManifest();
 		#end
 			var loaded_files:Int = 0;
 			var errored_files:Int = 0;
-			var file_count:Int = manifest.length;
+			final file_count:Int = manifest.length;
 			for (x in manifest) {
 				loadBytesAsync(x, function(bytes) {
 					bytes_cache.set(x, bytes);

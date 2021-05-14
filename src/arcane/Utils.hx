@@ -1,7 +1,7 @@
 package arcane;
 
-import haxe.macro.Expr;
 #if macro
+import haxe.macro.Expr;
 import haxe.macro.Context;
 
 using haxe.macro.Tools;
@@ -67,5 +67,16 @@ class Utils {
 		} else {
 			return macro @:pos(b.pos) arcane.Utils.assert($b, $v{msg});
 		}
+	}
+
+	public static inline function sure<T>(v:Null<T>):T {
+		if (v == null)
+			throw "did not expect a null value";
+		else
+			return (v : T);
+	}
+
+	public static inline function or<T>(v:Null<T>, other:T):T {
+		return if (v == null) other else (v:T);
 	}
 }
