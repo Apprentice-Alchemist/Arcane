@@ -3,11 +3,9 @@ package arcane.util;
 // import haxe.macro.Context;
 // #if macro
 // import haxe.macro.Expr;
-
 // using haxe.macro.Tools;
 // using Lambda;
 // #end
-
 // #if !macro
 // @:genericBuild(arcane.util.Tuple.Tuple.build())
 // class Tuple<Rest> {}
@@ -36,7 +34,6 @@ package arcane.util;
 // 					type_count = a.length;
 // 					type_params = a;
 // 				}
-
 // 			default:
 // 				throw "assert";
 // 		}
@@ -106,7 +103,6 @@ package arcane.util;
 // 	}
 // }
 // #end
-
 // #if !macro
 // function main() {
 // 	var tup = new Tuple<Int, Float, arcane.Geometry>(0, 5, null);

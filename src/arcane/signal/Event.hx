@@ -19,7 +19,7 @@ class Event {
 				var cparams:Array<ComplexType> = [];
 				var named_params:Array<ComplexType> = [];
 				switch params {
-					case [TFun(args, _ => TAbstract(_.toString() => "Void",_))]:
+					case [TFun(args, _ => TAbstract(_.toString() => "Void", _))]:
 						for (a in args) {
 							final t = a.t.toComplexType();
 							if (a.opt) {

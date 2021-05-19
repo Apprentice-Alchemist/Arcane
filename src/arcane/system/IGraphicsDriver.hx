@@ -235,7 +235,7 @@ interface IGraphicsDriver {
 	function setIndexBuffer(b:IIndexBuffer):Void;
 	function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
 	function setConstantLocation(l:IConstantLocation, f:Array<Float>):Void;
-	
+
 	function draw(start:Int = 0, count:Int = -1):Void;
 	function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void;
 }

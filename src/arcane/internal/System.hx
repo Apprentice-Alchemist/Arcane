@@ -1,5 +1,6 @@
 package arcane.internal;
 
+import arcane.system.IAudioDriver;
 import arcane.system.IGraphicsDriver;
 import arcane.system.ISystem;
 
@@ -35,9 +36,9 @@ class System implements ISystem {
 		sd = true;
 	}
 
-	// public function createAudioDriver():Null<IAudioDriver> {
-	// 	return null;
-	// }
+	public function createAudioDriver():Null<IAudioDriver> {
+		return null;
+	}
 
 	public function createGraphicsDriver(?opts):Null<IGraphicsDriver> {
 		return null;
@@ -59,20 +60,23 @@ class System implements ISystem {
 		return 0;
 	}
 
-
 	public var window(default, null):IWindow;
 
-	function lockMouse():Void;
+	public function lockMouse():Void {}
 
-	function unlockMouse():Void;
+	public function unlockMouse():Void {}
 
-	function canLockMouse():Bool;
+	public function canLockMouse():Bool {
+		return false;
+	}
 
-	function isMouseLocked():Bool;
+	public function isMouseLocked():Bool {
+		return false;
+	}
 
-	function showMouse():Void;
+	public function showMouse():Void {}
 
-	function hideMouse():Void;
+	public function hideMouse():Void {}
 }
 
 private class Window implements IWindow {

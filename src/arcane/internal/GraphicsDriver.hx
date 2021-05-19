@@ -13,14 +13,14 @@ typedef VertexBuffer = arcane.internal.WebGLDriver.VertexBuffer;
 typedef IndexBuffer = arcane.internal.WebGLDriver.IndexBuffer;
 #elseif (hl && kinc)
 typedef GraphicsDriver = arcane.internal.KincDriver;
-typedef ConstantLocation = arcane.internal.KincDriver.CL;
-typedef TextureUnit = arcane.internal.KincDriver.TU;
+typedef ConstantLocation = arcane.internal.KincDriver.ConstantLocation;
+typedef TextureUnit = arcane.internal.KincDriver.TextureUnit;
 typedef Texture = arcane.internal.KincDriver.Texture;
 typedef Pipeline = arcane.internal.KincDriver.Pipeline;
 typedef Shader = arcane.internal.KincDriver.Shader;
 typedef VertexBuffer = arcane.internal.KincDriver.VertexBuffer;
 typedef IndexBuffer = arcane.internal.KincDriver.IndexBuffer;
-#else
+#elseif (!js)
 class TextureUnit implements ITextureUnit {
 	public function new() {}
 }

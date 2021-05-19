@@ -19,16 +19,14 @@ enum WindowMode {
 	Fullscreen;
 }
 
-typedef GraphicsDriverOptions = {
-
-}
+typedef GraphicsDriverOptions = {}
 
 interface ISystem {
-	var window(default,null):IWindow;
+	var window(default, null):IWindow;
 
 	function init(options:SystemOptions, cb:Void->Void):Void;
 	function shutdown():Void;
-	// function createAudioDriver():Null<IAudioDriver>;
+	function createAudioDriver():Null<IAudioDriver>;
 	function createGraphicsDriver(?options:GraphicsDriverOptions):Null<IGraphicsDriver>;
 	function language():String;
 	function time():Float;
@@ -45,14 +43,14 @@ interface ISystem {
 }
 
 interface IWindow {
-	var title(get,set):String;
-	var x(get,never):Int;
-	var y(get,never):Int;
-	var width(get,never):Int;
-	var height(get,never):Int;
-	var vsync(get,never):Bool;
-	var mode(get,set):WindowMode;
+	var title(get, set):String;
+	var x(get, never):Int;
+	var y(get, never):Int;
+	var width(get, never):Int;
+	var height(get, never):Int;
+	var vsync(get, never):Bool;
+	var mode(get, set):WindowMode;
 
-	function move(x:Int,y:Int):Void;
-	function resize(width:Int,height:Int):Void;
+	function move(x:Int, y:Int):Void;
+	function resize(width:Int, height:Int):Void;
 }

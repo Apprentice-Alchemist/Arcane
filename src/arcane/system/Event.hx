@@ -17,8 +17,7 @@ enum Event {
 }
 
 enum abstract KeyCode(Int) {
-    var Unkown;
-
+	var Unkown;
 	var Enter;
 	var Escape;
 	var Backspace;
@@ -38,15 +37,13 @@ enum abstract KeyCode(Int) {
 	var Comma;
 	var Minus;
 	var Period;
-    var Slash;
-    
+	var Slash;
 	var LeftBracket;
 	var Backslash;
 	var RightBracket;
 	var Caret;
 	var Underscore;
-    var Backquote;
-    
+	var Backquote;
 	var A;
 	var B;
 	var C;
@@ -72,8 +69,7 @@ enum abstract KeyCode(Int) {
 	var W;
 	var X;
 	var Y;
-    var Z;
-    
+	var Z;
 	var Numpad0;
 	var Numpad1;
 	var Numpad2;
@@ -83,8 +79,7 @@ enum abstract KeyCode(Int) {
 	var Numpad6;
 	var Numpad7;
 	var Numpad8;
-    var Numpad9;
-    
+	var Numpad9;
 	var Number0;
 	var Number1;
 	var Number2;
@@ -94,8 +89,7 @@ enum abstract KeyCode(Int) {
 	var Number6;
 	var Number7;
 	var Number8;
-    var Number9;
-    
+	var Number9;
 	var F1;
 	var F2;
 	var F3;

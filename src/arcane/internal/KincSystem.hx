@@ -1,5 +1,6 @@
 package arcane.internal;
 
+import arcane.system.IAudioDriver;
 import kinc.input.Mouse;
 import arcane.system.IGraphicsDriver;
 import arcane.system.ISystem;
@@ -86,9 +87,9 @@ class KincSystem implements ISystem {
 		kinc.System.stop();
 	}
 
-	// public function createAudioDriver():Null<IAudioDriver> {
-	// 	return null;
-	// }
+	public function createAudioDriver():Null<IAudioDriver> {
+		return new KincAudioDriver();
+	}
 
 	public function createGraphicsDriver(?options:GraphicsDriverOptions):Null<IGraphicsDriver> {
 		// var window = if(options == null) 0 else options.window;

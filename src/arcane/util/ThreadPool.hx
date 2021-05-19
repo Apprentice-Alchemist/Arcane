@@ -39,6 +39,7 @@ class ThreadPool {
 
 	private final ml_ev:#if (haxe >= "4.2.0" && target.threaded) sys.thread.EventLoop.EventHandler #else haxe.MainLoop.MainEvent #end;
 	private final owner_thread:Thread;
+
 	/**
 	 * Create a new thread pool
 	 * @param count amout of threads to use in the pool

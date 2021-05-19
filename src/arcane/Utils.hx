@@ -77,6 +77,6 @@ class Utils {
 	}
 
 	public static inline function or<T>(v:Null<T>, other:T):T {
-		return if (v == null) other else (v:T);
+		return if (v == null) other else (v : T);
 	}
 }

@@ -166,13 +166,13 @@ class Shader implements IShader {
 	// #end
 }
 
-class TU implements ITextureUnit {
+class TextureUnit implements ITextureUnit {
 	public var tu:kinc.g4.TextureUnit;
 
 	public function new(tu) this.tu = tu;
 }
 
-class CL implements IConstantLocation {
+class ConstantLocation implements IConstantLocation {
 	public var cl:kinc.g4.ConstantLocation;
 
 	public function new(cl) this.cl = cl;
@@ -274,10 +274,10 @@ class Pipeline implements IPipeline {
 	}
 
 	public function getConstantLocation(name:String)
-		return new CL(if (state != null) state.getConstantLocation(name) else throw "Pipeline was disposed.");
+		return new ConstantLocation(if (state != null) state.getConstantLocation(name) else throw "Pipeline was disposed.");
 
 	public function getTextureUnit(name:String)
-		return new TU(if (state != null) state.getTextureUnit(name) else throw "Pipeline was disposed.");
+		return new TextureUnit(if (state != null) state.getTextureUnit(name) else throw "Pipeline was disposed.");
 
 	public function dispose():Void {
 		if (state != null) {
@@ -287,7 +287,6 @@ class Pipeline implements IPipeline {
 	}
 }
 
-@:access(arcane.backend.kinc)
 class KincDriver implements IGraphicsDriver {
 	public final renderTargetFlipY:Bool;
 	public final instancedRendering = true;
@@ -392,7 +391,7 @@ class KincDriver implements IGraphicsDriver {
 
 	public function setTextureUnit(u:ITextureUnit, t:ITexture):Void {
 		var tex:Texture = cast t;
-		var unit:TU = cast u;
+		var unit:TextureUnit = cast u;
 		@:nullSafety(Off) if (tex.desc.isRenderTarget) {
 			tex.renderTarget.useColorAsTexture(unit.tu);
 		} else {
@@ -404,7 +403,7 @@ class KincDriver implements IGraphicsDriver {
 	}
 
 	public function setConstantLocation(cl:IConstantLocation, floats:Array<Float>):Void {
-		Graphics4.setFloats(cast(cl, CL).cl, [for (f in floats) (f : Single)]);
+		Graphics4.setFloats(cast(cl, ConstantLocation).cl, [for (f in floats) (f : Single)]);
 	}
 
 	public function draw(start:Int = 0, count:Int = -1):Void {

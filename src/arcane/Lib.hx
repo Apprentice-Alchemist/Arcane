@@ -1,5 +1,6 @@
 package arcane;
 
+import arcane.system.IAudioDriver;
 import arcane.common.Version;
 import arcane.signal.SignalDispatcher;
 import arcane.internal.System;
@@ -12,10 +13,11 @@ import arcane.signal.Event;
 class Lib {
 	public static var version(default, never):Version = new Version("0.0.1");
 	public static var fps(default, null):Float = 0.0;
-	public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
 
+	// public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
 	public static var backend(default, null):Null<ISystem>;
 	public static var gdriver(default, null):Null<IGraphicsDriver>;
+	public static var adriver(default, null):Null<IAudioDriver>;
 
 	public static final input = {
 		keyDown: new Event<Int>(),
@@ -25,7 +27,6 @@ class Lib {
 		mouseScroll: new Event<Float>()
 	}
 
-	// public static var adriver(default, null):Null<AudioDriver>;
 	#if target.threaded
 	@:nullSafety(Off)
 	private static var mainThread:sys.thread.Thread;
@@ -54,7 +55,7 @@ class Lib {
 			}
 		}, () -> {
 			gdriver = backend.createGraphicsDriver();
-			// adriver = backend.createAudioDriver();
+			adriver = backend.createAudioDriver();
 			arcane.Lib.backend = backend;
 			cb();
 		});
@@ -99,8 +100,9 @@ class Lib {
 		return backend == null ? 0 : backend.time();
 	}
 
-	public static final update:Event<(dt:Float)->Void> = new arcane.signal.Event<(dt:Float)->Void>();
+	public static final update = new arcane.signal.Event<(dt:Float) -> Void>();
 	public static final onEvent = new arcane.signal.Event<arcane.system.Event>();
+
 	/**
 	 * Execute the appropriate shutdown procedures, and exit the application.
 	 * @param code Exit code

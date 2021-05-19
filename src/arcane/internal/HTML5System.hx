@@ -27,19 +27,21 @@ class HTML5System implements ISystem {
 				untyped alert('Could not find canvas with id ${cid}.');
 				return;
 			}
-			inline function event(he:Dynamic,e:arcane.system.Event) {Lib.onEvent.trigger(e);}
-			canvas.onmousedown = (e:MouseEvent) -> event(e,MouseDown(switch e.button {
+			inline function event(he:Dynamic, e:arcane.system.Event) {
+				Lib.onEvent.trigger(e);
+			}
+			canvas.onmousedown = (e:MouseEvent) -> event(e, MouseDown(switch e.button {
 				case 1: 0;
 				case b: b;
-			},e.clientX,e.clientY));
-			canvas.onmouseup = (e:MouseEvent) -> event(e,MouseUp(e.button,e.clientX,e.clientY));
-			canvas.onmousemove = (e:MouseEvent) -> event(e,MouseMove(-e.movementX,-e.movementY));
-			canvas.onwheel = (e:WheelEvent) -> event(e,MouseWheel(e.deltaY));
-			canvas.onblur = () -> event(null,FocusLost);
-			canvas.onfocus = () -> event(null,FocusGained);
+			}, e.clientX, e.clientY));
+			canvas.onmouseup = (e:MouseEvent) -> event(e, MouseUp(e.button, e.clientX, e.clientY));
+			canvas.onmousemove = (e:MouseEvent) -> event(e, MouseMove(e.movementX, e.movementY));
+			canvas.onwheel = (e:WheelEvent) -> event(e, MouseWheel(e.deltaY));
+			canvas.onblur = () -> event(null, FocusLost);
+			canvas.onfocus = () -> event(null, FocusGained);
 
-			// canvas.onkeypress = (e:KeyboardEvent) -> event(e,KeyPress(e.which));
-			canvas.onkeydown = e -> trace("canvas",e.key);
+			canvas.onkeypress = (e:KeyboardEvent) -> event(e, KeyPress(e.which));
+			// canvas.onkeydown = e -> trace("canvas", e.key);
 			cb();
 			js.Browser.window.requestAnimationFrame(update);
 		} catch (e:haxe.Exception) {
@@ -61,9 +63,9 @@ class HTML5System implements ISystem {
 
 	public function shutdown() {}
 
-	// public function createAudioDriver():Null<IAudioDriver> {
-	// 	return null;
-	// }
+	public function createAudioDriver():Null<arcane.system.IAudioDriver> {
+		return new WebAudioDriver();
+	}
 
 	public function createGraphicsDriver(?options:GraphicsDriverOptions):Null<IGraphicsDriver> {
 		// final canvas = if(options == null) this.canvas else options.canvas;
@@ -175,7 +177,6 @@ private class HTML5Window implements IWindow {
 
 	public function set_mode(value:WindowMode):WindowMode {
 		var doc = js.Browser.document;
-		// var elt:Dynamic = doc.documentElement;
 		var fullscreen = value != Windowed;
 		if ((doc.fullscreenElement == canvas) == fullscreen)
 			return Windowed;

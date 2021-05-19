@@ -37,7 +37,7 @@ private class Base<T> {
 }
 
 class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
-	private var buf:Buffer;
+	var buf:Buffer;
 	var stride:Int;
 	var layout:Array<{
 		var name:String;
