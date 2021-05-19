@@ -3,8 +3,7 @@ package arcane.common;
 // TODO : should other and build fields be checked in == and > < <= >=?
 
 @:forward
-@:nullSafety
-@:pure
+@:nullSafety(StrictThreaded)
 abstract Version(Ver) {
 	static final reg:EReg = ~/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/i;
 

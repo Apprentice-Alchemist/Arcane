@@ -11,7 +11,7 @@ enum AssetError {
 	Other(path:String, ?msg:String);
 }
 
-@:nullSafety(Strict)
+@:nullSafety(StrictThreaded)
 class Assets {
 	static var bytes_cache:Map<String, Bytes> = new Map();
 
@@ -33,7 +33,7 @@ class Assets {
 		if (_thread_pool == null) {
 			_thread_pool = new ThreadPool(4);
 		}
-		return _thread_pool;
+		return untyped _thread_pool;
 	}
 	#end
 

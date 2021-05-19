@@ -1,8 +1,8 @@
 package asl;
 
-import sys.io.File;
-import haxe.SysTools;
 #if macro
+import haxe.SysTools;
+import sys.io.File;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 import sys.FileSystem;

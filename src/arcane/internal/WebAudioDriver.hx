@@ -87,6 +87,14 @@ class WebAudioDriver implements IAudioDriver {
 		return new AudioSource(this, cast buffer, volume, loop);
 	}
 
+	public function getVolume(s:IAudioSource):Float {
+		return cast(s,AudioSource).gain.gain.value;
+	}
+
+	public function setVolume(s:IAudioSource,v:Float):Void {
+		cast(s,AudioSource).gain.gain.value = v;
+	}
+
 	public function stop(s:IAudioSource) {
 		cast(s, AudioSource).source.stop();
 	}

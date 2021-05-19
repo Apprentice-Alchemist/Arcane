@@ -3,7 +3,7 @@ package arcane.common;
 import haxe.Constraints;
 
 @:generic
-@:nullSafety
+@:nullSafety(StrictThreaded)
 class ObjectPool<T:Constructible<Void->Void>> {
 	public var count(default, null):Int;
 
@@ -18,7 +18,7 @@ class ObjectPool<T:Constructible<Void->Void>> {
 		if (count == 0) {
 			return new T();
 		}
-		return (pool[--count] : T); // just in case they suddenly decide to type array.get as Null<T>
+		return @:nullSafety(Off) (pool[--count] : T); // just in case they suddenly decide to type array.get as Null<T>
 	}
 
 	public function put(obj:T):Void {

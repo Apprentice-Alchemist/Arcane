@@ -169,7 +169,8 @@ class KincAudioDriver implements IAudioDriver {
 		mutex.release();
 		return s;
 	}
-
+	public function getVolume(i:IAudioSource) return 1.0;
+	public function setVolume(i,v) {}
 	public function stop(s:IAudioSource):Void {
 		mutex.acquire();
 		sources.remove(cast s);

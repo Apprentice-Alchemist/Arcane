@@ -2,14 +2,15 @@ package arcane;
 
 import arcane.system.IGraphicsDriver;
 
+@:nullSafety(Strict)
 class Geometry {
 	public var points:Array<Point>;
+	public var idx:Array<Int>;
 	public var uvs:Null<Array<UV>>;
-	public var idx:Null<Array<Int>>;
 
 	public function new(points:Array<Point>, ?idx:Array<Int>) {
 		this.points = points;
-		this.idx = idx;
+		this.idx = idx == null ? [for (i in 0...points.length) i] : idx;
 	}
 
 	public function scale(factor:Float):Void {
@@ -29,20 +30,13 @@ class Geometry {
 	}
 
 	public function unindex():Void {
-		if (idx != null && points != null && points.length != idx.length) {
-			var p = [];
-			for (i in idx)
-				p.push(points[i].clone());
-
-			var nuvs:Null<Array<UV>> = null;
+		if (points.length != idx.length) {
+			this.points = [for(i in idx) points[i]];
 			if (uvs != null) {
-				nuvs = [];
-				@:nullSafety(Off) for (i in idx)
-					nuvs.push(uvs[idx[i]].clone());
+				var uvs:Array<UV> = uvs;
+				this.uvs = [for(i in idx) uvs[idx[i]]];
 			}
-			points = p;
-			uvs = nuvs;
-			idx = null;
+			idx = [for (i in 0...points.length) i];
 		}
 	}
 
@@ -52,22 +46,27 @@ class Geometry {
 		if (uvs != null)
 			layout.push({name: "uv", kind: Float2});
 		var ret = {
-			vertices: driver.createVertexBuffer({layout: layout, size: points.length, dyn: false}),
-			indices: driver.createIndexBuffer({size: idx == null ? points.length : idx.length, is32: false /*points.length > (Math.pow(2, 8) - 1)*/})
+			vertices: driver.createVertexBuffer({layout: layout, size: points.length, dyn: true}),
+			indices: driver.createIndexBuffer({size: idx.length, is32: false /*points.length >= 65535*/})
 		}
-		var vert = [];
+		var vert = ret.vertices.map(0,points.length);
+		var p = 0;
 		for (i in 0...points.length) {
-			vert.push(points[i].x);
-			vert.push(points[i].y);
-			vert.push(points[i].z);
-			if (uvs != null)
-				@:nullSafety(Off) {
-				vert.push(uvs[i].u);
-				vert.push(uvs[i].v);
+			vert[p++] = points[i].x;
+			vert[p++] = points[i].y;
+			vert[p++] = points[i].z;
+			if (uvs != null) {
+				var uv = uvs[i];
+				vert[p++] = uv.u;
+				vert[p++] = uv.v;
 			}
 		}
-		ret.indices.upload(if (idx == null) [for (i in 0...points.length) i] else idx);
-		ret.vertices.upload(vert);
+		ret.vertices.unmap();
+		var ind = ret.indices.map(0,idx.length);
+		for(i => v in idx) ind[i] = v;
+		ret.indices.unmap();
+		// ret.indices.upload(idx);
+		// ret.vertices.upload(vert);
 		return ret;
 	}
 }

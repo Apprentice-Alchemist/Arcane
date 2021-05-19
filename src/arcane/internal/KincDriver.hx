@@ -4,6 +4,8 @@ import arcane.system.IGraphicsDriver;
 import kinc.g4.Graphics4;
 import kinc.g4.Pipeline.StencilAction;
 import kinc.g4.RenderTarget;
+import arcane.common.arrays.Float32Array;
+import arcane.common.arrays.Int32Array;
 
 class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
