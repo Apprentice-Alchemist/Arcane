@@ -31,10 +31,23 @@ class VertexBuffer implements IVertexBuffer {
 	public function upload(start:Int = 0, arr:Array<Float>) {
 		assert(buf != null, "Buffer was disposed");
 		assert(start + arr.length <= buf.stride() * desc.size, "Trying to upload vertex data outside of buffer bounds!");
-		var v = @:nullSafety(Off) buf.lockAll();
+		var v = @:nullSafety(Off) buf.lock(start, arr.length);
 		for (i in 0...arr.length)
-			v[start + i] = arr[i];
-		@:nullSafety(Off) buf.unlockAll();
+			v[i] = arr[i];
+		@:nullSafety(Off) buf.unlock(arr.length);
+	}
+
+	private var last_range:Int = 0;
+
+	public function map(start:Int = 0, range:Int = -1):Float32Array {
+		assert(buf != null);
+		last_range = range == -1 ? desc.size * buf.stride() : range;
+		return @:nullSafety(Off) buf.lock(start, last_range);
+	}
+
+	public function unmap():Void {
+		assert(buf != null);
+		buf.unlock(last_range);
 	}
 
 	public function dispose() {
@@ -67,6 +80,16 @@ class IndexBuffer implements IIndexBuffer {
 		@:nullSafety(Off) buf.unlock();
 	}
 
+	public function map(start:Int = 0, range:Int = -1):Int32Array {
+		assert(buf != null);
+		return (buf.lock() : hl.Bytes).offset(start >> 2);
+	}
+
+	public function unmap():Void {
+		assert(buf != null);
+		buf.unlock();
+	}
+
 	public function dispose() {
 		if (buf != null) {
 			buf.destroy();
@@ -93,7 +116,7 @@ class Texture implements ITexture {
 			tex.init(desc.width, desc.height, FORMAT_RGBA32);
 			if (desc.data != null)
 				upload(desc.data);
-			tex.generateMipmaps(9);
+			// tex.generateMipmaps(9);
 		}
 	}
 

@@ -1,5 +1,7 @@
 package arcane.system;
 
+import arcane.util.Result;
+
 interface IAudioBuffer {
 	var samples:Int;
 	var sampleRate:Int;
@@ -12,7 +14,7 @@ interface IAudioSource {
 }
 
 interface IAudioDriver {
-	function fromFile(path:String, cb:IAudioBuffer->Void):Void;
+	function fromFile(path:String, cb:Result<IAudioBuffer,Any>->Void):Void;
 	function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource;
 	function getVolume(source:IAudioSource):Float;
 	function setVolume(source:IAudioSource,v:Float):Void;

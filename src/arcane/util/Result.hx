@@ -7,7 +7,7 @@ enum Result<S, F> {
 }
 
 class ResultUtil {
-	public function expect<S, F>(r:Result<S, F>, message = "expected success"):S {
+	public static function expect<S, F>(r:Result<S, F>, message = "expected success"):S {
 		switch r {
 			case Success(s):
 				return s;
@@ -16,7 +16,7 @@ class ResultUtil {
 		}
 	}
 
-	public function fail<S, F>(r:Result<S, F>, message = "expected failure"):F {
+	public static function fail<S, F>(r:Result<S, F>, message = "expected failure"):F {
 		switch r {
 			case Success(_):
 				throw message;

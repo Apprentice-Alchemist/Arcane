@@ -4,19 +4,16 @@
 -lib kinc
 -lib format
 
--lib heaps
-
 --debug
 
 -D arcane-event-loop-array
 -D asl-shader-bin=out/shaders
+-D arcane-audio-use-fmt
 -D shader-clean
 -D arcane-log-color
-# -D arcane-use-manifest
-# -D keep-inline-positions
 -D hl-ver=1.11.0
-# -D opengl
 -D absolute-path
+
 --macro nullSafety("arcane",Strict)
 --macro nullSafety("asl",Strict)
 --macro nullSafety("a2d",Strict)

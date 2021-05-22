@@ -49,7 +49,7 @@ class Geometry {
 			vertices: driver.createVertexBuffer({layout: layout, size: points.length, dyn: true}),
 			indices: driver.createIndexBuffer({size: idx.length, is32: false /*points.length >= 65535*/})
 		}
-		var vert = ret.vertices.map(0,points.length);
+		var vert = ret.vertices.map();
 		var p = 0;
 		for (i in 0...points.length) {
 			vert[p++] = points[i].x;
@@ -62,11 +62,9 @@ class Geometry {
 			}
 		}
 		ret.vertices.unmap();
-		var ind = ret.indices.map(0,idx.length);
-		for(i => v in idx) ind[i] = v;
+		var ind = ret.indices.map();
+		for(i => v in idx) ind[i] = v; 
 		ret.indices.unmap();
-		// ret.indices.upload(idx);
-		// ret.vertices.upload(vert);
 		return ret;
 	}
 }

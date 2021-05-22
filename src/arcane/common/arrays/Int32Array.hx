@@ -14,11 +14,11 @@ abstract Int32Array(Int32ArrayData) from Int32ArrayData {
         #end
 	}
 
-	@:op([]) public function get(i:Int):Int {
+	@:op([]) public inline function get(i:Int):Int {
 		return this[i];
 	}
 
-	@:op([]) public function set(i:Int, v:Int):Int {
+	@:op([]) public inline function set(i:Int, v:Int):Int {
 		return this[i] = v;
 	}
 }

@@ -13,6 +13,7 @@ import js.html.webgl.UniformLocation;
 import js.lib.Float32Array;
 import js.lib.Uint16Array;
 import js.lib.Uint32Array;
+import js.lib.Int32Array;
 
 @:access(WebGLDriver)
 private class Base<T> {
@@ -45,6 +46,7 @@ class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
 		var size:Int;
 		var pos:Int;
 	}>;
+	var data:Float32Array;
 
 	override function init() {
 		this.layout = [];
@@ -64,6 +66,7 @@ class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
 			});
 			stride += size;
 		}
+		this.data = new js.lib.Float32Array(desc.size * stride * 4);
 		this.buf = driver.gl.createBuffer();
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
 		driver.gl.bufferData(GL.ARRAY_BUFFER, desc.size * stride * 4, desc.dyn ? GL.DYNAMIC_DRAW : GL.STATIC_DRAW);
@@ -77,6 +80,21 @@ class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, null);
 	}
 
+	var last_start = 0;
+	var last_range = 0;
+
+	public function map(start:Int = 0, range:Int = -1):arcane.common.arrays.Float32Array {
+		last_start = start;
+		last_range = range == -1 ? start + range : range;
+		return data.subarray(last_start, last_range);
+	}
+
+	public function unmap():Void {
+		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
+		driver.gl.bufferSubData(GL.ARRAY_BUFFER, last_start * 4, data.subarray(last_start, last_range));
+		driver.gl.bindBuffer(GL.ARRAY_BUFFER, null);
+	}
+
 	public function dispose() {
 		if (driver.check() && this.buf != null) {
 			driver.gl.deleteBuffer(this.buf);
@@ -86,12 +104,14 @@ class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
 }
 
 class IndexBuffer extends Base<IndexBufferDesc> implements IIndexBuffer {
-	private var buf:Buffer;
+	var buf:Buffer;
+	var data:Int32Array;
 
 	override function init() {
 		if (desc.is32 && !this.driver.uintIndexBuffers) {
 			throw "32bit buffers are not supported without webgl2 or the OES_element_index_uint extension.";
 		}
+		this.data = new Int32Array(desc.size);
 		this.buf = driver.gl.createBuffer();
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
 		this.driver.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, desc.size * (desc.is32 ? 4 : 2), GL.STATIC_DRAW);
@@ -102,12 +122,35 @@ class IndexBuffer extends Base<IndexBufferDesc> implements IIndexBuffer {
 		if (desc.is32) {
 			var a = new Uint32Array(arr);
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
-			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, start << 2, a);
+			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, start * 4, a);
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 		} else {
 			var a = new Uint16Array(arr);
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
-			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, start << 1, a);
+			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, start * 2, a);
+			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+		}
+	}
+
+	var last_start = 0;
+	var last_range = 0;
+
+	public function map(start:Int = 0, range:Int = -1):arcane.common.arrays.Int32Array {
+		last_start = start;
+		last_range = range == -1 ? desc.size : range;
+		return data.subarray(start, start + range);
+	}
+
+	public function unmap():Void {
+		if (desc.is32) {
+			var a = new Uint32Array(data.subarray(last_start, last_start + last_range));
+			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
+			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start * 4, a);
+			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+		} else {
+			var a = new Uint16Array(data.subarray(last_start, last_start + last_range));
+			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
+			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start * 2, a);
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 		}
 	}

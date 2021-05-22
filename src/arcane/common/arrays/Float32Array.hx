@@ -14,11 +14,11 @@ abstract Float32Array(Float32ArrayData) from Float32ArrayData {
         #end
 	}
 
-	@:op([]) public function get(i:Int):arcane.FastFloat {
+	@:op([]) public inline function get(i:Int):arcane.FastFloat {
 		return this[i];
 	}
 
-	@:op([]) public function set(i:Int, v:arcane.FastFloat):FastFloat {
+	@:op([]) public inline function set(i:Int, v:arcane.FastFloat):FastFloat {
 		return this[i] = v;
 	}
 }

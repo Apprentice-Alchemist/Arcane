@@ -1,5 +1,7 @@
 package arcane.internal;
 
+import arcane.util.Result;
+import hl.BytesAccess;
 import haxe.io.Bytes;
 import kinc.audio1.Sound;
 import kinc.audio2.Audio;
@@ -111,11 +113,7 @@ class KincAudioDriver implements IAudioDriver {
 	}
 	#end
 
-	public function fromFile(s:String, cb:IAudioBuffer->Void):Void {
-		#if (!arcane_audio_use_fmt)
-		if (StringTools.endsWith(s, ".ogg"))
-			throw "ogg not supported";
-		#end
+	public function fromFile(s:String, cb:Result<IAudioBuffer,Any>->Void):Void {
 		Assets.loadBytesAsync(s, bytes -> {
 			if (StringTools.endsWith(s, "ogg")) {
 				#if arcane_audio_use_fmt
@@ -126,7 +124,7 @@ class KincAudioDriver implements IAudioDriver {
 				var out:hl.Bytes = output;
 				var needed = output.length;
 				while (needed > 0) {
-					var read = ogg_read(file, output, needed, 2);
+					var read = ogg_read(file, out, needed, 2);
 					assert(read >= 0, "decoding error");
 					if (read == 0) {
 						output.fill(0, needed, 0);
@@ -135,24 +133,41 @@ class KincAudioDriver implements IAudioDriver {
 					needed -= read;
 					out = out.offset(read);
 				}
-
-				cb(({
+				cb(Success(({
 					data: output,
 					samples: samples,
 					sampleRate: frequency,
 					channels: channels
-				} : AudioBuffer));
+				} : AudioBuffer)));
+				#else
+				var s = kinc.audio1.Sound.create(s);
+				var frequency = s.format.samples_per_second;
+				var channels = s.format.channels;
+				var samples = Std.int(s.size);
+
+				var output = Bytes.alloc(s.size * 4);
+				var out:hl.BytesAccess<hl.UI16> = output;
+				for (i in 0...s.size) {
+					out[i * 2] = s.left[i];
+					out[i * 2 + 1] = s.right[i];
+				}
+				cb(Success(({
+					data: output,
+					samples: samples,
+					sampleRate: freqency,
+					channels: channels
+				}:AudioBuffer)));
 				#end
 			} else if (StringTools.endsWith(s, "wav")) {
 				final data = new format.wav.Reader(new haxe.io.BytesInput(bytes)).read();
 				final header = data.header;
 				final samples = Std.int(data.data.length / (header.channels * header.bitsPerSample / 8));
-				cb(({
+				cb(Success(({
 					data: data.data,
 					samples: samples,
 					sampleRate: header.samplingRate,
 					channels: header.channels
-				} : AudioBuffer));
+				} : AudioBuffer)));
 			}
 		}, e -> throw e);
 	}
@@ -169,8 +184,11 @@ class KincAudioDriver implements IAudioDriver {
 		mutex.release();
 		return s;
 	}
+
 	public function getVolume(i:IAudioSource) return 1.0;
-	public function setVolume(i,v) {}
+
+	public function setVolume(i, v) {}
+
 	public function stop(s:IAudioSource):Void {
 		mutex.acquire();
 		sources.remove(cast s);

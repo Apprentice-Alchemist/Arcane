@@ -4,6 +4,8 @@ import arcane.system.IAudioDriver;
 import kinc.input.Mouse;
 import arcane.system.IGraphicsDriver;
 import arcane.system.ISystem;
+import kinc.input.Keyboard.KeyCode as KincCode;
+import arcane.system.Event.KeyCode as ArcaneCode;
 
 @:access(arcane)
 class KincSystem implements ISystem {
@@ -44,8 +46,8 @@ class KincSystem implements ISystem {
 
 			inline function event(e:arcane.system.Event) arcane.Lib.onEvent.trigger(e);
 
-			kinc.input.Keyboard.setKeyDownCallback(key -> event(KeyDown(cast key)));
-			kinc.input.Keyboard.setKeyUpCallback(key -> event(KeyUp(cast key)));
+			kinc.input.Keyboard.setKeyDownCallback(key -> event(KeyDown(convertKeycode(key))));
+			kinc.input.Keyboard.setKeyUpCallback(key -> event(KeyUp(convertKeycode(key))));
 			kinc.input.Keyboard.setKeyPressCallback(code -> event(KeyPress(code)));
 
 			kinc.input.Mouse.setPressCallback((window, button, x, y) -> event(MouseDown(button, x, y)));
@@ -66,6 +68,177 @@ class KincSystem implements ISystem {
 			trace(e.details());
 			Sys.exit(-1);
 		}
+	}
+
+	inline static function convertKeycode(k:kinc.input.Keyboard.KeyCode):arcane.system.Event.KeyCode {
+		return switch k {
+			case KEY_UNKNOWN: Unknown;
+			case KEY_BACK: Back;
+			case KEY_CANCEL: Cancel;
+			case KEY_HELP: Help;
+			case KEY_BACKSPACE: Backspace;
+			case KEY_TAB: Tab;
+			case KEY_CLEAR: Clear;
+			case KEY_RETURN: Return;
+			case KEY_SHIFT: Shift;
+			case KEY_CONTROL: Control;
+			case KEY_ALT: Alt;
+			case KEY_PAUSE: Pause;
+			case KEY_CAPS_LOCK: CapsLock;
+			// case KEY_KANA:
+			// case KEY_HANGUL:
+			// case KEY_EISU:
+			// case KEY_JUNJA:
+			case KEY_FINAL: Final;
+			// case KEY_HANJA:
+			// case KEY_KANJI:
+			case KEY_ESCAPE: Escape;
+			case KEY_CONVERT: Convert;
+			case KEY_NON_CONVERT: NonConvert;
+			case KEY_ACCEPT: Accept;
+			case KEY_MODE_CHANGE: ModeChange;
+			case KEY_SPACE: Space;
+			case KEY_PAGE_UP: PageUp;
+			case KEY_PAGE_DOWN: PageDown;
+			case KEY_END: End;
+			case KEY_HOME: Home;
+			case KEY_LEFT: Left;
+			case KEY_UP: Up;
+			case KEY_RIGHT: Right;
+			case KEY_DOWN: Down;
+			case KEY_SELECT: Select;
+			case KEY_PRINT: Print;
+			case KEY_EXECUTE: Execute;
+			case KEY_PRINT_SCREEN: PrintScreen;
+			case KEY_INSERT: Insert;
+			case KEY_DELETE: Delete;
+			case KEY_0: Number0;
+			case KEY_1: Number1;
+			case KEY_2: Number2;
+			case KEY_3: Number3;
+			case KEY_4: Number4;
+			case KEY_5: Number5;
+			case KEY_6: Number6;
+			case KEY_7: Number7;
+			case KEY_8: Number8;
+			case KEY_9: Number9;
+			case KEY_COLON: Colon;
+			case KEY_SEMICOLON: SemiColon;
+			case KEY_LESS_THAN: LessThan;
+			case KEY_EQUALS: Equals;
+			case KEY_GREATER_THAN: GreaterThan;
+			case KEY_QUESTIONMARK: QuestionMark;
+			case KEY_AT: At;
+			case k if ((k : Int) >= (KEY_A : Int) && (k : Int) <= (KEY_Z : Int)):
+				(k : Int) - (KEY_A : Int) + (ArcaneCode.A : Int);
+
+			case KEY_WIN: Windows;
+			case KEY_CONTEXT_MENU: ContextMenu;
+			case KEY_SLEEP: Sleep;
+			case KEY_NUMPAD_0: Numpad0;
+			case KEY_NUMPAD_1: Numpad1;
+			case KEY_NUMPAD_2: Numpad2;
+			case KEY_NUMPAD_3: Numpad3;
+			case KEY_NUMPAD_4: Numpad4;
+			case KEY_NUMPAD_5: Numpad5;
+			case KEY_NUMPAD_6: Numpad6;
+			case KEY_NUMPAD_7: Numpad7;
+			case KEY_NUMPAD_8: Numpad8;
+			case KEY_NUMPAD_9: Numpad9;
+			case KEY_MULTIPLY: Multiply;
+			case KEY_ADD: Add;
+			case KEY_SEPARATOR: Separator;
+			case KEY_SUBTRACT: Substract;
+			case KEY_DECIMAL: Decimal;
+			case KEY_DIVIDE: Divide;
+			case KEY_F1: F1;
+			case KEY_F2: F2;
+			case KEY_F3: F3;
+			case KEY_F4: F4;
+			case KEY_F5: F5;
+			case KEY_F6: F6;
+			case KEY_F7: F7;
+			case KEY_F8: F8;
+			case KEY_F9: F9;
+			case KEY_F10: F10;
+			case KEY_F11: F11;
+			case KEY_F12: F12;
+			case KEY_F13: F13;
+			case KEY_F14: F14;
+			case KEY_F15: F15;
+			case KEY_F16: F16;
+			case KEY_F17: F17;
+			case KEY_F18: F18;
+			case KEY_F19: F19;
+			case KEY_F20: F20;
+			case KEY_F21: F21;
+			case KEY_F22: F22;
+			case KEY_F23: F23;
+			case KEY_F24: F24;
+			case KEY_NUM_LOCK: NumLock;
+			case KEY_SCROLL_LOCK: ScrollLock;
+			// case KEY_WIN_OEM_FJ_JISHO:
+			// case KEY_WIN_OEM_FJ_MASSHOU:
+			// case KEY_WIN_OEM_FJ_TOUROKU:
+			// case KEY_WIN_OEM_FJ_LOYA:
+			// case KEY_WIN_OEM_FJ_ROYA:
+			case KEY_CIRCUMFLEX: Circumflex;
+			case KEY_EXCLAMATION: Exclaim;
+			case KEY_DOUBLE_QUOTE: DoubleQuote;
+			case KEY_HASH: Hash;
+			case KEY_DOLLAR: Dollar;
+			case KEY_PERCENT: Percent;
+			case KEY_AMPERSAND: Ampersand;
+			case KEY_UNDERSCORE: Underscore;
+			case KEY_OPEN_PAREN: LeftParen;
+			case KEY_CLOSE_PAREN: RightParen;
+			case KEY_ASTERISK: Asterisk;
+			case KEY_PLUS: Plus;
+			case KEY_PIPE: Pipe;
+			case KEY_HYPHEN_MINUS: Minus;
+			case KEY_OPEN_CURLY_BRACKET: LeftCurlyBracket;
+			case KEY_CLOSE_CURLY_BRACKET: RightCurlyBracket;
+			case KEY_TILDE: Tilde;
+			// case KEY_VOLUME_MUTE:
+			// case KEY_VOLUME_DOWN:
+			// case KEY_VOLUME_UP:
+			case KEY_COMMA: Comma;
+			case KEY_PERIOD: Period;
+			case KEY_SLASH: Slash;
+			case KEY_BACK_QUOTE: Backquote;
+			case KEY_OPEN_BRACKET: LeftBracket;
+			case KEY_BACK_SLASH: Backslash;
+			case KEY_CLOSE_BRACKET: RightBracket;
+			case KEY_QUOTE: Quote;
+			case KEY_META: Meta;
+			case KEY_ALT_GR: AltGr;
+			// case KEY_WIN_ICO_HELP:
+			// case KEY_WIN_ICO_00:
+			// case KEY_WIN_ICO_CLEAR:
+			// case KEY_WIN_OEM_RESET:
+			// case KEY_WIN_OEM_JUMP:
+			// case KEY_WIN_OEM_PA1:
+			// case KEY_WIN_OEM_PA2:
+			// case KEY_WIN_OEM_PA3:
+			// case KEY_WIN_OEM_WSCTRL:
+			// case KEY_WIN_OEM_CUSEL:
+			// case KEY_WIN_OEM_ATTN:
+			// case KEY_WIN_OEM_FINISH:
+			// case KEY_WIN_OEM_COPY:
+			// case KEY_WIN_OEM_AUTO:
+			// case KEY_WIN_OEM_ENLW:
+			// case KEY_WIN_OEM_BACK_TAB:
+			// case KEY_ATTN:
+			// case KEY_CRSEL:
+			// case KEY_EXSEL:
+			// case KEY_EREOF:
+			// case KEY_PLAY:
+			// case KEY_ZOOM:
+			// case KEY_PA1:
+			// case KEY_WIN_OEM_CLEAR:
+
+			case _: Unknown;
+		};
 	}
 
 	private var lastTime = 0.0;
@@ -136,17 +309,17 @@ class KincSystem implements ISystem {
 		Mouse.hide();
 	}
 
-	public function readFile(name:String):haxe.io.Bytes {
+	public function readFile(name:String):Null<haxe.io.Bytes> {
 		var reader = new kinc.io.FileReader();
 		if (reader.open(name, AssetFile)) {
 			var size = reader.size();
 			var bytes = new hl.Bytes(size);
 			if (reader.read(bytes, size) != size)
-				throw "assert";
+				return null;
 			reader.close();
 			return bytes.toBytes(size);
 		} else {
-			throw "assert";
+			return null;
 		}
 	}
 }

@@ -1,5 +1,6 @@
 package arcane.internal;
 
+import arcane.system.Event.KeyCode;
 import js.html.WheelEvent;
 import js.html.KeyboardEvent;
 import js.html.MouseEvent;
@@ -40,13 +41,141 @@ class HTML5System implements ISystem {
 			canvas.onblur = () -> event(null, FocusLost);
 			canvas.onfocus = () -> event(null, FocusGained);
 
-			canvas.onkeypress = (e:KeyboardEvent) -> event(e, KeyPress(e.which));
-			// canvas.onkeydown = e -> trace("canvas", e.key);
+			canvas.onkeydown = (e:KeyboardEvent) -> {
+				var k = keytocode(e);
+				e.stopPropagation();
+				if (k.char != null) {
+					e.preventDefault();
+					event(e,KeyPress(k.char));
+				}
+				if(k.code != null) {
+					event(e,KeyDown(k.code));
+				}
+			}
+			canvas.onkeyup = (e:KeyboardEvent) -> {
+				var k = keytocode(e);
+				e.stopPropagation();
+				if (k.code != null) {
+					event(e, KeyUp(k.code));
+				}
+			}
 			cb();
 			js.Browser.window.requestAnimationFrame(update);
 		} catch (e:haxe.Exception) {
 			js.Browser.window.alert(e.details());
 		}
+	}
+
+	inline function keytocode(e:KeyboardEvent):{
+		var code:Null<KeyCode>;
+		var char:Null<String>;
+	} {
+		var ret = {
+			code: null,
+			char: null
+		}
+		ret.code = switch e.key {
+			case "Unidentified": Unknown;
+			case "Alt": Alt;
+			case "AltGraph": AltGr;
+			case "CapsLock": CapsLock;
+			case "Control": Control;
+			case "Fn": Fn;
+			case "FnLock": FnLock;
+			case "Meta": Meta;
+			case "NumLock": NumLock;
+			case "ScrollLock": ScrollLock;
+			case "Shift": Shift;
+			case "Symbol" | "SymbolLock": Unknown;
+			case "Enter": Enter;
+			case "Tab": Tab;
+			case "ArrowDown" | "Down": Down;
+			case "ArrowLeft" | "Left": Left;
+			case "ArrowRight" | "Right": Right;
+			case "ArrowUp" | "Up": Up;
+			case "End": End;
+			case "Home": Home;
+			case "PageDown": PageDown;
+			case "PageUp": PageUp;
+			case "Backspace": Backspace;
+			case "Clear": Clear;
+			case "Copy": null;
+			case "CrSelf": null;
+			case "Cut": null;
+			case "Delete": Delete;
+			case "EraseEof": null;
+			case "ExSel": null;
+			case "Insert": Insert;
+			case "Paste": null;
+			case "Redo": null;
+			case "Undo": null;
+			case "Accept": null;
+			case "Again": null;
+			case "Attn": null;
+			case "Cancel": Cancel;
+			case "ContextMenu": ContextMenu;
+			case "Escape": Escape;
+			case "Execute": Execute;
+			case "Find": null;
+			case "Help": Help;
+			case "Pause": Pause;
+			case "Play": null;
+			case "Props": null;
+			case "Select": null;
+			case "ZoomIn": null;
+			case "ZoomOut": null;
+
+			case "Dead": null;
+			// TODO : Asian/Korean keys
+			case k if (k.charAt(0) == "F" && Std.parseInt(k.substr(1)) != null):
+				F1 + Std.parseInt(k.substr(1)) - 1;
+			case k if (StringTools.startsWith(k, "Soft")): null;
+			case "ChannelDown" | "ChannelUp" | "Close": null;
+			case k if (StringTools.startsWith(k, "Mail")): null;
+			case k if (StringTools.startsWith(k, "Media")): null;
+			case "New" | "Open" | "Print" | "Save" | "SpellCheck": null;
+			case "Key11" | "Key12": null;
+			case k if (StringTools.startsWith(k, "Audio")): null;
+			case k if (StringTools.startsWith(k, "Microphone")): null;
+			case k if (StringTools.startsWith(k, "Speech")): null;
+			case k if (StringTools.startsWith(k, "Launch")): null;
+			case k if (StringTools.startsWith(k, "Browser")): null;
+			// a whole load of other keys
+			case k: {
+					ret.char = k;
+					switch k {
+						case k if (k >= "a" && k <= "z"): A + k.charCodeAt(0) - "a".code;
+						case k if (k >= "A" && k <= "A"): A + k.charCodeAt(0) - "a".code;
+						case k if (k >= "0" && k <= "9"):
+							if (e.location == KeyboardEvent.DOM_KEY_LOCATION_NUMPAD)
+								Numpad0 + k.charCodeAt(0) - "0".code; else Number0 + k.charCodeAt(0) - "0".code;
+						case ",": Comma;
+						case ";": SemiColon;
+						case ":": Colon;
+						case "!": Exclaim;
+						case "*": Multiply;
+						case "+": Plus;
+						case "-": Minus;
+						case "/": Slash;
+						case "$": Dollar;
+						case "&": Ampersand;
+						case '"': DoubleQuote;
+						case "'": Quote;
+						case "(": LeftParen;
+						case ")": RightParen;
+						case "_": Underscore;
+						case "\\": Backslash;
+						case "=": Equals;
+						case ">": GreaterThan;
+						case "<": LessThan;
+						case "?": QuestionMark;
+						case ".": Period;
+						case " ": Space;
+						case _: Unknown;
+					}
+				};
+		}
+		return ret;
 	}
 
 	private var lastTime = 0.0;

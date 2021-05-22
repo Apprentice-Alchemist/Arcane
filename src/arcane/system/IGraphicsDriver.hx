@@ -1,5 +1,8 @@
 package arcane.system;
 
+import arcane.common.arrays.Float32Array;
+import arcane.common.arrays.Int32Array;
+
 enum ShaderKind {
 	Vertex;
 	Fragment;
@@ -195,6 +198,9 @@ interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDesc>
 	 * @param arr
 	 */
 	function upload(start:Int = 0, arr:Array<Float>):Void;
+
+	public function map(start:Int = 0,range:Int = -1):Float32Array;
+	public function unmap():Void;
 }
 
 interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
@@ -204,6 +210,8 @@ interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
 	 * @param arr
 	 */
 	function upload(start:Int = 0, arr:Array<Int>):Void;
+	public function map(start:Int = 0, range:Int = -1):Int32Array;
+	public function unmap():Void;
 }
 
 interface ITexture extends IDisposable extends IDescribed<TextureDesc> {

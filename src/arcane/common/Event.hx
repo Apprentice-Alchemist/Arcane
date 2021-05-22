@@ -1,4 +1,4 @@
-package arcane.signal;
+package arcane.common;
 
 #if macro
 import haxe.macro.Expr;
@@ -9,7 +9,7 @@ using Lambda;
 #end
 
 #if !macro
-@:genericBuild(arcane.signal.Event.build())
+@:genericBuild(arcane.common.Event.build())
 class Event<Rest> {}
 #else
 class Event {
@@ -39,9 +39,9 @@ class Event {
 
 				var name = "Event" + cparams.length;
 				try {
-					var t = Context.getType("arcane.signal." + name);
+					var t = Context.getType("arcane.common." + name);
 					return TPath({
-						pack: ["arcane", "signal"],
+						pack: ["arcane", "common"],
 						name: name,
 						params: [for (t in cparams) TPType(t)]
 					});
@@ -82,7 +82,7 @@ class Event {
 							listeners.remove(cb);
 						}
 					};
-					base.pack = ["arcane", "signal"];
+					base.pack = ["arcane", "common"];
 					base.params = [
 						for (i => p in cparams)
 							{
@@ -109,7 +109,7 @@ class Event {
 					});
 					Context.defineType(base);
 					return TPath({
-						pack: ["arcane", "signal"],
+						pack: ["arcane", "common"],
 						name: name,
 						params: [for (t in cparams) TPType(t)]
 					});

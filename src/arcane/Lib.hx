@@ -6,7 +6,7 @@ import arcane.signal.SignalDispatcher;
 import arcane.internal.System;
 import arcane.system.ISystem;
 import arcane.system.IGraphicsDriver;
-import arcane.signal.Event;
+import arcane.common.Event;
 
 @:nullSafety(Strict)
 @:allow(arcane.internal)
@@ -100,8 +100,8 @@ class Lib {
 		return backend == null ? 0 : backend.time();
 	}
 
-	public static final update = new arcane.signal.Event<(dt:Float) -> Void>();
-	public static final onEvent = new arcane.signal.Event<arcane.system.Event>();
+	public static final update = new arcane.common.Event<(dt:Float) -> Void>();
+	public static final onEvent = new arcane.common.Event<arcane.system.Event>();
 
 	/**
 	 * Execute the appropriate shutdown procedures, and exit the application.

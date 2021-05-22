@@ -33,7 +33,7 @@ class Assets {
 		if (_thread_pool == null) {
 			_thread_pool = new ThreadPool(4);
 		}
-		return untyped _thread_pool;
+		@:nullSafety(Off) return _thread_pool;
 	}
 	#end
 

@@ -1,5 +1,6 @@
 package arcane.internal;
 
+import arcane.util.Result;
 import js.html.audio.GainNode;
 import js.html.audio.AudioContext;
 import js.html.audio.AudioBufferSourceNode;
@@ -70,7 +71,7 @@ class WebAudioDriver implements IAudioDriver {
 		});
 	}
 
-	public function fromFile(path:String, cb:IAudioBuffer->Void) {
+	public function fromFile(path:String, cb:Result<IAudioBuffer,Any>->Void) {
 		Assets.loadBytesAsync(path, bytes -> {
 			context.decodeAudioData(bytes.getData()).then(b -> {
 				var buffer = new AudioBuffer();
@@ -78,9 +79,9 @@ class WebAudioDriver implements IAudioDriver {
 				buffer.channels = b.numberOfChannels;
 				buffer.sampleRate = Std.int(b.sampleRate);
 				buffer.samples = b.length;
-				cb(buffer);
-			}).catchError(e -> trace(e));
-		}, e -> trace(e));
+				cb(Success(buffer));
+			}).catchError(e -> cb(Failure(e)));
+		}, e -> cb(Failure(e)));
 	}
 
 	public function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {
