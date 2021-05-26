@@ -48,7 +48,7 @@ class KincSystem implements ISystem {
 
 			kinc.input.Keyboard.setKeyDownCallback(key -> event(KeyDown(convertKeycode(key))));
 			kinc.input.Keyboard.setKeyUpCallback(key -> event(KeyUp(convertKeycode(key))));
-			kinc.input.Keyboard.setKeyPressCallback(code -> event(KeyPress(code)));
+			kinc.input.Keyboard.setKeyPressCallback(code -> event(KeyPress(String.fromCharCode(code))));
 
 			kinc.input.Mouse.setPressCallback((window, button, x, y) -> event(MouseDown(button, x, y)));
 			kinc.input.Mouse.setScrollCallback((_, delta) -> event(MouseWheel(delta)));

@@ -69,14 +69,16 @@ class Utils {
 		}
 	}
 
-	public static inline function sure<T>(v:Null<T>):T {
+	public static inline function sure<T>(v:Nullable<T>):T {
 		if (v == null)
 			throw "did not expect a null value";
 		else
 			return (v : T);
 	}
 
-	public static inline function or<T>(v:Null<T>, other:T):T {
+	public static inline function or<T>(v:Nullable<T>, other:T):T {
 		return if (v == null) other else (v : T);
 	}
 }
+
+private abstract Nullable<T>(StdTypes.Null<T>) from Null<T> to T {}

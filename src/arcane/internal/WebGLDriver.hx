@@ -66,7 +66,7 @@ class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
 			});
 			stride += size;
 		}
-		this.data = new js.lib.Float32Array(desc.size * stride * 4);
+		this.data = new js.lib.Float32Array(desc.size * stride);
 		this.buf = driver.gl.createBuffer();
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
 		driver.gl.bufferData(GL.ARRAY_BUFFER, desc.size * stride * 4, desc.dyn ? GL.DYNAMIC_DRAW : GL.STATIC_DRAW);
@@ -81,17 +81,17 @@ class VertexBuffer extends Base<VertexBufferDesc> implements IVertexBuffer {
 	}
 
 	var last_start = 0;
-	var last_range = 0;
+	var last_end = 0;
 
 	public function map(start:Int = 0, range:Int = -1):arcane.common.arrays.Float32Array {
 		last_start = start;
-		last_range = range == -1 ? start + range : range;
-		return data.subarray(last_start, last_range);
+		last_end = range == -1 ? data.length : start + range;
+		return data.subarray(last_start, last_end);
 	}
 
 	public function unmap():Void {
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
-		driver.gl.bufferSubData(GL.ARRAY_BUFFER, last_start * 4, data.subarray(last_start, last_range));
+		driver.gl.bufferSubData(GL.ARRAY_BUFFER, last_start * 4, data.subarray(last_start,last_end));
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, null);
 	}
 
@@ -133,22 +133,22 @@ class IndexBuffer extends Base<IndexBufferDesc> implements IIndexBuffer {
 	}
 
 	var last_start = 0;
-	var last_range = 0;
+	var last_end = 0;
 
 	public function map(start:Int = 0, range:Int = -1):arcane.common.arrays.Int32Array {
 		last_start = start;
-		last_range = range == -1 ? desc.size : range;
-		return data.subarray(start, start + range);
+		last_end = range == -1 ? data.length : start + range;
+		return data.subarray(last_start, last_end);
 	}
 
 	public function unmap():Void {
 		if (desc.is32) {
-			var a = new Uint32Array(data.subarray(last_start, last_start + last_range));
+			var a = new Uint32Array(data.subarray(last_start, last_end));
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
 			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start * 4, a);
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 		} else {
-			var a = new Uint16Array(data.subarray(last_start, last_start + last_range));
+			var a = new Uint16Array(data.subarray(last_start, last_end));
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
 			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start * 2, a);
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);

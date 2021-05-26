@@ -49,7 +49,7 @@ class Lib {
 				y: -1,
 				width: 500,
 				height: 500,
-				title: "Arcane Window",
+				title: "",
 				vsync: true,
 				mode: Windowed
 			}
