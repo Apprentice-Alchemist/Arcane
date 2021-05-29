@@ -1,4 +1,4 @@
-package arcane.internal;
+package arcane.internal.kinc;
 
 import arcane.system.IAudioDriver;
 import kinc.input.Mouse;

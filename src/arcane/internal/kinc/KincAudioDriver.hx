@@ -1,4 +1,4 @@
-package arcane.internal;
+package arcane.internal.kinc;
 
 import arcane.util.Result;
 import hl.BytesAccess;
@@ -8,7 +8,7 @@ import kinc.audio2.Audio;
 import arcane.system.IAudioDriver;
 
 @:structInit
-private class AudioBuffer implements IAudioBuffer {
+class AudioBuffer implements IAudioBuffer {
 	public var data:Bytes;
 
 	// public var left:Bytes;
@@ -23,7 +23,7 @@ private class AudioBuffer implements IAudioBuffer {
 }
 
 @:structInit
-private class AudioSource implements IAudioSource {
+class AudioSource implements IAudioSource {
 	public var buffer:AudioBuffer;
 	public var volume:Float;
 	public var pitch:Float;
@@ -154,7 +154,7 @@ class KincAudioDriver implements IAudioDriver {
 				cb(Success(({
 					data: output,
 					samples: samples,
-					sampleRate: freqency,
+					sampleRate: frequency,
 					channels: channels
 				}:AudioBuffer)));
 				#end

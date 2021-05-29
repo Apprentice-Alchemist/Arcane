@@ -1,4 +1,4 @@
-package arcane.internal;
+package arcane.internal.kinc;
 
 import arcane.system.IGraphicsDriver;
 import kinc.g4.Graphics4;

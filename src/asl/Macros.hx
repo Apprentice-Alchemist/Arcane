@@ -124,7 +124,7 @@ class Macros {
 		sys.io.File.saveContent(input, b);
 		var ret = cmd("krafix", [lang, input, output, shader_bin, platform]);
 		if (ret.code != 0)
-			haxe.macro.Context.error("Shader compilation failed : \n" + ret.err, haxe.macro.Context.currentPos());
+			haxe.macro.Context.error("Shader compilation failed : \n" + ret.out, haxe.macro.Context.currentPos());
 		sys.io.File.saveContent(data, ret.err);
 		return getData();
 	}

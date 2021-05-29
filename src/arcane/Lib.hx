@@ -61,7 +61,7 @@ class Lib {
 		});
 	}
 
-	#if arcane_event_loop_array
+	#if (arcane_event_loop_array&&!eval)
 	static var __event_loop_arr:Array<() -> Void> = [];
 	#end
 

@@ -8,7 +8,7 @@
 
 -D arcane-event-loop-array
 -D asl-shader-bin=out/shaders
--D arcane-audio-use-fmt
+# -D arcane-audio-use-fmt
 -D shader-clean
 -D arcane-log-color
 -D hl-ver=1.11.0

@@ -1,4 +1,4 @@
-package arcane.internal;
+package arcane.internal.html5;
 
 import arcane.system.Event.KeyCode;
 import js.html.WheelEvent;
@@ -13,15 +13,14 @@ import js.html.webgl.GL;
 class HTML5System implements ISystem {
 	public function new() {}
 
-	public var window(default, null):IWindow;
-	public var canvas:js.html.CanvasElement;
+	@:nullSafety(Off) public var window(default, null):IWindow;
+	@:nullSafety(Off) public var canvas:js.html.CanvasElement;
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
 		if (!js.Browser.supported)
 			throw "expected a browser environment";
 		try {
-			var cdef = haxe.macro.Compiler.getDefine("arcane.html5.canvas");
-			// var cid = (opts != null && opts.html5 != null && opts.html5.canvas_id != null) ? opts.html5.canvas_id : ((cdef == "1" || cdef == null) ? "arcane" : cdef);
+			var cdef = cast haxe.macro.Compiler.getDefine("arcane.html5.canvas");
 			var cid = cdef != null ? cdef : "arcane";
 			canvas = cast js.Browser.window.document.getElementById(cid);
 			if (canvas == null) {
@@ -42,19 +41,19 @@ class HTML5System implements ISystem {
 			canvas.onfocus = () -> event(null, FocusGained);
 
 			canvas.onkeydown = (e:KeyboardEvent) -> {
-				var k = keytocode(e);
 				e.stopPropagation();
+				var k = @:nullSafety(Off)  keytocode(e);
 				if (k.char != null) {
-					e.preventDefault();
 					event(e,KeyPress(k.char));
+					e.preventDefault();
 				}
 				if(k.code != null) {
 					event(e,KeyDown(k.code));
 				}
 			}
 			canvas.onkeyup = (e:KeyboardEvent) -> {
-				var k = keytocode(e);
 				e.stopPropagation();
+				var k = @:nullSafety(Off)  keytocode(e);
 				if (k.code != null) {
 					event(e, KeyUp(k.code));
 				}
@@ -66,7 +65,7 @@ class HTML5System implements ISystem {
 		}
 	}
 
-	inline function keytocode(e:KeyboardEvent):{
+	@:nullSafety(Off) inline function keytocode(e:KeyboardEvent):{
 		var code:Null<KeyCode>;
 		var char:Null<String>;
 	} {
@@ -128,7 +127,7 @@ class HTML5System implements ISystem {
 			case "Dead": null;
 			// TODO : Asian/Korean keys
 			case k if (k.charAt(0) == "F" && Std.parseInt(k.substr(1)) != null):
-				F1 + Std.parseInt(k.substr(1)) - 1;
+				F1 + (cast Std.parseInt(k.substr(1)):Int) - 1;
 			case k if (StringTools.startsWith(k, "Soft")): null;
 			case "ChannelDown" | "ChannelUp" | "Close": null;
 			case k if (StringTools.startsWith(k, "Mail")): null;
@@ -201,14 +200,15 @@ class HTML5System implements ISystem {
 		var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 		var wgl2 = true;
 		if (gl == null) {
-			gl = canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
+			// inline function + non-nullsafe std == null safety error
+			gl = @:nullSafety(Off) canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
 			wgl2 = false;
 		}
 		if (gl == null) {
 			untyped alert("Could not aquire WebGL context.");
 			return null;
 		}
-		return new arcane.internal.WebGLDriver(gl, canvas, wgl2);
+		return new WebGLDriver(gl, canvas, wgl2);
 	}
 
 	public function language():String {

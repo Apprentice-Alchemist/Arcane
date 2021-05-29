@@ -6,7 +6,8 @@
 -lib format
 
 --debug
-
+--macro nullSafety("arcane",Strict)
+--macro nullSafety("asl",Strict)
 -D asl-shader-bin=out/shaders
 -D shader-clean
 -js out/html5/app.js

@@ -1,15 +1,30 @@
 -cp src
--cp tests
-
--lib utest:1.13.2
--D ci
-
+--macro nullSafety("arcane",Strict)
+--macro nullSafety("asl",Strict)
 # Include classes in compilation for a basic "does it compile check".
 arcane.Lib
 arcane.common
-arcane.util
+arcane.util.Log
+arcane.util.Result
 arcane.Image
 arcane.Assets
 
+--each
+-cp tests
+-lib utest:1.13.2
+-D ci
 -m Main
 --interp
+
+--next
+-lib kinc:git:https://github.com/Apprentice-Alchemist/KincHL
+-lib format
+arcane.util.ThreadPool
+arcane.internal.kinc
+-hl out.hl
+--no-output
+
+--next
+arcane.internal.html5
+-js out.js
+--no-output

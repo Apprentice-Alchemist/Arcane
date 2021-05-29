@@ -1,4 +1,4 @@
-package arcane.internal;
+package arcane.internal.html5;
 
 import arcane.util.Result;
 import js.html.audio.GainNode;
@@ -7,6 +7,7 @@ import js.html.audio.AudioBufferSourceNode;
 import js.html.audio.AudioBuffer as WebAudioBuffer;
 import arcane.system.IAudioDriver;
 
+@:structInit
 class AudioBuffer implements IAudioBuffer {
 	public var buffer:WebAudioBuffer;
 
@@ -16,10 +17,8 @@ class AudioBuffer implements IAudioBuffer {
 
 	public var channels:Int;
 
-	public function new() {}
-
 	public function dispose() {
-		this.buffer = null;
+		// this.buffer = null;
 	}
 }
 
@@ -47,15 +46,9 @@ class AudioSource implements IAudioSource {
 	}
 
 	public function dispose() {
-		if (this.driver == null)
-			return;
 		this.source.stop();
 		this.source.disconnect(this.gain);
 		this.gain.disconnect(this.driver.context.destination);
-		this.source = null;
-		this.gain = null;
-		this.buffer = null;
-		this.driver = null;
 	}
 }
 
@@ -74,11 +67,12 @@ class WebAudioDriver implements IAudioDriver {
 	public function fromFile(path:String, cb:Result<IAudioBuffer,Any>->Void) {
 		Assets.loadBytesAsync(path, bytes -> {
 			context.decodeAudioData(bytes.getData()).then(b -> {
-				var buffer = new AudioBuffer();
-				buffer.buffer = b;
-				buffer.channels = b.numberOfChannels;
-				buffer.sampleRate = Std.int(b.sampleRate);
-				buffer.samples = b.length;
+				var buffer:AudioBuffer = {
+					buffer: b,
+					channels: b.numberOfChannels,
+					sampleRate: Std.int(b.sampleRate),
+					samples: b.length
+				};
 				cb(Success(buffer));
 			}).catchError(e -> cb(Failure(e)));
 		}, e -> cb(Failure(e)));

@@ -47,7 +47,7 @@ class Geometry {
 			layout.push({name: "uv", kind: Float2});
 		var ret = {
 			vertices: driver.createVertexBuffer({layout: layout, size: points.length, dyn: true}),
-			indices: driver.createIndexBuffer({size: idx.length, is32: false /*points.length >= 65535*/})
+			indices: driver.createIndexBuffer({size: idx.length, is32: points.length >= 65535})
 		}
 		var vert = ret.vertices.map();
 		var p = 0;
