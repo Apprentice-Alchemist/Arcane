@@ -7,11 +7,10 @@ import sys.thread.Deque;
 import sys.thread.Thread;
 
 @:nullSafety(StrictThreaded)
-@:allow(arcane.util.ThreadPool)
 private class Worker {
-	final thread:Thread;
-	final tasks:Deque<() -> (() -> Void)>;
-	final completed_tasks:Deque<() -> Void>;
+	public final thread:Thread;
+	public final tasks:Deque<() -> (() -> Void)>;
+	public final completed_tasks:Deque<() -> Void>;
 
 	public function new() {
 		tasks = new Deque();
@@ -35,10 +34,10 @@ private class Worker {
 
 @:nullSafety(StrictThreaded)
 class ThreadPool {
-	private final threads:Array<Worker>;
+	final threads:Array<Worker>;
 
-	private final ml_ev:#if (haxe >= "4.2.0" && target.threaded) sys.thread.EventLoop.EventHandler #else haxe.MainLoop.MainEvent #end;
-	private final owner_thread:Thread;
+	final ml_ev:#if (haxe >= "4.2.0" && target.threaded) sys.thread.EventLoop.EventHandler #else haxe.MainLoop.MainEvent #end;
+	final owner_thread:Thread;
 
 	/**
 	 * Create a new thread pool
@@ -55,7 +54,7 @@ class ThreadPool {
 		#end
 	}
 
-	private var _ct:Int = 0;
+	var _ct:Int = 0;
 
 	/**
 	 * Add a task to be executed on another thread.

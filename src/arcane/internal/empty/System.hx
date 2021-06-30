@@ -1,5 +1,7 @@
 package arcane.internal.empty;
 
+import haxe.io.Bytes;
+import arcane.Assets.AssetError;
 import arcane.system.ISystem;
 import arcane.system.IAudioDriver;
 import arcane.system.IGraphicsDriver;
@@ -69,6 +71,12 @@ class System implements ISystem {
 	public function showMouse():Void {}
 
 	public function hideMouse():Void {}
+
+	public function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:AssetError) -> Void) {}
+
+	public function readSavefile(name:String, cb:Bytes->Void, err:() -> Void) {}
+
+	public function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void) {}
 }
 
 private class Window implements IWindow {

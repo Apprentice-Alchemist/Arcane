@@ -1,9 +1,5 @@
 package arcane.internal;
 
-import arcane.system.IAudioDriver;
-import arcane.system.IGraphicsDriver;
-import arcane.system.ISystem;
-
 #if js
 typedef System = arcane.internal.html5.HTML5System;
 #elseif (hl && kinc)

@@ -1,5 +1,8 @@
 package arcane.internal.kinc;
 
+import arcane.util.Result;
+import arcane.util.ThreadPool;
+import haxe.io.Bytes;
 import arcane.system.IAudioDriver;
 import kinc.input.Mouse;
 import arcane.system.IGraphicsDriver;
@@ -9,10 +12,13 @@ import arcane.system.Event.KeyCode as ArcaneCode;
 
 @:access(arcane)
 class KincSystem implements ISystem {
+	public var thread_pool:ThreadPool;
+
 	public var window(default, null):IWindow;
 
 	public function new() {
 		window = new KincWindow(0, "");
+		thread_pool = new ThreadPool();
 	}
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
@@ -29,6 +35,7 @@ class KincSystem implements ISystem {
 				mode: switch opts.window_options.mode {
 					case Windowed: WINDOWED;
 					case Fullscreen: FULLSCREEN;
+					case FullscreenExclusive: EXCLUSIVE_FULLSCREEN;
 				},
 				display_index: 0
 			}, {
@@ -309,13 +316,36 @@ class KincSystem implements ISystem {
 		Mouse.hide();
 	}
 
-	public function readFile(name:String):Null<haxe.io.Bytes> {
+	public function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:arcane.Assets.AssetError) -> Void):Void {
+		thread_pool.addTask(() -> readFileInternal(path), b -> b == null ? err(NotFound(path)) : cb(b), e -> err(Other(path, e.message)));
+	}
+
+	public function readSavefile(name:String, cb:(Bytes) -> Void, err:() -> Void):Void {
+		thread_pool.addTask(() -> readFileInternal(name, SaveFile), b -> if (b == null) err() else cb(b), _ -> err());
+	}
+
+	public function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void):Void {
+		thread_pool.addTask(() -> {
+			var writer = new kinc.io.FileWriter();
+			if (writer.open(name)) {
+				writer.write(bytes, bytes.length);
+				writer.close();
+				true;
+			} else {
+				false;
+			}
+		}, complete == null ? _ -> {} : complete);
+	}
+
+	public static function readFileInternal(name:String, kind:kinc.io.FileReader.FileType = AssetFile):Null<haxe.io.Bytes> {
 		var reader = new kinc.io.FileReader();
-		if (reader.open(name, AssetFile)) {
+		if (reader.open(name, kind)) {
 			var size = reader.size();
 			var bytes = new hl.Bytes(size);
-			if (reader.read(bytes, size) != size)
+			if (reader.read(bytes, size) != size) {
+				reader.close();
 				return null;
+			}
 			reader.close();
 			return bytes.toBytes(size);
 		} else {
@@ -390,6 +420,7 @@ private class KincWindow implements IWindow {
 		kinc.Window.changeMode(index, switch value {
 			case Windowed: WINDOWED;
 			case Fullscreen: FULLSCREEN;
+			case FullscreenExclusive: EXCLUSIVE_FULLSCREEN;
 		});
 		return value;
 	}

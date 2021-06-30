@@ -2,7 +2,6 @@ package arcane;
 
 import arcane.system.IAudioDriver;
 import arcane.common.Version;
-import arcane.signal.SignalDispatcher;
 import arcane.internal.System;
 import arcane.system.ISystem;
 import arcane.system.IGraphicsDriver;
@@ -14,18 +13,9 @@ class Lib {
 	public static var version(default, never):Version = new Version("0.0.1");
 	public static var fps(default, null):Float = 0.0;
 
-	// public static var dispatcher(default, null):SignalDispatcher = new SignalDispatcher();
-	public static var backend(default, null):Null<ISystem>;
+	public static var system(default, null):Null<ISystem>;
 	public static var gdriver(default, null):Null<IGraphicsDriver>;
 	public static var adriver(default, null):Null<IAudioDriver>;
-
-	public static final input = {
-		keyDown: new Event<Int>(),
-		keyUp: new Event<Int>(),
-		mouseDown: new Event(),
-		mouseUp: new Event(),
-		mouseScroll: new Event<Float>()
-	}
 
 	#if target.threaded
 	@:nullSafety(Off)
@@ -56,12 +46,12 @@ class Lib {
 		}, () -> {
 			gdriver = backend.createGraphicsDriver();
 			adriver = backend.createAudioDriver();
-			arcane.Lib.backend = backend;
+			arcane.Lib.system = backend;
 			cb();
 		});
 	}
 
-	#if (arcane_event_loop_array&&!eval)
+	#if (arcane_event_loop_array && !eval)
 	static var __event_loop_arr:Array<() -> Void> = [];
 	#end
 
@@ -94,10 +84,17 @@ class Lib {
 		hl.Profile.event(0); // next frame
 		hl.Profile.event(-2); // resume
 		#end
+		#if hl_hot_reload
+		hot_reload();
+		#end
 	}
-
+	#if hl_hot_reload
+	@:hlNative("std","sys_check_reload") static function hot_reload():Bool {
+		return false;
+	}
+	#end
 	public static function time():Float {
-		return backend == null ? 0 : backend.time();
+		return system == null ? 0 : system.time();
 	}
 
 	public static final update = new arcane.common.Event<(dt:Float) -> Void>();
@@ -110,8 +107,8 @@ class Lib {
 	public static function exit(code:Int):Void {
 		if (gdriver != null)
 			gdriver.dispose();
-		if (backend != null)
-			backend.shutdown();
+		if (system != null)
+			system.shutdown();
 		#if hl_profile
 		hl.Profile.dump();
 		#end

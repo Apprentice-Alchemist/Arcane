@@ -1,5 +1,8 @@
 package arcane.internal.html5;
 
+import haxe.crypto.Base64;
+import haxe.io.Bytes;
+import arcane.Assets.AssetError;
 import arcane.system.Event.KeyCode;
 import js.html.WheelEvent;
 import js.html.KeyboardEvent;
@@ -10,65 +13,62 @@ import arcane.system.ISystem;
 import js.html.webgl.GL;
 
 @:access(arcane)
+@:nullSafety(Strict)
 class HTML5System implements ISystem {
-	public function new() {}
+	public var window:IWindow;
+	public var canvas:js.html.CanvasElement;
 
-	@:nullSafety(Off) public var window(default, null):IWindow;
-	@:nullSafety(Off) public var canvas:js.html.CanvasElement;
-
-	public function init(opts:SystemOptions, cb:Void->Void):Void {
+	public function new() {
 		if (!js.Browser.supported)
 			throw "expected a browser environment";
-		try {
-			var cdef = cast haxe.macro.Compiler.getDefine("arcane.html5.canvas");
-			var cid = cdef != null ? cdef : "arcane";
-			canvas = cast js.Browser.window.document.getElementById(cid);
-			if (canvas == null) {
-				untyped alert('Could not find canvas with id ${cid}.');
-				return;
-			}
-			inline function event(he:Dynamic, e:arcane.system.Event) {
-				Lib.onEvent.trigger(e);
-			}
-			canvas.onmousedown = (e:MouseEvent) -> event(e, MouseDown(switch e.button {
-				case 1: 0;
-				case b: b;
-			}, e.clientX, e.clientY));
-			canvas.onmouseup = (e:MouseEvent) -> event(e, MouseUp(e.button, e.clientX, e.clientY));
-			canvas.onmousemove = (e:MouseEvent) -> event(e, MouseMove(e.movementX, e.movementY));
-			canvas.onwheel = (e:WheelEvent) -> event(e, MouseWheel(e.deltaY));
-			canvas.onblur = () -> event(null, FocusLost);
-			canvas.onfocus = () -> event(null, FocusGained);
-
-			canvas.onkeydown = (e:KeyboardEvent) -> {
-				e.stopPropagation();
-				var k = @:nullSafety(Off)  keytocode(e);
-				if (k.char != null) {
-					event(e,KeyPress(k.char));
-					e.preventDefault();
-				}
-				if(k.code != null) {
-					event(e,KeyDown(k.code));
-				}
-			}
-			canvas.onkeyup = (e:KeyboardEvent) -> {
-				e.stopPropagation();
-				var k = @:nullSafety(Off)  keytocode(e);
-				if (k.code != null) {
-					event(e, KeyUp(k.code));
-				}
-			}
-			cb();
-			js.Browser.window.requestAnimationFrame(update);
-		} catch (e:haxe.Exception) {
-			js.Browser.window.alert(e.details());
+		var cdef:String = (haxe.macro.Compiler.getDefine("arcane.html5.canvas") : Null<String>).or("arcane");
+		canvas = cast js.Browser.window.document.getElementById(cdef);
+		if (canvas == null) {
+			throw 'Could not find canvas with id ${cdef}.';
 		}
+		window = new HTML5Window(canvas);
+	}
+
+	public function init(opts:SystemOptions, cb:Void->Void):Void {
+		inline function event(e:arcane.system.Event) Lib.onEvent.trigger(e);
+
+		canvas.onmousedown = (e:MouseEvent) -> event(MouseDown(switch e.button {
+			case 1: 0;
+			case b: b;
+		}, e.clientX, e.clientY));
+		canvas.onmouseup = (e:MouseEvent) -> event(MouseUp(e.button, e.clientX, e.clientY));
+		canvas.onmousemove = (e:MouseEvent) -> event(MouseMove(e.movementX, e.movementY));
+		canvas.onwheel = (e:WheelEvent) -> event(MouseWheel(e.deltaY));
+		canvas.onblur = () -> event(FocusLost);
+		canvas.onfocus = () -> event(FocusGained);
+
+		canvas.onkeydown = (e:KeyboardEvent) -> {
+			e.stopPropagation();
+			var k = keytocode(e);
+			if (k.char != null) {
+				event(KeyPress(k.char));
+				e.preventDefault();
+			}
+			if (k.code != null) {
+				event(KeyDown(k.code));
+			}
+		}
+		canvas.onkeyup = (e:KeyboardEvent) -> {
+			e.stopPropagation();
+			var k = keytocode(e);
+			if (k.code != null) {
+				event(KeyUp(k.code));
+			}
+		}
+		cb();
+		js.Browser.window.requestAnimationFrame(update);
 	}
 
 	@:nullSafety(Off) inline function keytocode(e:KeyboardEvent):{
 		var code:Null<KeyCode>;
 		var char:Null<String>;
-	} {
+	}
+		@:nullSafety(Off) {
 		var ret = {
 			code: null,
 			char: null
@@ -127,7 +127,7 @@ class HTML5System implements ISystem {
 			case "Dead": null;
 			// TODO : Asian/Korean keys
 			case k if (k.charAt(0) == "F" && Std.parseInt(k.substr(1)) != null):
-				F1 + (cast Std.parseInt(k.substr(1)):Int) - 1;
+				F1 + (cast Std.parseInt(k.substr(1)) : Int) - 1;
 			case k if (StringTools.startsWith(k, "Soft")): null;
 			case "ChannelDown" | "ChannelUp" | "Close": null;
 			case k if (StringTools.startsWith(k, "Mail")): null;
@@ -196,7 +196,6 @@ class HTML5System implements ISystem {
 	}
 
 	public function createGraphicsDriver(?options:GraphicsDriverOptions):Null<IGraphicsDriver> {
-		// final canvas = if(options == null) this.canvas else options.canvas;
 		var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 		var wgl2 = true;
 		if (gl == null) {
@@ -250,6 +249,39 @@ class HTML5System implements ISystem {
 	public function showMouse():Void {}
 
 	public function hideMouse():Void {}
+
+	public function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:AssetError) -> Void) {
+		var xhr = new js.html.XMLHttpRequest();
+		xhr.open('GET', path, true);
+		xhr.responseType = ARRAYBUFFER;
+		xhr.onload = e -> {
+			if (xhr.status != 200) {
+				err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
+				return;
+			}
+			final data = haxe.io.Bytes.ofData(xhr.response);
+			cb(data);
+		}
+		xhr.send();
+	}
+
+	public function readSavefile(name:String, cb:Bytes->Void, err:() -> Void) {
+		var storage = js.Browser.getLocalStorage();
+		if (storage != null) {
+			cb(Base64.decode(storage.getItem(name)));
+		} else
+			err();
+	}
+
+	public function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void) {
+		var storage = js.Browser.getLocalStorage();
+		if (storage != null) {
+			storage.setItem(name, Base64.encode(bytes));
+			if (complete != null)
+				complete(true);
+		} else if (complete != null)
+			complete(false);
+	}
 }
 
 private class HTML5Window implements IWindow {
@@ -300,20 +332,18 @@ private class HTML5Window implements IWindow {
 		if (doc.fullscreenElement != null) {
 			return Fullscreen;
 		}
-
 		return Windowed;
 	}
 
 	public function set_mode(value:WindowMode):WindowMode {
 		var doc = js.Browser.document;
-		var fullscreen = value != Windowed;
-		if ((doc.fullscreenElement == canvas) == fullscreen)
-			return Windowed;
-		if (value != Windowed)
-			canvas.requestFullscreen();
-		else
-			doc.exitFullscreen();
-
+		switch value {
+			case Windowed if (doc.fullscreenElement == canvas):
+				doc.exitFullscreen();
+			case Fullscreen | FullscreenExclusive if (doc.fullscreenElement != canvas):
+				canvas.requestFullscreen();
+			case _:
+		}
 		return value;
 	}
 

@@ -1,27 +1,23 @@
 package arcane.util;
 
 @:using(arcane.util.Result.ResultUtil)
-enum Result<S, F> {
-	Success(s:S);
-	Failure(f:F);
+enum Result<O, E> {
+	Ok(s:O);
+	Err(f:E);
 }
 
 class ResultUtil {
-	public static function expect<S, F>(r:Result<S, F>, message = "expected success"):S {
-		switch r {
-			case Success(s):
-				return s;
-			case Failure(_):
-				throw message;
+	public static function expect<O, E>(r:Result<O, E>, message = "expected success"):O {
+		return switch r {
+			case Ok(s): s;
+			case Err(_): throw message;
 		}
 	}
 
-	public static function fail<S, F>(r:Result<S, F>, message = "expected failure"):F {
-		switch r {
-			case Success(_):
-				throw message;
-			case Failure(f):
-				return f;
+	public static function fail<O, E>(r:Result<O, E>, message = "expected failure"):E {
+		return switch r {
+			case Ok(_): throw message;
+			case Err(f): f;
 		}
 	}
 }

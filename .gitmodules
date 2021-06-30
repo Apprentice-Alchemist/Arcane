@@ -1,0 +1,3 @@
+[submodule "tools/krafix"]
+	path = tools/krafix
+	url = https://github.com/Kode/krafix_bin
