@@ -88,11 +88,13 @@ class Lib {
 		hot_reload();
 		#end
 	}
+
 	#if hl_hot_reload
-	@:hlNative("std","sys_check_reload") static function hot_reload():Bool {
+	@:hlNative("std", "sys_check_reload") static function hot_reload():Bool {
 		return false;
 	}
 	#end
+
 	public static function time():Float {
 		return system == null ? 0 : system.time();
 	}

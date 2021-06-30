@@ -4,6 +4,15 @@ package arcane.common;
  * ARGB Color
  */
 abstract Color(Int) from Int to Int {
+	public static function fromARGB(a:Int, r:Int, g:Int, b:Int) {
+		var c = new Color(0);
+		c.a = a;
+		c.r = r;
+		c.g = g;
+		c.b = b;
+		return c;
+	}
+
 	public var r(get, set):Int;
 	public var g(get, set):Int;
 	public var b(get, set):Int;

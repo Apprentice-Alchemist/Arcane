@@ -1,4 +1,4 @@
-package arcane.signal;
+package arcane.common;
 
 /**
  * A basic signal

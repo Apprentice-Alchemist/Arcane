@@ -16,15 +16,16 @@ class VertexBuffer implements IVertexBuffer {
 	public function new(desc:VertexBufferDesc) {
 		this.desc = desc;
 		var struc = new kinc.g4.VertexStructure();
-		for (el in desc.layout) {
-			struc.add(el.name, switch el.kind {
+		for (attribute in desc.attributes) {
+			struc.add(attribute.name, switch attribute.kind {
 				case Float1: Float1;
 				case Float2: Float2;
 				case Float3: Float3;
 				case Float4: Float4;
+				case Float4x4: Float4X4;
 			});
 		}
-		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, desc.dyn ? DynamicUsage : StaticUsage, 0);
+		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, desc.dyn ? DynamicUsage : StaticUsage, desc.instanceDataStepRate);
 		this.struc = struc;
 	}
 
@@ -218,17 +219,20 @@ class Pipeline implements IPipeline {
 		state.vertex_shader = cast(desc.vertexShader, Shader).shader;
 		state.fragment_shader = cast(desc.fragmentShader, Shader).shader;
 
-		var struc = new kinc.g4.VertexStructure();
-		for (el in desc.inputLayout) {
-			struc.add(el.name, switch el.kind {
-				case Float1: kinc.g4.VertexStructure.VertexData.Float1;
-				case Float2: kinc.g4.VertexStructure.VertexData.Float2;
-				case Float3: kinc.g4.VertexStructure.VertexData.Float3;
-				case Float4: kinc.g4.VertexStructure.VertexData.Float4;
-			});
+		for (idx => el in desc.inputLayout) {
+			var struc = new kinc.g4.VertexStructure();
+			struc.instanced = el.instanced;
+			for (attribute in el.attributes) {
+				struc.add(attribute.name, switch attribute.kind {
+					case Float1: Float1;
+					case Float2: Float2;
+					case Float3: Float3;
+					case Float4: Float4;
+					case Float4x4: Float4X4;
+				});
+			}
+			state.input_layout[idx] = struc;
 		}
-
-		state.input_layout[0] = struc;
 
 		state.stencil_reference_value = desc.stencil.reference;
 		state.stencil_read_mask = desc.stencil.readMask;
@@ -404,6 +408,16 @@ class KincDriver implements IGraphicsDriver {
 			Graphics4.setIndexBuffer(b.buf);
 		else
 			Log.warn("Trying to use disposed index buffer");
+	}
+
+	// var vertexBuffers = new hl.NativeArray<kinc.g4.VertexBuffer>(8);
+
+	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {
+		var buffers:Array<VertexBuffer> = cast buffers;
+		var vertexBuffers = new hl.NativeArray(buffers.length);
+		for (i => buf in buffers)
+			vertexBuffers[i] = if (buf.buf != null) buf.buf else return Log.warn("Trying to set a disposed vertex buffer.");
+		Graphics4.setVertexBuffers(vertexBuffers);
 	}
 
 	public function setVertexBuffer(b:IVertexBuffer):Void {

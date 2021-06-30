@@ -1,6 +1,8 @@
 package asl;
 
+import haxe.io.Path;
 #if macro
+import sys.io.Process;
 import haxe.SysTools;
 import sys.io.File;
 import haxe.macro.Context;
@@ -33,7 +35,7 @@ class Macros {
 		var inputs = vertex_data.inputs;
 
 		// for(u in uniforms) {}
-
+		// Context.addResource()
 		fields.push({
 			name: "get_vertex_src",
 			kind: FFun({
@@ -57,11 +59,11 @@ class Macros {
 	}
 
 	static function cmd(cmd:String, args:Array<String>) {
-		var proc = new sys.io.Process(cmd + " " + args.map(Sys.systemName() == "Windows" ? SysTools.quoteWinArg.bind(_, true) : SysTools.quoteUnixArg)
-			.join(" "));
+		var proc = new sys.io.Process(cmd, args);
 		var code = proc.exitCode();
 		var output = proc.stdout.readAll().toString();
 		var err = proc.stderr.readAll().toString();
+		proc.close();
 		return {
 			code: code,
 			out: output,
@@ -70,18 +72,19 @@ class Macros {
 	}
 
 	static function makeShader(name:String, b:String, vertex:Bool) {
-		var platform = if (Context.defined("js")) "html5" else switch Sys.systemName() {
+		var platform:String = if (Context.defined("js")) "html5" else if (Context.defined("android")) "android" else if (Context.defined("ios")) "ios" else
+			if (Context.defined("console")) Context.definedValue("console") else switch Sys.systemName() {
 			case "Windows": "windows";
 			case "Mac": "osx";
-			case s: "linux";
+			case _: "linux";
 		}
 
 		var lang = switch platform {
 			case "windows": if (Context.defined("opengl")) "glsl" else "d3d11";
 			case "html5": "essl";
-			case "mac": "metal";
-			case "linux": if (Context.defined("vulkan")) "spirv" else "essl";
-			case _: throw "unkown platform " + platform;
+			case "osx" | "ios": "metal";
+			case "linux" | "android": if (Context.defined("vulkan")) "spirv" else "essl";
+			case var p: p; // consoles
 		}
 
 		var shader_bin = Context.defined("asl-shader-bin") ? Context.definedValue("asl-shader-bin") : ".tmp";
@@ -108,7 +111,7 @@ class Macros {
 			return {
 				uniforms: uniforms,
 				inputs: inputs,
-				data: sys.io.File.getBytes(output).toHex()
+				data: sys.io.File.getBytes(if (platform == "html5") '$shader_bin/$name-webgl2.${vertex ? "vert" : "frag"}.$platform.$lang' else output).toHex()
 			}
 		}
 
@@ -122,7 +125,26 @@ class Macros {
 		if (!FileSystem.exists(shader_bin))
 			FileSystem.createDirectory(shader_bin);
 		sys.io.File.saveContent(input, b);
-		var ret = cmd("krafix", [lang, input, output, shader_bin, platform]);
+		var a = arcane.internal.Macros.findArcane();
+		// todo console compilers
+		var k = Path.normalize(Path.join([
+			a,
+			"tools",
+			"krafix",
+			switch Sys.systemName() {
+				case "Windows":
+					"krafix.exe";
+				case "Mac":
+					"krafix-osx";
+				case "Linux":
+					"krafix-linux64"; // todo linuxarm and linux-aarch64 somehow
+				case "BSD":
+					"krafix-freebsd";
+				case _:
+					throw "assert";
+			}]));
+
+		var ret = cmd(k, [lang, input, output, shader_bin, platform]);
 		if (ret.code != 0)
 			haxe.macro.Context.error("Shader compilation failed : \n" + ret.out, haxe.macro.Context.currentPos());
 		sys.io.File.saveContent(data, ret.err);

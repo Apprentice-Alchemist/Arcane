@@ -1,7 +1,5 @@
 package arcane.internal;
 
-import arcane.system.IGraphicsDriver;
-
 #if js
 typedef GraphicsDriver = arcane.internal.html5.WebGLDriver;
 typedef ConstantLocation = arcane.internal.html5.WebGLDriver.ConstantLocation;

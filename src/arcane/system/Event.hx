@@ -74,7 +74,6 @@ enum abstract KeyCode(Int) from Int to Int {
 	var Windows;
 	var Fn;
 	var FnLock;
-
 	var Enter;
 	var Escape;
 	var Backspace;
@@ -173,7 +172,7 @@ enum abstract KeyCode(Int) from Int to Int {
 	var F24;
 
 	public function toString() {
-		return switch (this:KeyCode) {
+		return switch (this : KeyCode) {
 			case Unknown: "Unknown";
 
 			case Cancel: "Cancel";

@@ -9,9 +9,9 @@ abstract Float32Array(Float32ArrayData) from Float32ArrayData {
 		#elseif hl
 		this = new hl.Bytes(length * 4);
 		#else
-        this = [];
-        this.resize(length);
-        #end
+		this = [];
+		this.resize(length);
+		#end
 	}
 
 	@:op([]) public inline function get(i:Int):arcane.FastFloat {

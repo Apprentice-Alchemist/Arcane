@@ -64,7 +64,7 @@ class WebAudioDriver implements IAudioDriver {
 		});
 	}
 
-	public function fromFile(path:String, cb:Result<IAudioBuffer,Any>->Void) {
+	public function fromFile(path:String, cb:Result<IAudioBuffer, Any>->Void) {
 		Assets.loadBytesAsync(path, bytes -> {
 			context.decodeAudioData(bytes.getData()).then(b -> {
 				var buffer:AudioBuffer = {
@@ -73,9 +73,9 @@ class WebAudioDriver implements IAudioDriver {
 					sampleRate: Std.int(b.sampleRate),
 					samples: b.length
 				};
-				cb(Success(buffer));
-			}).catchError(e -> cb(Failure(e)));
-		}, e -> cb(Failure(e)));
+				cb(Ok(buffer));
+			}).catchError(e -> cb(Err(e)));
+		}, e -> cb(Err(e)));
 	}
 
 	public function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {
@@ -83,11 +83,11 @@ class WebAudioDriver implements IAudioDriver {
 	}
 
 	public function getVolume(s:IAudioSource):Float {
-		return cast(s,AudioSource).gain.gain.value;
+		return cast(s, AudioSource).gain.gain.value;
 	}
 
-	public function setVolume(s:IAudioSource,v:Float):Void {
-		cast(s,AudioSource).gain.gain.value = v;
+	public function setVolume(s:IAudioSource, v:Float):Void {
+		cast(s, AudioSource).gain.gain.value = v;
 	}
 
 	public function stop(s:IAudioSource) {

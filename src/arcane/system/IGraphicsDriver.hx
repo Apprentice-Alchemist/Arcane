@@ -13,6 +13,7 @@ enum VertexData {
 	Float2;
 	Float3;
 	Float4;
+	Float4x4;
 }
 
 enum Face {
@@ -82,7 +83,15 @@ enum Operation {
 	Max;
 }
 
-typedef InputLayout = Array<{var name:String; var kind:VertexData;}>;
+typedef VertexAttribute = {
+	var name:String;
+	var kind:VertexData;
+}
+
+typedef InputLayout = Array<{
+	var instanced:Bool;
+	var attributes:Array<VertexAttribute>;
+}>;
 
 @:structInit class BlendDesc {
 	public var src:Blend = One;
@@ -121,7 +130,8 @@ typedef InputLayout = Array<{var name:String; var kind:VertexData;}>;
 }
 
 @:structInit class VertexBufferDesc {
-	public var layout:InputLayout;
+	public var attributes:Array<VertexAttribute>;
+	public var instanceDataStepRate:Int = 0;
 	public var size:Int;
 	public var dyn:Bool = true;
 }
@@ -199,8 +209,8 @@ interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDesc>
 	 */
 	function upload(start:Int = 0, arr:Array<Float>):Void;
 
-	public function map(start:Int = 0,range:Int = -1):Float32Array;
-	public function unmap():Void;
+	function map(start:Int = 0, range:Int = -1):Float32Array;
+	function unmap():Void;
 }
 
 interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
@@ -210,8 +220,9 @@ interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
 	 * @param arr
 	 */
 	function upload(start:Int = 0, arr:Array<Int>):Void;
-	public function map(start:Int = 0, range:Int = -1):Int32Array;
-	public function unmap():Void;
+
+	function map(start:Int = 0, range:Int = -1):Int32Array;
+	function unmap():Void;
 }
 
 interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
@@ -240,6 +251,7 @@ interface IGraphicsDriver {
 	function setRenderTarget(?t:ITexture):Void;
 	function setPipeline(p:IPipeline):Void;
 	function setVertexBuffer(b:IVertexBuffer):Void;
+	function setVertexBuffers(buffers:Array<IVertexBuffer>):Void;
 	function setIndexBuffer(b:IIndexBuffer):Void;
 	function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
 	function setConstantLocation(l:IConstantLocation, f:Array<Float>):Void;

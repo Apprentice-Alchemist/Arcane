@@ -9,9 +9,9 @@ abstract Int32Array(Int32ArrayData) from Int32ArrayData {
 		#elseif hl
 		this = new hl.Bytes(length * 4);
 		#else
-        this = [];
-        this.resize(length);
-        #end
+		this = [];
+		this.resize(length);
+		#end
 	}
 
 	@:op([]) public inline function get(i:Int):Int {

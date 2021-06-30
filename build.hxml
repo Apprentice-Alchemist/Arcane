@@ -11,8 +11,9 @@
 # -D arcane-audio-use-fmt
 -D shader-clean
 -D arcane-log-color
--D hl-ver=1.11.0
+-D hl-ver=1.12.0
 -D absolute-path
+-D hl-hot-reload
 
 --macro nullSafety("arcane",Strict)
 --macro nullSafety("asl",Strict)

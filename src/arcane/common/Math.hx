@@ -424,15 +424,15 @@ abstract Matrix4(Mat4Internal) {
 }
 
 private class Mat3Internal {
-	public var _11:Float;
-	public var _12:Float;
-	public var _13:Float;
-	public var _21:Float;
-	public var _22:Float;
-	public var _23:Float;
-	public var _31:Float;
-	public var _32:Float;
-	public var _33:Float;
+	public final _11:Float;
+	public final _12:Float;
+	public final _13:Float;
+	public final _21:Float;
+	public final _22:Float;
+	public final _23:Float;
+	public final _31:Float;
+	public final _32:Float;
+	public final _33:Float;
 
 	public inline function new(_11, _12, _13, _21, _22, _23, _31, _32, _33) {
 		this._11 = _11;
@@ -452,22 +452,22 @@ private class Mat3Internal {
 }
 
 private class Mat4Internal {
-	public var _11:Float;
-	public var _12:Float;
-	public var _13:Float;
-	public var _14:Float;
-	public var _21:Float;
-	public var _22:Float;
-	public var _23:Float;
-	public var _24:Float;
-	public var _31:Float;
-	public var _32:Float;
-	public var _33:Float;
-	public var _34:Float;
-	public var _41:Float;
-	public var _42:Float;
-	public var _43:Float;
-	public var _44:Float;
+	public final _11:Float;
+	public final _12:Float;
+	public final _13:Float;
+	public final _14:Float;
+	public final _21:Float;
+	public final _22:Float;
+	public final _23:Float;
+	public final _24:Float;
+	public final _31:Float;
+	public final _32:Float;
+	public final _33:Float;
+	public final _34:Float;
+	public final _41:Float;
+	public final _42:Float;
+	public final _43:Float;
+	public final _44:Float;
 
 	public inline function new(_11:Float, _12:Float, _13:Float, _14:Float, _21:Float, _22:Float, _23:Float, _24:Float, _31:Float, _32:Float, _33:Float,
 			_34:Float, _41:Float, _42:Float, _43:Float, _44:Float) {
@@ -495,9 +495,9 @@ private class Mat4Internal {
 }
 
 private class Vec3Internal {
-	public var x:Float;
-	public var y:Float;
-	public var z:Float;
+	public final x:Float;
+	public final y:Float;
+	public final z:Float;
 
 	public inline function new(x, y, z) {
 		this.x = x;
@@ -511,10 +511,10 @@ private class Vec3Internal {
 }
 
 private class Vec4Internal {
-	public var x:Float;
-	public var y:Float;
-	public var z:Float;
-	public var w:Float;
+	public final x:Float;
+	public final y:Float;
+	public final z:Float;
+	public final w:Float;
 
 	public inline function new(x, y, z, w) {
 		this.x = x;

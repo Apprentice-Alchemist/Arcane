@@ -64,7 +64,7 @@ class KincAudioDriver implements IAudioDriver {
 	static var sample_rate = 0;
 
 	static function mix(abuffer:kinc.audio2.Buffer, samples:Int) {
-		for (i in 0...samples) {
+		for (_ in 0...samples) {
 			// var left = (i % 2) == 0;
 			var value:Float = 0.0;
 			mutex.acquire();
@@ -113,10 +113,11 @@ class KincAudioDriver implements IAudioDriver {
 	}
 	#end
 
-	public function fromFile(s:String, cb:Result<IAudioBuffer,Any>->Void):Void {
-		Assets.loadBytesAsync(s, bytes -> {
+	public function fromFile(s:String, cb:Result<IAudioBuffer, Any>->Void):Void {
+		(cast Lib.system : KincSystem).thread_pool.addTask(() -> {
 			if (StringTools.endsWith(s, "ogg")) {
 				#if arcane_audio_use_fmt
+				var bytes = KincSystem.readFileInternal(s).sure();
 				var file = ogg_open(bytes, bytes.length);
 				var bitrate = 0, frequency = 0, samples = 0, channels = 0;
 				ogg_info(file, bitrate, frequency, samples, channels);
@@ -133,43 +134,45 @@ class KincAudioDriver implements IAudioDriver {
 					needed -= read;
 					out = out.offset(read);
 				}
-				cb(Success(({
+				({
 					data: output,
 					samples: samples,
 					sampleRate: frequency,
 					channels: channels
-				} : AudioBuffer)));
+				} : AudioBuffer);
 				#else
 				var s = kinc.audio1.Sound.create(s);
 				var frequency = s.format.samples_per_second;
 				var channels = s.format.channels;
 				var samples = Std.int(s.size);
-
 				var output = Bytes.alloc(s.size * 4);
 				var out:hl.BytesAccess<hl.UI16> = output;
 				for (i in 0...s.size) {
 					out[i * 2] = s.left[i];
 					out[i * 2 + 1] = s.right[i];
 				}
-				cb(Success(({
+				s.destroy();
+				({
 					data: output,
 					samples: samples,
 					sampleRate: frequency,
 					channels: channels
-				}:AudioBuffer)));
+				} : AudioBuffer);
 				#end
 			} else if (StringTools.endsWith(s, "wav")) {
+				var bytes = KincSystem.readFileInternal(s).sure();
 				final data = new format.wav.Reader(new haxe.io.BytesInput(bytes)).read();
 				final header = data.header;
 				final samples = Std.int(data.data.length / (header.channels * header.bitsPerSample / 8));
-				cb(Success(({
+				({
 					data: data.data,
 					samples: samples,
 					sampleRate: header.samplingRate,
 					channels: header.channels
-				} : AudioBuffer)));
-			}
-		}, e -> throw e);
+				} : AudioBuffer);
+			} else
+				throw "";
+		}, (b:AudioBuffer) -> cb(Ok(b)), e -> throw e);
 	}
 
 	public function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {

@@ -1,4 +1,4 @@
-package arcane.signal;
+package arcane.common;
 
 @:forward
 abstract SignalType<T>(String) from String to String {}

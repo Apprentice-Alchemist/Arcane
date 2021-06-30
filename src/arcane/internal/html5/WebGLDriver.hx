@@ -1,6 +1,5 @@
 package arcane.internal.html5;
 
-import js.html.webgl.extension.ANGLEInstancedArrays;
 import arcane.system.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.html.webgl.Buffer;
@@ -35,21 +34,23 @@ class VertexBuffer implements IVertexBuffer {
 
 		this.layout = [];
 		this.stride = 0;
-		for (idx => i in desc.layout) {
-			var size = switch i.kind {
+		for (idx => att in desc.attributes) {
+			var size = switch att.kind {
 				case Float1: 1;
 				case Float2: 2;
 				case Float3: 3;
 				case Float4: 4;
-			};
+				case Float4x4: 16;
+			}
 			layout.push({
-				name: i.name,
+				name: att.name,
 				index: idx,
 				size: size,
 				pos: stride
 			});
 			stride += size;
 		}
+
 		this.data = new js.lib.Float32Array(desc.size * stride);
 		this.buf = driver.gl.createBuffer();
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
@@ -180,7 +181,9 @@ class Shader implements IShader {
 		driver.gl.compileShader(shader);
 		var log = driver.gl.getShaderInfoLog(shader);
 		if ((driver.gl.getShaderParameter(shader, GL.COMPILE_STATUS) != cast 1)) {
-			throw "Shader compilation error : " + log;
+			(untyped alert)(log + "\n" + desc.data);
+			throw "";
+			// throw "Shader compilation error : " + log;
 		}
 	}
 
@@ -246,9 +249,14 @@ class Pipeline implements IPipeline {
 		driver.gl.attachShader(program, @:privateAccess cast(desc.vertexShader, Shader).shader);
 		driver.gl.attachShader(program, @:privateAccess cast(desc.fragmentShader, Shader).shader);
 		var index = 0;
-		for (i in desc.inputLayout) {
-			driver.gl.bindAttribLocation(program, index, i.name);
-			++index;
+		for (structure in desc.inputLayout) {
+			for (attribute in structure.attributes) {
+				driver.gl.bindAttribLocation(program, index, attribute.name);
+				if (attribute.kind == Float4x4)
+					index += 4
+				else
+					++index;
+			}
 		}
 		driver.gl.linkProgram(program);
 
@@ -395,7 +403,7 @@ class WebGLDriver implements IGraphicsDriver {
 	var gl2(get, never):GL2;
 	var hasGL2:Bool;
 
-	var curVertexBuffer:Null<VertexBuffer>;
+	// var curVertexBuffer:Null<VertexBuffer>;
 	var curIndexBuffer:Null<IndexBuffer>;
 	var curPipeline:Null<Pipeline>;
 
@@ -620,10 +628,32 @@ class WebGLDriver implements IGraphicsDriver {
 
 	private var enabledVertexAttribs = 0;
 
+	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {
+		var vb:Array<VertexBuffer> = cast buffers;
+		// assert(vb.driver == this, "driver mismatch");
+		// curVertexBuffer = vb;
+		for (i in 0...enabledVertexAttribs)
+			gl.disableVertexAttribArray(i);
+		enabledVertexAttribs = 0;
+		for (buffer in vb) {
+			gl.bindBuffer(GL.ARRAY_BUFFER, buffer.buf);
+			var offset = 0;
+			for (i in buffer.layout) {
+				gl.enableVertexAttribArray(enabledVertexAttribs + i.index);
+				gl.vertexAttribPointer(enabledVertexAttribs + i.index, i.size, GL.FLOAT, false, buffer.stride * 4, i.pos * 4);
+				if (instancedRendering) {
+					gl2.vertexAttribDivisor(enabledVertexAttribs + i.index, buffer.desc.instanceDataStepRate);
+				}
+				++offset;
+			}
+			enabledVertexAttribs += offset;
+		}
+	}
+
 	public function setVertexBuffer(b:IVertexBuffer):Void {
 		var vb:VertexBuffer = cast b;
-		assert(vb.driver == this, "driver mismatch");
-		curVertexBuffer = vb;
+		// assert(vb.driver == this, "driver mismatch");
+		// curVertexBuffer = vb;
 		for (i in 0...enabledVertexAttribs)
 			gl.disableVertexAttribArray(i);
 		gl.bindBuffer(GL.ARRAY_BUFFER, vb.buf);

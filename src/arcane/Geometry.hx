@@ -31,23 +31,20 @@ class Geometry {
 
 	public function unindex():Void {
 		if (points.length != idx.length) {
-			this.points = [for(i in idx) points[i]];
+			this.points = [for (i in idx) points[i]];
 			if (uvs != null) {
 				var uvs:Array<UV> = uvs;
-				this.uvs = [for(i in idx) uvs[idx[i]]];
+				this.uvs = [for (i in idx) uvs[idx[i]]];
 			}
 			idx = [for (i in 0...points.length) i];
 		}
 	}
 
 	public function makeBuffers(driver:IGraphicsDriver) {
-		var layout:InputLayout = [];
-		layout.push({name: "pos", kind: Float3});
-		if (uvs != null)
-			layout.push({name: "uv", kind: Float2});
+		var attributes = [{name: "pos", kind: Float3}, {name: "uv", kind: Float2}];
 		var ret = {
-			vertices: driver.createVertexBuffer({layout: layout, size: points.length, dyn: true}),
-			indices: driver.createIndexBuffer({size: idx.length, is32: points.length >= 65535})
+			vertices: driver.createVertexBuffer({attributes: attributes, size: points.length, dyn: true}),
+			indices: driver.createIndexBuffer({size: idx.length, is32: points.length > 65535})
 		}
 		var vert = ret.vertices.map();
 		var p = 0;
@@ -59,11 +56,13 @@ class Geometry {
 				var uv = uvs[i];
 				vert[p++] = uv.u;
 				vert[p++] = uv.v;
-			}
+			} else
+				throw "wanted uvs";
 		}
 		ret.vertices.unmap();
 		var ind = ret.indices.map();
-		for(i => v in idx) ind[i] = v; 
+		for (i => v in idx)
+			ind[i] = v;
 		ret.indices.unmap();
 		return ret;
 	}

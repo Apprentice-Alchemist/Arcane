@@ -14,9 +14,9 @@ interface IAudioSource {
 }
 
 interface IAudioDriver {
-	function fromFile(path:String, cb:Result<IAudioBuffer,Any>->Void):Void;
+	function fromFile(path:String, cb:Result<IAudioBuffer, Any>->Void):Void;
 	function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource;
 	function getVolume(source:IAudioSource):Float;
-	function setVolume(source:IAudioSource,v:Float):Void;
+	function setVolume(source:IAudioSource, v:Float):Void;
 	function stop(s:IAudioSource):Void;
 }

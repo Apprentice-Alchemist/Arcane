@@ -1,5 +1,6 @@
 package arcane.internal;
 
+import haxe.io.Path;
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Compiler;
@@ -25,4 +26,15 @@ class Macros {
 		readRec(sys.FileSystem.readDirectory(path), path);
 		return macro $v{files};
 	}
+
+	#if macro
+	public static function findArcane():String {
+		var file = switch Context.getType("arcane.Utils") {
+			case TInst(t, _): t.get().pos.getInfos().file;
+			case _: throw "wtf";
+		}
+		var p = Path.normalize(Path.join([Path.directory(file), "..", ".."]));
+		return p;
+	}
+	#end
 }

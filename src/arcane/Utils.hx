@@ -58,8 +58,6 @@ class Utils {
 
 	/**
 	 * Uses the appropriate ci assert helper, or falls back to `arcane.Utils.assert`.
-	 * @param b 
-	 * @param msg 
 	 */
 	@:noUsing public static macro function ciAssert(b:haxe.macro.Expr.ExprOf<Bool>, msg:String = "assertion failed :"):haxe.macro.Expr.ExprOf<Bool> {
 		if (Context.defined("ci") && Context.defined("utest")) {

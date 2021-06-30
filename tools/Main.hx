@@ -64,10 +64,9 @@ class Main {
 			action: _ -> Log.warning_disabled = true
 		}
 	];
-
+	public static var libdir:String = Sys.getCwd();
 	public static function main():Void {
 		var args = Sys.args();
-		// var libdir = Sys.getCwd();
 		// var libver = try Json.parse(sys.io.File.getContent(Path.normalize(libdir + "/haxelib.json"))).version catch(_) null;
 		Sys.setCwd(args.pop());
 
@@ -170,7 +169,7 @@ class HelpCommand implements ICommand {
 
 		if (doc.switches.count() > 0) {
 			buf.add("Switches :\n");
-			buf.indent(function() {
+			buf.indent(() -> {
 				for (value in doc.switches) {
 					var str = value.aliases.join(", ");
 					if (value.has_value)
@@ -188,7 +187,7 @@ class HelpCommand implements ICommand {
 	public function generalHelp() {
 		var buf = new LineBuf();
 		buf.add("Commands : \n");
-		buf.indent(function() {
+		buf.indent(() -> {
 			for (key => value in @:privateAccess Main.commands) {
 				var doc = value.doc;
 				var length = 30 - '$key '.length;
@@ -197,7 +196,7 @@ class HelpCommand implements ICommand {
 		});
 		buf.add("\n");
 		buf.add("Global Switches : \n");
-		buf.indent(function() {
+		buf.indent(() -> {
 			for (key => value in @:privateAccess Main.global_switches)
 				@:privateAccess {
 				var str = value.aliases.join(", ");

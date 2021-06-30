@@ -48,6 +48,10 @@ class Image {
 		}
 	}
 
+	public function clone():Image {
+		return new Image(this.width, this.height, this.format, this.data.sub(0, this.data.length));
+	}
+
 	/**
 	 * Tries to convert the image's pixel data to a specific format.
 	 * Returns true if the conversion was successful and false if it wasn't.

@@ -47,12 +47,13 @@ class VertexBuffer implements IVertexBuffer {
 
 	public function new(desc) {
 		this.desc = desc;
-		for (l in desc.layout)
+		for (l in desc.attributes)
 			stride += switch l.kind {
 				case Float1: 1;
 				case Float2: 2;
 				case Float3: 3;
 				case Float4: 4;
+				case Float4x4: 16;
 			}
 	}
 
@@ -145,6 +146,8 @@ class GraphicsDriver implements IGraphicsDriver {
 	}
 
 	public function setPipeline(p:IPipeline):Void {}
+
+	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {}
 
 	public function setVertexBuffer(b:IVertexBuffer):Void {}
 
