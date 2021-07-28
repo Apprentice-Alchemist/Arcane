@@ -18,7 +18,7 @@ arcane.Assets
 
 --next
 -lib kinc:git:https://github.com/Apprentice-Alchemist/KincHL
--lib format
+-lib format:3.5.0
 arcane.util.ThreadPool
 arcane.internal.kinc
 -hl out.hl

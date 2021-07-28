@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+#if wgpu_externs
 import js.lib.Uint32Array;
 import wgpu.GPUVertexAttribute;
 import wgpu.GPUVertexFormat;
@@ -346,3 +347,4 @@ class WGPUDriver implements IGraphicsDriver {
 		renderPass.sure().drawIndexed(count, instanceCount, start);
 	}
 }
+#end
