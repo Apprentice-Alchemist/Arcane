@@ -415,10 +415,10 @@ abstract Matrix4(Mat4Internal) {
 
 	@:to inline function toArray():Array<Float> {
 		return [
-			this._11, this._21, this._31, this._41,
-			this._12, this._22, this._32, this._42,
-			this._13, this._23, this._33, this._43,
-			this._14, this._24, this._34, this._44
+			this._11, this._12, this._13, this._14,
+			this._21, this._22, this._23, this._24,
+			this._31, this._32, this._33, this._34,
+			this._41, this._42, this._43, this._44
 		];
 	}
 }

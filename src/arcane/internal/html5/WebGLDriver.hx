@@ -9,10 +9,11 @@ import js.html.webgl.GL;
 import js.html.webgl.Program;
 import js.html.webgl.Renderbuffer;
 import js.html.webgl.UniformLocation;
-import js.lib.Float32Array;
-import js.lib.Uint16Array;
-import js.lib.Uint32Array;
-import js.lib.Int32Array;
+import js.lib.Float32Array as JsFloat32Array;
+import js.lib.Uint16Array as JsUint16Array;
+import js.lib.Uint32Array as JsUint32Array;
+import js.lib.Int32Array as JsInt32Array;
+import arcane.common.arrays.*;
 
 class VertexBuffer implements IVertexBuffer {
 	public var desc:VertexBufferDesc;
@@ -26,7 +27,7 @@ class VertexBuffer implements IVertexBuffer {
 		var size:Int;
 		var pos:Int;
 	}>;
-	var data:Float32Array;
+	var data:JsFloat32Array;
 
 	public function new(driver, desc) {
 		this.driver = driver;
@@ -51,27 +52,26 @@ class VertexBuffer implements IVertexBuffer {
 			stride += size;
 		}
 
-		this.data = new js.lib.Float32Array(desc.size * stride);
+		this.data = new JsFloat32Array(desc.size * stride);
 		this.buf = driver.gl.createBuffer();
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
 		driver.gl.bufferData(GL.ARRAY_BUFFER, desc.size * stride * 4, desc.dyn ? GL.DYNAMIC_DRAW : GL.STATIC_DRAW);
 		@:nullSafety(Off) driver.gl.bindBuffer(GL.ARRAY_BUFFER, null);
 	}
 
-	public function upload(start:Int = 0, arr:Array<Float>):Void {
-		var a = new js.lib.Float32Array(arr);
+	public function upload(start:Int, arr:Float32Array):Void {
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
-		driver.gl.bufferSubData(GL.ARRAY_BUFFER, start * 4, a);
+		driver.gl.bufferSubData(GL.ARRAY_BUFFER, start * 4, cast arr);
 		@:nullSafety(Off) driver.gl.bindBuffer(GL.ARRAY_BUFFER, null);
 	}
 
 	var last_start = 0;
 	var last_end = 0;
 
-	public function map(start:Int = 0, range:Int = -1):arcane.common.arrays.Float32Array {
+	public function map(start:Int, range:Int):arcane.common.arrays.Float32Array {
 		last_start = start;
 		last_end = range == -1 ? data.length : start + range;
-		return data.subarray(last_start, last_end);
+		return cast data.subarray(last_start, last_end);
 	}
 
 	public function unmap():Void {
@@ -99,7 +99,7 @@ class IndexBuffer implements IIndexBuffer {
 
 	var driver:WebGLDriver;
 	var buf:Buffer;
-	var data:Int32Array;
+	var data:JsInt32Array;
 
 	public function new(driver, desc) {
 		this.driver = driver;
@@ -108,21 +108,21 @@ class IndexBuffer implements IIndexBuffer {
 		if (desc.is32 && !this.driver.uintIndexBuffers) {
 			throw "32bit buffers are not supported without webgl2 or the OES_element_index_uint extension.";
 		}
-		this.data = new Int32Array(desc.size);
+		this.data = new JsInt32Array(desc.size);
 		this.buf = driver.gl.createBuffer();
 		this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
 		this.driver.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, desc.size * (desc.is32 ? 4 : 2), GL.STATIC_DRAW);
 		@:nullSafety(Off) this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 	}
 
-	public function upload(start:Int = 0, arr:Array<Int>):Void {
+	public function upload(start:Int, arr:Int32Array):Void {
 		if (desc.is32) {
-			var a = new Uint32Array(arr);
+			var a = new JsUint32Array((cast arr : JsInt32Array));
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
 			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, start * 4, a);
 			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 		} else {
-			var a = new Uint16Array(arr);
+			var a = new JsUint16Array((cast arr : JsInt32Array));
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
 			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, start * 2, a);
 			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
@@ -132,10 +132,10 @@ class IndexBuffer implements IIndexBuffer {
 	var last_start = 0;
 	var last_end = 0;
 
-	public function map(start:Int = 0, range:Int = -1):arcane.common.arrays.Int32Array {
+	public function map(start:Int, range:Int):arcane.common.arrays.Int32Array {
 		last_start = start;
 		last_end = range == -1 ? data.length : start + range;
-		return data.subarray(last_start, last_end);
+		return cast data.subarray(last_start, last_end);
 	}
 
 	public function unmap():Void {
@@ -145,7 +145,7 @@ class IndexBuffer implements IIndexBuffer {
 			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start * 4, a);
 			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 		} else {
-			var a = new Uint16Array(data.subarray(last_start, last_end));
+			var a = new JsUint16Array(data.subarray(last_start, last_end));
 			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, buf);
 			this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start * 2, a);
 			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
@@ -177,13 +177,15 @@ class Shader implements IShader {
 		this.desc = desc;
 
 		this.shader = driver.gl.createShader(desc.kind.match(Vertex) ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
-		driver.gl.shaderSource(shader, desc.data.toString());
+		var id = '${desc.id}-${desc.kind.match(Vertex) ? "vert" : "frag"}-${driver.hasGL2 ? "webgl2" : "default"}';
+		var data = haxe.Resource.getString(id);
+		driver.gl.shaderSource(shader, data);
 		driver.gl.compileShader(shader);
 		var log = driver.gl.getShaderInfoLog(shader);
 		if ((driver.gl.getShaderParameter(shader, GL.COMPILE_STATUS) != cast 1)) {
-			(untyped alert)(log + "\n" + desc.data);
-			throw "";
-			// throw "Shader compilation error : " + log;
+			(untyped console).error(log);
+			(untyped console).info(data);
+			throw "Shader Compilation Error, check the console.";
 		}
 	}
 
@@ -429,6 +431,10 @@ class WebGLDriver implements IGraphicsDriver {
 				this.instancedRendering = false;
 			}
 		}
+	}
+
+	public function getName(details:Bool = false):String {
+		return "WebGL" + if (hasGL2) "2" else "";
 	}
 
 	public inline function check():Bool {
@@ -685,13 +691,13 @@ class WebGLDriver implements IGraphicsDriver {
 		gl.bindTexture(GL.TEXTURE_2D, texture.texture);
 	}
 
-	public function setConstantLocation(l:IConstantLocation, a:Array<Float>):Void {
+	public function setConstantLocation(l:IConstantLocation, a:Float32Array):Void {
 		var loc:ConstantLocation = cast l;
 		var l = loc.uniform;
 		if (loc.type == -1) {
 			return;
 		}
-		var a = new Float32Array(a);
+		var a:JsFloat32Array = cast a;
 		switch loc.type {
 			case GL.FLOAT_VEC2:
 				gl.uniform2fv(l, a);
@@ -708,7 +714,7 @@ class WebGLDriver implements IGraphicsDriver {
 		}
 	}
 
-	public function draw(start:Int = 0, count:Int = -1):Void {
+	public function draw(start:Int, count:Int):Void {
 		if (curIndexBuffer == null)
 			throw "Someone forgot to call setIndexBuffer";
 		var b = curIndexBuffer;
@@ -716,7 +722,7 @@ class WebGLDriver implements IGraphicsDriver {
 		gl.drawElements(GL.TRIANGLES, count == -1 ? b.desc.size : count, b.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start);
 	}
 
-	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {
+	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {
 		if (instancedRendering) {
 			if (curIndexBuffer == null)
 				throw "Someone forgot to call setIndexBuffer";

@@ -1,13 +1,14 @@
 package arcane.internal.empty;
 
+import arcane.system.IAudioDriver;
 import arcane.system.IAudioDriver.IAudioSource;
 import arcane.system.IAudioDriver.IAudioBuffer;
 import arcane.util.Result;
 
 class AudioBuffer implements IAudioBuffer {
-	public var samples:Int;
-	public var sampleRate:Int;
-	public var channels:Int;
+	public var samples:Int = 0;
+	public var sampleRate:Int = 0;
+	public var channels:Int = 0;
 
 	public function new() {}
 
@@ -20,18 +21,20 @@ class AudioSource implements IAudioSource {
 	public function dispose():Void {}
 }
 
-class IAudioDriver {
-	function fromFile(path:String, cb:Result<IAudioBuffer, Any>->Void):Void {}
+class AudioDriver implements IAudioDriver {
+	public function new() {}
 
-	function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {
-		return null;
+	public function fromFile(path:String, cb:Result<IAudioBuffer, Any>->Void):Void {}
+
+	public function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {
+		return new AudioSource();
 	}
 
-	function getVolume(source:IAudioSource):Float {
+	public function getVolume(source:IAudioSource):Float {
 		return 0.0;
 	}
 
-	function setVolume(source:IAudioSource, v:Float):Void {}
+	public function setVolume(source:IAudioSource, v:Float):Void {}
 
-	function stop(s:IAudioSource):Void {}
+	public function stop(s:IAudioSource):Void {}
 }

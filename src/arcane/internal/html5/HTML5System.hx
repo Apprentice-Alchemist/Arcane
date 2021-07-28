@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+import arcane.system.IAudioDriver;
 import haxe.crypto.Base64;
 import haxe.io.Bytes;
 import arcane.Assets.AssetError;
@@ -13,10 +14,12 @@ import arcane.system.ISystem;
 import js.html.webgl.GL;
 
 @:access(arcane)
-@:nullSafety(Strict)
+// @:nullSafety(Strict)
 class HTML5System implements ISystem {
 	public var window:IWindow;
 	public var canvas:js.html.CanvasElement;
+	public var gdriver:Null<IGraphicsDriver>;
+	public var adriver:Null<IAudioDriver>;
 
 	public function new() {
 		if (!js.Browser.supported)
@@ -28,6 +31,10 @@ class HTML5System implements ISystem {
 		}
 		window = new HTML5Window(canvas);
 	}
+
+	#if wgpu_externs
+	private static var gpuAdapter:Null<wgpu.GPUAdapter>;
+	#end
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
 		inline function event(e:arcane.system.Event) Lib.onEvent.trigger(e);
@@ -60,8 +67,48 @@ class HTML5System implements ISystem {
 				event(KeyUp(k.code));
 			}
 		}
-		cb();
-		js.Browser.window.requestAnimationFrame(update);
+
+		#if wgpu_externs
+		if (js.Syntax.typeof(untyped navigator.gpu) != "undefined") {
+			(untyped navigator.gpu : wgpu.GPU).requestAdapter().then(adapter -> {
+				if (adapter != null) {
+					gpuAdapter = adapter;
+					adapter.requestDevice({
+						label: "arcane"
+					});
+				} else {
+					throw "Null adapter.";
+				}
+			}).then(device -> {
+				var context = untyped canvas.getContext("webgpu") || canvas.getContext("gpupresent");
+				if (context == null) {
+					js.Browser.console.error("Could not aquire the WebGPU context of the canvas.");
+				} else {
+					gdriver = new WGPUDriver(canvas, context, cast gpuAdapter, device);
+				}
+				cb();
+				js.Browser.window.requestAnimationFrame(update);
+			}).catchError(e -> {
+				js.Browser.console.error("Could not aquire a WebGPU context.", e);
+			});
+		} else {
+		#end
+			var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
+			if (gl != null) {
+				gdriver = new WebGLDriver(gl, canvas, true);
+			} else {
+				var gl = @:nullSafety(Off) canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
+				if (gl != null) {
+					gdriver = new WebGLDriver(gl, canvas, false);
+				} else {
+					js.Browser.console.error("Could not aquire WebGL context.");
+				}
+			}
+			cb();
+			js.Browser.window.requestAnimationFrame(update);
+		#if wgpu_externs
+		}
+		#end
 	}
 
 	@:nullSafety(Off) inline function keytocode(e:KeyboardEvent):{
@@ -191,23 +238,12 @@ class HTML5System implements ISystem {
 
 	public function shutdown() {}
 
-	public function createAudioDriver():Null<arcane.system.IAudioDriver> {
+	public function getAudioDriver():Null<IAudioDriver> {
 		return new WebAudioDriver();
 	}
 
-	public function createGraphicsDriver(?options:GraphicsDriverOptions):Null<IGraphicsDriver> {
-		var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
-		var wgl2 = true;
-		if (gl == null) {
-			// inline function + non-nullsafe std == null safety error
-			gl = @:nullSafety(Off) canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
-			wgl2 = false;
-		}
-		if (gl == null) {
-			untyped alert("Could not aquire WebGL context.");
-			return null;
-		}
-		return new WebGLDriver(gl, canvas, wgl2);
+	public function getGraphicsDriver():Null<IGraphicsDriver> {
+		return gdriver;
 	}
 
 	public function language():String {
@@ -251,7 +287,7 @@ class HTML5System implements ISystem {
 	public function hideMouse():Void {}
 
 	public function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:AssetError) -> Void) {
-		var xhr = new js.html.XMLHttpRequest();
+		var xhr = js.Browser.createXMLHttpRequest();
 		xhr.open('GET', path, true);
 		xhr.responseType = ARRAYBUFFER;
 		xhr.onload = e -> {

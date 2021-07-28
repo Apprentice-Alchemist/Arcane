@@ -1,5 +1,6 @@
 package arcane.internal.kinc;
 
+import arcane.common.arrays.ArrayBuffer;
 import arcane.system.IGraphicsDriver;
 import kinc.g4.Graphics4;
 import kinc.g4.Pipeline.StencilAction;
@@ -29,7 +30,7 @@ class VertexBuffer implements IVertexBuffer {
 		this.struc = struc;
 	}
 
-	public function upload(start:Int = 0, arr:Array<Float>) {
+	public function upload(start:Int, arr:Float32Array) {
 		assert(buf != null, "Buffer was disposed");
 		assert(start + arr.length <= buf.stride() * desc.size, "Trying to upload vertex data outside of buffer bounds!");
 		var v = @:nullSafety(Off) buf.lock(start, arr.length);
@@ -38,16 +39,20 @@ class VertexBuffer implements IVertexBuffer {
 		@:nullSafety(Off) buf.unlock(arr.length);
 	}
 
-	private var last_range:Int = 0;
+	private var last_range:Int = -1;
 
-	public function map(start:Int = 0, range:Int = -1):Float32Array {
+	public function map(start:Int , range:Int):Float32Array {
 		assert(buf != null);
 		last_range = range == -1 ? desc.size * buf.stride() : range;
-		return @:nullSafety(Off) buf.lock(start, last_range);
+		var r:ArrayBuffer = untyped $new(ArrayBuffer);
+		r.byteLength = last_range;
+		r.b = @:nullSafety(Off) (buf.lock(start, last_range) : hl.Bytes);
+		return cast r;
 	}
 
 	public function unmap():Void {
 		assert(buf != null);
+		assert(last_range != -1);
 		buf.unlock(last_range);
 	}
 
@@ -72,7 +77,7 @@ class IndexBuffer implements IIndexBuffer {
 		this.buf = new kinc.g4.IndexBuffer(desc.size, IbFormat32BIT /*desc.is32 ? IbFormat32BIT : IbFormat16BIT*/);
 	}
 
-	public function upload(start:Int = 0, arr:Array<Int>) {
+	public function upload(start:Int , arr:Int32Array) {
 		assert(buf != null, "Buffer disposed");
 		assert(start + arr.length <= desc.size, "Trying to upload index data outside of buffer bounds!");
 		var x:hl.BytesAccess<Int> = buf.lock();
@@ -81,9 +86,11 @@ class IndexBuffer implements IIndexBuffer {
 		@:nullSafety(Off) buf.unlock();
 	}
 
-	public function map(start:Int = 0, range:Int = -1):Int32Array {
+	public function map(start:Int , range:Int):Int32Array {
 		assert(buf != null);
-		return (buf.lock() : hl.Bytes).offset(start >> 2);
+		if(range == -1) range = desc.size;
+		return cast ArrayBuffer.fromBytes((buf.lock() : hl.Bytes).offset(start >> 2),range);
+		// return cast (buf.lock() : hl.Bytes).offset(start >> 2).toBytes(range);
 	}
 
 	public function unmap():Void {
@@ -153,10 +160,10 @@ class Shader implements IShader {
 
 	public function new(desc:ShaderDesc) {
 		this.desc = desc;
-		var bytes = desc.data;
+		var bytes = haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-default');
 		// #if krafix
 		// 	if (desc.fromGlslSrc) {
-		// 		var len = 0, out = new hl.Bytes(1024 * 1024);
+		// 		var len , out = new hl.Bytes(1024 * 1024);
 		// 		compileShader(@:privateAccess bytes.toString().toUtf8(), out, len, switch kinc.System.getGraphicsApi() {
 		// 			case D3D9: "d3d9";
 		// 			case D3D11: "d3d11";
@@ -323,11 +330,13 @@ class KincDriver implements IGraphicsDriver {
 
 	var window:Int;
 
-	public function new(window:Int = 0) {
+	public function new(window:Int ) {
 		this.window = window;
 		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
 	}
-
+	public function getName(details = false) {
+		return details ? "Kinc on " + kinc.System.getGraphicsApi().toString() : "Kinc";
+	}
 	public function dispose():Void {};
 
 	public function begin():Void {
@@ -416,7 +425,7 @@ class KincDriver implements IGraphicsDriver {
 		var buffers:Array<VertexBuffer> = cast buffers;
 		var vertexBuffers = new hl.NativeArray(buffers.length);
 		for (i => buf in buffers)
-			vertexBuffers[i] = if (buf.buf != null) buf.buf else return Log.warn("Trying to set a disposed vertex buffer.");
+			vertexBuffers[i] = if (buf.buf != null) buf.buf else return Log.error("Trying to set a disposed vertex buffer.");
 		Graphics4.setVertexBuffers(vertexBuffers);
 	}
 
@@ -441,18 +450,19 @@ class KincDriver implements IGraphicsDriver {
 		}
 	}
 
-	public function setConstantLocation(cl:IConstantLocation, floats:Array<Float>):Void {
-		Graphics4.setFloats(cast(cl, ConstantLocation).cl, [for (f in floats) (f : Single)]);
+	public function setConstantLocation(cl:IConstantLocation, floats:Float32Array):Void {
+		//Graphics4.setFloats(cast(cl, ConstantLocation).cl, [for (f in floats) (f : Single)]);
+		@:privateAccess Graphics4.__setFloats(cast(cl,ConstantLocation).cl, (cast floats).b,floats.length);
 	}
 
-	public function draw(start:Int = 0, count:Int = -1):Void {
+	public function draw(start:Int , count:Int):Void {
 		if (count < 0)
 			Graphics4.drawIndexedVertices();
 		else
 			Graphics4.drawIndexedVerticesFromTo(start, count);
 	}
 
-	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {
+	public function drawInstanced(instanceCount:Int, start:Int , count:Int):Void {
 		if (count < 0)
 			Graphics4.drawIndexedVerticesInstanced(instanceCount);
 		else

@@ -30,11 +30,11 @@ class System implements ISystem {
 		sd = true;
 	}
 
-	public function createAudioDriver():Null<IAudioDriver> {
-		return null;
+	public function getAudioDriver():Null<IAudioDriver> {
+		return new AudioDriver();
 	}
 
-	public function createGraphicsDriver(?opts):Null<IGraphicsDriver> {
+	public function getGraphicsDriver():Null<IGraphicsDriver> {
 		return new GraphicsDriver();
 	}
 

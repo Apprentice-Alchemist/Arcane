@@ -12,12 +12,11 @@ abstract Int32Array(ArrayBuffer) {
 	}
 
 	@:op([]) public inline function get(i:Int):Int {
-		return (cast this : haxe.io.Bytes).getInt32(i * 4);
+		return (this.b : hl.BytesAccess<Int>)[i];
 	}
 
 	@:op([]) public inline function set(i:Int, v:Int):Int {
-		(cast this : haxe.io.Bytes).setInt32(i * 4, v);
-		return v;
+		return (this.b : hl.BytesAccess<Int>)[i] = v;
 	}
 
 	/**

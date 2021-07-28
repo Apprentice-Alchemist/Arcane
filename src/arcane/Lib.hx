@@ -10,7 +10,7 @@ import arcane.common.Event;
 @:nullSafety(Strict)
 @:allow(arcane.internal)
 class Lib {
-	public static var version(default, never):Version = new Version("0.0.1");
+	public static var version(default, never):Version = arcane.internal.Macros.getVersion();
 	public static var fps(default, null):Float = 0.0;
 
 	public static var system(default, null):Null<ISystem>;
@@ -34,7 +34,7 @@ class Lib {
 		var backend = new arcane.internal.System();
 
 		backend.init({
-			window_options: {
+			windowOptions: {
 				x: -1,
 				y: -1,
 				width: 500,
@@ -44,8 +44,8 @@ class Lib {
 				mode: Windowed
 			}
 		}, () -> {
-			gdriver = backend.createGraphicsDriver();
-			adriver = backend.createAudioDriver();
+			gdriver = backend.getGraphicsDriver();
+			adriver = backend.getAudioDriver();
 			arcane.Lib.system = backend;
 			cb();
 		});

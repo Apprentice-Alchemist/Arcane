@@ -150,10 +150,10 @@ typedef InputLayout = Array<{
 }
 
 @:structInit class ShaderDesc {
-	/**
-	 * The platform specific shader data
-	 */
-	public var data:haxe.io.Bytes;
+	// /**
+	//  * The platform specific shader data
+	//  */
+	public var id:String;
 
 	/**
 	 * The kind of shader.
@@ -207,9 +207,9 @@ interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDesc>
 	 * @param start
 	 * @param arr
 	 */
-	function upload(start:Int = 0, arr:Array<Float>):Void;
+	function upload(start:Int, arr:Float32Array):Void;
 
-	function map(start:Int = 0, range:Int = -1):Float32Array;
+	function map(start:Int, range:Int):Float32Array;
 	function unmap():Void;
 }
 
@@ -219,9 +219,9 @@ interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
 	 * @param start
 	 * @param arr
 	 */
-	function upload(start:Int = 0, arr:Array<Int>):Void;
+	function upload(start:Int, arr:Int32Array):Void;
 
-	function map(start:Int = 0, range:Int = -1):Int32Array;
+	function map(start:Int, range:Int):Int32Array;
 	function unmap():Void;
 }
 
@@ -229,12 +229,12 @@ interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
 	function upload(bytes:haxe.io.Bytes):Void;
 }
 
-interface IGraphicsDriver {
+interface IGraphicsDriver extends IDisposable {
 	final renderTargetFlipY:Bool;
 	final instancedRendering:Bool;
 	final uintIndexBuffers:Bool;
 
-	function dispose():Void;
+	function getName(details:Bool = false):String;
 
 	function begin():Void;
 	function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void;
@@ -254,8 +254,8 @@ interface IGraphicsDriver {
 	function setVertexBuffers(buffers:Array<IVertexBuffer>):Void;
 	function setIndexBuffer(b:IIndexBuffer):Void;
 	function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
-	function setConstantLocation(l:IConstantLocation, f:Array<Float>):Void;
+	function setConstantLocation(l:IConstantLocation, f:Float32Array):Void;
 
-	function draw(start:Int = 0, count:Int = -1):Void;
-	function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void;
+	function draw(start:Int, count:Int):Void;
+	function drawInstanced(instanceCount:Int, start:Int, count:Int):Void;
 }

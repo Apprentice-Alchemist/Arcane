@@ -3,7 +3,9 @@ package arcane.system;
 import haxe.io.Bytes;
 
 typedef SystemOptions = {
-	var window_options:WindowOptions;
+	var windowOptions:WindowOptions;
+	var ?graphicsOptions:GraphicsDriverOptions;
+	var ?audioOptions:AudioDriverOptions;
 }
 
 typedef WindowOptions = {
@@ -19,22 +21,19 @@ typedef WindowOptions = {
 enum WindowMode {
 	Windowed;
 	Fullscreen;
-
-	/**
-	 * Some windows things.
-	 */
 	FullscreenExclusive;
 }
 
 typedef GraphicsDriverOptions = {}
+typedef AudioDriverOptions = {};
 
 interface ISystem {
 	var window(default, null):IWindow;
 
 	function init(options:SystemOptions, cb:Void->Void):Void;
 	function shutdown():Void;
-	function createAudioDriver():Null<IAudioDriver>;
-	function createGraphicsDriver(?options:GraphicsDriverOptions):Null<IGraphicsDriver>;
+	function getAudioDriver():Null<IAudioDriver>;
+	function getGraphicsDriver():Null<IGraphicsDriver>;
 	function language():String;
 	function time():Float;
 	function width():Int;

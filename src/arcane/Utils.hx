@@ -48,9 +48,14 @@ class Utils {
 	/**
 	 * Assertion helper.
 	 */
-	@:noUsing public static macro function assert(b:haxe.macro.Expr.ExprOf<Bool>, msg:String = "assertion failed : "):haxe.macro.Expr.ExprOf<Bool> {
+	@:noUsing public static macro function assert(b:haxe.macro.Expr.ExprOf<Bool>, ?msg:String):haxe.macro.Expr.ExprOf<Bool> {
 		return macro @:pos(b.pos) if (!$b) {
-			throw $v{msg} + " (" + $v{b.toString()} + ")";
+			throw $v{
+				if (msg == null)
+					"assertion failed : " + " (" + $v{b.toString()} + ")"
+				else
+					msg
+			};
 		} else {
 			true;
 		}

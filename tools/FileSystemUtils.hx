@@ -1,8 +1,10 @@
 package tools;
 
+#if sys
 import sys.io.File;
 import haxe.io.Path;
 import sys.FileSystem;
+#end
 
 class FileSystemUtils {
 	/**
@@ -11,8 +13,9 @@ class FileSystemUtils {
 	 * @param o 
 	 */
 	public static function copyDirectory(srcPath:String, dstPath:String) {
-        final srcPath = Path.addTrailingSlash(srcPath);
-        final dstPath = Path.addTrailingSlash(dstPath);
+		#if sys
+		final srcPath = Path.addTrailingSlash(srcPath);
+		final dstPath = Path.addTrailingSlash(dstPath);
 		for (file in FileSystem.readDirectory(srcPath)) {
 			final src = srcPath + file;
 			final dst = dstPath + file;
@@ -22,5 +25,6 @@ class FileSystemUtils {
 				File.copy(src, dst);
 			}
 		}
+		#end
 	}
 }

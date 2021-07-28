@@ -59,9 +59,9 @@ class VertexBuffer implements IVertexBuffer {
 
 	public function dispose() {}
 
-	public function upload(start:Int = 0, arr:Array<Float>):Void {}
+	public function upload(start:Int, arr:Float32Array):Void {}
 
-	public function map(start:Int = 0, range:Int = -1):Float32Array {
+	public function map(start:Int, range:Int):Float32Array {
 		return new Float32Array(range == -1 ? desc.size * stride : range);
 	}
 
@@ -77,9 +77,9 @@ class IndexBuffer implements IIndexBuffer {
 
 	public function dispose() {}
 
-	public function upload(start:Int = 0, arr:Array<Int>):Void {}
+	public function upload(start:Int, arr:Int32Array):Void {}
 
-	public function map(start:Int = 0, range:Int = -1):Int32Array {
+	public function map(start:Int, range:Int):Int32Array {
 		return new Int32Array(desc.size);
 	}
 
@@ -104,6 +104,10 @@ class GraphicsDriver implements IGraphicsDriver {
 	public final uintIndexBuffers:Bool = false;
 
 	public function new() {}
+
+	public function getName(details:Bool = false) {
+		return "Empty Driver";
+	}
 
 	public function dispose():Void {}
 
@@ -155,9 +159,9 @@ class GraphicsDriver implements IGraphicsDriver {
 
 	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void {}
 
-	public function setConstantLocation(l:IConstantLocation, f:Array<Float>):Void {}
+	public function setConstantLocation(l:IConstantLocation, f:Float32Array):Void {}
 
-	public function draw(start:Int = 0, count:Int = -1):Void {}
+	public function draw(start:Int, count:Int):Void {}
 
-	public function drawInstanced(instanceCount:Int, start:Int = 0, count:Int = -1):Void {}
+	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {}
 }

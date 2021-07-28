@@ -65,6 +65,7 @@ class Main {
 		}
 	];
 	public static var libdir:String = Sys.getCwd();
+
 	public static function main():Void {
 		var args = Sys.args();
 		// var libver = try Json.parse(sys.io.File.getContent(Path.normalize(libdir + "/haxelib.json"))).version catch(_) null;
@@ -80,12 +81,12 @@ class Main {
 					i = a.length;
 				var s = a.substring(0, i);
 				var v = a.substring(i, a.length);
-				for(gs in global_switches)
-					if(gs.aliases.indexOf(s) > -1) {
+				for (gs in global_switches)
+					if (gs.aliases.indexOf(s) > -1) {
 						gs.action(v);
 						break;
 					} else {
-						switches.set(s,v);
+						switches.set(s, v);
 					}
 			} else {
 				cargs.push(a);
@@ -113,9 +114,10 @@ class Main {
 					+ 'Run \'arcane help $command\' for more information on how to use this command.');
 				return;
 			}
-			for(s => v in switches) {
-				for(ds in doc.switches)
-					if(ds.aliases.contains(s)) continue;
+			for (s => v in switches) {
+				for (ds in doc.switches)
+					if (ds.aliases.contains(s))
+						continue;
 				Log.warn("Unknown switch '" + s + "'");
 			}
 			cmd.run(cargs, switches);
@@ -123,11 +125,11 @@ class Main {
 	}
 
 	public static function logo() {
-		println("     _                             
-    / \\   _ __ ___ __ _ _ __   ___ 
-   / _ \\ | '__/ __/ _` | '_ \\ / _ \\
-  / ___ \\| | | (_| (_| | | | |  __/
- /_/   \\_\\_|  \\___\\__,_|_| |_|\\___|");
+		println("     _                             ");
+		println("    / \\   _ __ ___ __ _ _ __   ___ ");
+		println("   / _ \\ | '__/ __/ _` | '_ \\ / _ \\");
+		println("  / ___ \\| | | (_| (_| | | | |  __/");
+		println(" /_/   \\_\\_|  \\___\\__,_|_| |_|\\___|");
 		println('Arcane ${arcane.Lib.version}');
 	}
 }
@@ -262,16 +264,16 @@ class LineBuf {
 	var buf:StringBuf;
 	var indt = "";
 
-	public function new() buf = new StringBuf();
+	public inline function new() buf = new StringBuf();
 
-	public function add(s:String) buf.add(indt + s);
+	public inline function add(s:String) buf.add(indt + s);
 
-	public function indent(f:Void->Void) {
+	public inline function indent(f:Void->Void) {
 		var old = indt;
 		indt = (old + "   ");
 		f();
 		indt = old;
 	}
 
-	public function dump() return buf.toString();
+	public inline function dump() return buf.toString();
 }

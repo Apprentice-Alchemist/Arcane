@@ -11,24 +11,16 @@ import haxe.io.Bytes;
 @:autoBuild(asl.Macros.buildShader())
 #end
 class Shader {
-	function get_vertex_src():String return "";
+	public final id:String;
 
-	function get_fragment_src():String return "";
-
-	public function new() {}
+	public function new(id:String) {
+		this.id = id;
+	}
 
 	public function make(d:IGraphicsDriver) {
 		return {
-			vertex: getVertex(d),
-			fragment: getFragment(d)
+			vertex: d.createShader({id: id, kind: Vertex}),
+			fragment: d.createShader({id: id, kind: Fragment})
 		}
-	}
-
-	public function getVertex(driver:IGraphicsDriver):IShader {
-		return driver.createShader({data: Bytes.ofHex(get_vertex_src()), kind: Vertex});
-	}
-
-	public function getFragment(driver:IGraphicsDriver):IShader {
-		return driver.createShader({data: Bytes.ofHex(get_fragment_src()), kind: Fragment});
 	}
 }

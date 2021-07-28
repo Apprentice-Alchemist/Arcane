@@ -23,23 +23,23 @@ class KincSystem implements ISystem {
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
 		try {
-			@:bypassAccessor window.title = opts.window_options.title;
-			if (kinc.System.init(opts.window_options.title, 500, 500, {
-				title: opts.window_options.title,
-				y: opts.window_options.x,
-				x: opts.window_options.y,
+			@:bypassAccessor window.title = opts.windowOptions.title;
+			if (kinc.System.init(opts.windowOptions.title, 500, 500, {
+				title: opts.windowOptions.title,
+				y: opts.windowOptions.x,
+				x: opts.windowOptions.y,
 				window_features: MINIMIZABLE | MAXIMIZABLE | RESIZEABLE,
-				width: opts.window_options.width,
-				height: opts.window_options.height,
+				width: opts.windowOptions.width,
+				height: opts.windowOptions.height,
 				visible: true,
-				mode: switch opts.window_options.mode {
+				mode: switch opts.windowOptions.mode {
 					case Windowed: WINDOWED;
 					case Fullscreen: FULLSCREEN;
 					case FullscreenExclusive: EXCLUSIVE_FULLSCREEN;
 				},
 				display_index: 0
 			}, {
-				vertical_sync: opts.window_options.vsync,
+				vertical_sync: opts.windowOptions.vsync,
 				stencil_bits: 8,
 				samples_per_pixel: 1,
 				frequency: 60,
@@ -267,11 +267,11 @@ class KincSystem implements ISystem {
 		kinc.System.stop();
 	}
 
-	public function createAudioDriver():Null<IAudioDriver> {
+	public function getAudioDriver():Null<IAudioDriver> {
 		return new KincAudioDriver();
 	}
 
-	public function createGraphicsDriver(?options:GraphicsDriverOptions):Null<IGraphicsDriver> {
+	public function getGraphicsDriver():Null<IGraphicsDriver> {
 		// var window = if(options == null) 0 else options.window;
 		return new KincDriver(0);
 	}
