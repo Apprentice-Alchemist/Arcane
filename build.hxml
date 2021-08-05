@@ -1,6 +1,6 @@
 -cp test
 -cp src
--main Main
+-main Triangle
 -lib kinc
 -lib format
 
@@ -13,10 +13,13 @@
 -D arcane-log-color
 -D hl-ver=1.12.0
 -D absolute-path
--D hl-hot-reload
+-D hl-profile
+# -D hl-hot-reload
+# -D vulkan
 
 --macro nullSafety("arcane",Strict)
 --macro nullSafety("asl",Strict)
 --macro nullSafety("a2d",Strict)
---macro nullSafety("Main",Strict)
+
+
 -hl out/out.hl

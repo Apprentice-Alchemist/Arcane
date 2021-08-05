@@ -16,6 +16,7 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 		#if (macro)
 		if (Context.defined("display"))
 			return;
+		var temp = Macros.getTempDir();
 		var s = Macros.cmd("glslc", [
 			'-fshader-stage=${vertex ? "vert" : "frag"}',
 			"-fauto-map-locations",
@@ -47,8 +48,9 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 			"-fauto-map-locations",
 			"-fauto-bind-uniforms",
 			"--target-env=vulkan",
+			"-Dgl_InstanceID=gl_InstanceIndex",
 			"-o",
-			"-",
+			'$temp/$id.${vertex ? "vert" : "frag"}.spv',
 			"-"
 		], source);
 		if (webgpu.code != 0 || webgpu.stderr.trim() != "") {
@@ -56,10 +58,12 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 			Sys.println(webgpu.stderr);
 			Sys.exit(1);
 		}
-		var id = '$id-${vertex ? "vert" : "frag"}';
-		Context.addResource('$id-default', webgl1.stdout);
-		Context.addResource('$id-webgl2', webgl2.stdout);
-		Context.addResource('$id-webgpu', webgpu.stdout);
+		// trace(Macros.cmd("spirv-dis", ["--comment", '$temp/$id.${vertex ? "vert" : "frag"}.spv']));
+		// trace(Macros.cmd("spirv-reflect", ["-v", "1", '$temp/$id.${vertex ? "vert" : "frag"}.spv']).stdout.toString());
+		var _id = '$id-${vertex ? "vert" : "frag"}';
+		Context.addResource('$_id-default', webgl1.stdout);
+		Context.addResource('$_id-webgl2', webgl2.stdout);
+		Context.addResource('$_id-webgpu', File.getBytes('$temp/$id.${vertex ? "vert" : "frag"}.spv'));
 		#end
 	}
 }

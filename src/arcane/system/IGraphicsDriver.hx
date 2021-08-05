@@ -211,6 +211,8 @@ interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDesc>
 
 	function map(start:Int, range:Int):Float32Array;
 	function unmap():Void;
+
+	function stride():Int;
 }
 
 interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {

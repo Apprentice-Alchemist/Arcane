@@ -15,7 +15,7 @@ class KrafixShaderCompiler implements IShaderCompiler {
 		#if macro
 		if (Context.defined("display"))
 			return;
-		if (Context.defined("vulkan")) {
+		if (false && Context.defined("vulkan")) {
 			var s = Macros.cmd("glslc", [
 				'-fshader-stage=${vertex ? "vert" : "frag"}',
 				"--target-env=vulkan",
@@ -80,7 +80,7 @@ class KrafixShaderCompiler implements IShaderCompiler {
 
 			
 			if (ret.code != 0)
-				haxe.macro.Context.error("Shader compilation failed : \n" + ret.stderr, haxe.macro.Context.currentPos());
+				haxe.macro.Context.error("Shader compilation failed : \n" + ret.stderr + "\n" + ret.stdout.toString(), haxe.macro.Context.currentPos());
 			Context.addResource('$id-${vertex ? "vert" : "frag"}-default', File.getBytes(output));
 		}
 		#end

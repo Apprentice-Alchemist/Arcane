@@ -30,13 +30,22 @@ class VertexBuffer implements IVertexBuffer {
 		this.struc = struc;
 	}
 
+	public function stride():Int {
+		assert(buf != null, "Buffer was disposed");
+		return buf.stride();
+	}
+
 	public function upload(start:Int, arr:Float32Array) {
 		assert(buf != null, "Buffer was disposed");
 		assert(start + arr.length <= buf.stride() * desc.size, "Trying to upload vertex data outside of buffer bounds!");
-		var v = @:nullSafety(Off) buf.lock(start, arr.length);
+		var v = @:nullSafety(Off) buf.lockAll();
+		assert(v != null);
+		assert(arr != null);
+		assert(arr.length > 0);
+		trace(v,arr.length);
 		for (i in 0...arr.length)
 			v[i] = arr[i];
-		@:nullSafety(Off) buf.unlock(arr.length);
+		@:nullSafety(Off) buf.unlockAll();
 	}
 
 	private var last_range:Int = -1;

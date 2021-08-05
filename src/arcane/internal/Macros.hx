@@ -106,18 +106,18 @@ class Macros {
 	}
 
 	public static function getTempDir():String {
-		#if (haxe_ver >= 4.2)
-		return switch eval.luv.Path.tmpdir() {
-			case Ok(value): value.toString();
-			case Error(e): throw e;
-		}
-		#else
+		// #if (haxe_ver >= 4.2)
+		// return switch eval.luv.Path.tmpdir() {
+		// 	case Ok(value): value.toString();
+		// 	case Error(e): throw e;
+		// }
+		// #else
 		var d = haxe.io.Path.directory(Compiler.getOutput());
-		if (d == Sys.cwd())
+		if (d == Sys.getCwd())
 			return ".tmp";
 		else
 			return d + "/temp";
-		#end
+		// #end
 	}
 
 	public static function cmd(command:String, ?args:Array<String>, ?stdin:Bytes) {
@@ -138,7 +138,7 @@ class Macros {
 		return ret;
 	}
 
-	public static function init() {
+	public static function initSourceMaps() {
 		if (Context.defined("js")) {
 			Context.onAfterGenerate(() -> {
 				var o = Compiler.getOutput() + ".map";

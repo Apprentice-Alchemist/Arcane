@@ -1,13 +1,8 @@
--cp backends/html5
 -cp test
 -cp src
--main Main
+-m Triangle
 
--lib format
-
+-lib wgpu-externs
+--macro arcane.internal.Macros.initSourceMaps()
 --debug
---macro nullSafety("arcane",Strict)
---macro nullSafety("asl",Strict)
--D asl-shader-bin=out/shaders
--D shader-clean
 -js out/html5/app.js

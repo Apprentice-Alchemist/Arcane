@@ -1,6 +1,7 @@
 package arcane.internal.html5;
 
 #if wgpu_externs
+import wgpu.GPUPipelineLayout;
 import js.lib.Uint32Array;
 import wgpu.GPUVertexAttribute;
 import wgpu.GPUVertexFormat;
@@ -33,14 +34,19 @@ private class Pipeline implements IPipeline {
 	public var desc(default, null):PipelineDesc;
 
 	public final pipeline:GPURenderPipeline;
+	// public final layout:GPUPipelineLayout;
+
+	final driver:WGPUDriver;
 
 	public function new(driver:WGPUDriver, desc:PipelineDesc) {
 		this.desc = desc;
+		this.driver = driver;
 		var buffers:Array<GPUVertexBufferLayout> = [];
+		var i = 0;
 		for (l in desc.inputLayout) {
 			var stride = 0;
 			var attributes:Array<GPUVertexAttribute> = [];
-			for (i => attribute in l.attributes) {
+			for (attribute in l.attributes) {
 				var offset = stride;
 				var format:GPUVertexFormat = switch attribute.kind {
 					case Float1:
@@ -61,7 +67,7 @@ private class Pipeline implements IPipeline {
 				attributes.push({
 					format: format,
 					offset: offset,
-					shaderLocation: i
+					shaderLocation: i++
 				});
 			}
 			buffers.push({
@@ -70,6 +76,25 @@ private class Pipeline implements IPipeline {
 				attributes: attributes
 			});
 		}
+		// layout = driver.device.createPipelineLayout({
+		// 	bindGroupLayouts: []
+		// });
+		// final bindGroupLayout = driver.device.createBindGroupLayout({
+		// 	entries: [
+		// 		{
+		// 			binding: 0,
+		// 			visibility: VERTEX,
+		// 			buffer: {type: Uniform, hasDynamicOffset: true},
+		// 			sampler: {type: Filtering}
+		// 		}
+		// 	]
+		// });
+		// var v = (null:Texture).texture.createView();
+		// driver.device.createBindGroup({
+		// 	layout: bindGroupLayout,
+		// 	entries: [{resource: v,binding: 0}]
+		// });
+		// driver.device.createSampler()
 		pipeline = driver.device.createRenderPipeline({
 			vertex: {
 				buffers: buffers,
@@ -108,7 +133,8 @@ private class Shader implements IShader {
 	public function new(driver:WGPUDriver, desc:ShaderDesc) {
 		this.desc = desc;
 		module = driver.device.createShaderModule(({
-			code: new Uint32Array(haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-webgpu').getData())
+			code: new Uint32Array(haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-webgpu').getData()),
+			label: 'arcane-${desc.id}'
 		} : wgpu.GPUShaderModuleDescriptorSPIRV));
 	}
 
@@ -119,7 +145,7 @@ private class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
 
 	public final buffer:GPUBuffer;
-	public final stride:Int = 0;
+	public final buf_stride:Int = 0;
 
 	final driver:WGPUDriver;
 
@@ -135,9 +161,9 @@ private class VertexBuffer implements IVertexBuffer {
 				case Float4: 4 * 4;
 				case Float4x4: 16 * 4;
 			}
-		this.stride = stride;
+		this.buf_stride = stride;
 		buffer = driver.device.createBuffer({
-			size: desc.size * stride,
+			size: desc.size * buf_stride,
 			usage: VERTEX | COPY_DST
 		});
 	}
@@ -146,12 +172,16 @@ private class VertexBuffer implements IVertexBuffer {
 		buffer.destroy();
 	}
 
+	public function stride():Int {
+		return buf_stride;
+	}
+
 	public function upload(start:Int, arr:Float32Array):Void {
 		driver.device.queue.writeBuffer(buffer, 0, arr);
 	}
 
 	public function map(start:Int, range:Int):Float32Array {
-		return new Float32Array(range == -1 ? (desc.size * stride) - start : range);
+		return new Float32Array(range == -1 ? (desc.size * stride()) - start : range);
 	}
 
 	public function unmap():Void {}
@@ -327,8 +357,9 @@ class WGPUDriver implements IGraphicsDriver {
 	}
 
 	public function setVertexBuffers(buffers:Array<IVertexBuffer>) {
+		final renderPass = renderPass.sure();
 		for (i => buffer in buffers)
-			renderPass.sure().setVertexBuffer(i, (cast buffer : VertexBuffer).buffer);
+			renderPass.setVertexBuffer(i, (cast buffer : VertexBuffer).buffer);
 	}
 
 	public function setIndexBuffer(buffer:IIndexBuffer) {

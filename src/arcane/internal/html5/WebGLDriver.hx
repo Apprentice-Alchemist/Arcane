@@ -20,7 +20,7 @@ class VertexBuffer implements IVertexBuffer {
 
 	var driver:WebGLDriver;
 	var buf:Buffer;
-	var stride:Int;
+	var buf_stride:Int;
 	var layout:Array<{
 		var name:String;
 		var index:Int;
@@ -34,7 +34,7 @@ class VertexBuffer implements IVertexBuffer {
 		this.desc = desc;
 
 		this.layout = [];
-		this.stride = 0;
+		this.buf_stride = 0;
 		for (idx => att in desc.attributes) {
 			var size = switch att.kind {
 				case Float1: 1;
@@ -47,16 +47,20 @@ class VertexBuffer implements IVertexBuffer {
 				name: att.name,
 				index: idx,
 				size: size,
-				pos: stride
+				pos: buf_stride
 			});
-			stride += size;
+			buf_stride += size;
 		}
 
-		this.data = new JsFloat32Array(desc.size * stride);
+		this.data = new JsFloat32Array(desc.size * buf_stride);
 		this.buf = driver.gl.createBuffer();
 		driver.gl.bindBuffer(GL.ARRAY_BUFFER, buf);
-		driver.gl.bufferData(GL.ARRAY_BUFFER, desc.size * stride * 4, desc.dyn ? GL.DYNAMIC_DRAW : GL.STATIC_DRAW);
+		driver.gl.bufferData(GL.ARRAY_BUFFER, desc.size * buf_stride * 4, desc.dyn ? GL.DYNAMIC_DRAW : GL.STATIC_DRAW);
 		@:nullSafety(Off) driver.gl.bindBuffer(GL.ARRAY_BUFFER, null);
+	}
+
+	public function stride():Int {
+		return buf_stride;
 	}
 
 	public function upload(start:Int, arr:Float32Array):Void {
@@ -434,7 +438,11 @@ class WebGLDriver implements IGraphicsDriver {
 	}
 
 	public function getName(details:Bool = false):String {
-		return "WebGL" + if (hasGL2) "2" else "";
+		trace(gl.getParameter(GL.RENDERER));
+		trace(gl.getParameter(GL.VENDOR));
+		trace(gl.getParameter(GL.VERSION));
+		trace(gl.getParameter(GL.SHADING_LANGUAGE_VERSION));
+		return if(hasGL2) "WebGL2" else "WebGL";
 	}
 
 	public inline function check():Bool {
@@ -646,7 +654,7 @@ class WebGLDriver implements IGraphicsDriver {
 			var offset = 0;
 			for (i in buffer.layout) {
 				gl.enableVertexAttribArray(enabledVertexAttribs + i.index);
-				gl.vertexAttribPointer(enabledVertexAttribs + i.index, i.size, GL.FLOAT, false, buffer.stride * 4, i.pos * 4);
+				gl.vertexAttribPointer(enabledVertexAttribs + i.index, i.size, GL.FLOAT, false, buffer.stride() * 4, i.pos * 4);
 				if (instancedRendering) {
 					gl2.vertexAttribDivisor(enabledVertexAttribs + i.index, buffer.desc.instanceDataStepRate);
 				}
@@ -666,7 +674,7 @@ class WebGLDriver implements IGraphicsDriver {
 		enabledVertexAttribs = 0;
 		for (i in vb.layout) {
 			gl.enableVertexAttribArray(i.index);
-			gl.vertexAttribPointer(i.index, i.size, GL.FLOAT, false, vb.stride * 4, i.pos * 4);
+			gl.vertexAttribPointer(i.index, i.size, GL.FLOAT, false, vb.stride() * 4, i.pos * 4);
 			if (instancedRendering) {
 				gl2.vertexAttribDivisor(i.index, 0);
 			}

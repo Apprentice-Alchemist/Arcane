@@ -9,6 +9,9 @@ import arcane.common.Event;
 
 @:nullSafety(Strict)
 @:allow(arcane.internal)
+#if debug
+@:expose("arcane.Lib")
+#end
 class Lib {
 	public static var version(default, never):Version = arcane.internal.Macros.getVersion();
 	public static var fps(default, null):Float = 0.0;
