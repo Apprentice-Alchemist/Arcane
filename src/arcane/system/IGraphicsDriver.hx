@@ -1,5 +1,6 @@
 package arcane.system;
 
+import arcane.common.Color;
 import arcane.common.arrays.Float32Array;
 import arcane.common.arrays.Int32Array;
 
@@ -163,6 +164,29 @@ typedef InputLayout = Array<{
 	// @:optional public var fromGlslSrc:Bool = false;
 }
 
+enum LoadOp {
+	Clear;
+	Load;
+}
+
+enum StoreOp {
+	Store;
+	Discard;
+}
+
+@:structInit class ColorAttachment {
+	@:optional public var texture:ITexture;
+
+	public var load:LoadOp;
+	public var store:StoreOp;
+
+	@:optional public var loadValue:Color;
+}
+
+@:structInit class RenderPassDesc {
+	public var colorAttachments:Array<ColorAttachment>;
+}
+
 private interface IDisposable {
 	/**
 	 * Dispose native resources. The object should not be used after this function has been called.
@@ -231,6 +255,20 @@ interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
 	function upload(bytes:haxe.io.Bytes):Void;
 }
 
+interface IRenderPass {
+	function setPipeline(p:IPipeline):Void;
+	function setVertexBuffer(b:IVertexBuffer):Void;
+	function setVertexBuffers(buffers:Array<IVertexBuffer>):Void;
+	function setIndexBuffer(b:IIndexBuffer):Void;
+	function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
+	function setConstantLocation(l:IConstantLocation, f:Float32Array):Void;
+
+	function draw(start:Int, count:Int):Void;
+	function drawInstanced(instanceCount:Int, start:Int, count:Int):Void;
+
+	function end():Void;
+}
+
 interface IGraphicsDriver extends IDisposable {
 	final renderTargetFlipY:Bool;
 	final instancedRendering:Bool;
@@ -250,14 +288,5 @@ interface IGraphicsDriver extends IDisposable {
 	function createShader(desc:ShaderDesc):IShader;
 	function createPipeline(desc:PipelineDesc):IPipeline;
 
-	function setRenderTarget(?t:ITexture):Void;
-	function setPipeline(p:IPipeline):Void;
-	function setVertexBuffer(b:IVertexBuffer):Void;
-	function setVertexBuffers(buffers:Array<IVertexBuffer>):Void;
-	function setIndexBuffer(b:IIndexBuffer):Void;
-	function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
-	function setConstantLocation(l:IConstantLocation, f:Float32Array):Void;
-
-	function draw(start:Int, count:Int):Void;
-	function drawInstanced(instanceCount:Int, start:Int, count:Int):Void;
+	function beginRenderPass(desc:RenderPassDesc):IRenderPass;
 }

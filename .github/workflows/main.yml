@@ -17,5 +17,5 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build
       run: |
-        haxelib install tests.hxml --always
+        haxelib install tests.hxml --always --quiet
         haxe tests.hxml

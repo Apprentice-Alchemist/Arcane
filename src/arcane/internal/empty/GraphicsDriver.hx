@@ -43,12 +43,12 @@ class Shader implements IShader {
 class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
 
-	var stride:Int = 0;
+	var buf_stride:Int = 0;
 
 	public function new(desc) {
 		this.desc = desc;
 		for (l in desc.attributes)
-			stride += switch l.kind {
+			buf_stride += switch l.kind {
 				case Float1: 1;
 				case Float2: 2;
 				case Float3: 3;
@@ -59,10 +59,14 @@ class VertexBuffer implements IVertexBuffer {
 
 	public function dispose() {}
 
+	public function stride():Int {
+		return buf_stride;
+	}
+
 	public function upload(start:Int, arr:Float32Array):Void {}
 
 	public function map(start:Int, range:Int):Float32Array {
-		return new Float32Array(range == -1 ? desc.size * stride : range);
+		return new Float32Array(range == -1 ? desc.size * buf_stride : range);
 	}
 
 	public function unmap():Void {}

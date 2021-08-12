@@ -2,7 +2,7 @@ package arcane.common.arrays;
 
 abstract Float32Array(ArrayBuffer) {
 	public var length(get, never):Int;
-	
+
 	inline function get_length():Int {
 		return cast this.byteLength / 4;
 	}
@@ -19,6 +19,7 @@ abstract Float32Array(ArrayBuffer) {
 		(cast this : haxe.io.Bytes).setFloat(i * 4, v);
 		return v;
 	}
+
 	/**
 	 * Get a Float32Array from an Array<Float>. Copy occurs.
 	 * @param array 
@@ -26,7 +27,8 @@ abstract Float32Array(ArrayBuffer) {
 	 */
 	public static function fromArray(array:Array<Float>):Float32Array {
 		final arr = new Float32Array(array.length);
-		for(i => element in array) arr[i] = element;
+		for (i => element in array)
+			arr[i] = element;
 		return arr;
 	}
 }

@@ -10,7 +10,7 @@ class ArrayBuffer {
 		var r:ArrayBuffer = untyped $new(ArrayBuffer);
 		r.byteLength = l;
 		r.b = b;
-        return r;
+		return r;
 	}
 
 	public inline function new(byteLength:Int) {

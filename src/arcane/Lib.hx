@@ -69,7 +69,7 @@ class Lib {
 		// MainLoop.tick() is automatically called by the main thread's event loop.
 		#if (arcane_event_loop_array && !eval)
 		// @:nullSafety(Off) because __progress is inline and certain parts of it make null safety angry.
-		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), __event_loop_arr);
+		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), []);
 		#else
 		mainThread.events.progress();
 		#end

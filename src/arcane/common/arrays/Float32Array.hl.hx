@@ -14,7 +14,7 @@ abstract Float32Array(ArrayBuffer) {
 	}
 
 	@:op([]) public inline function get(i:Int):arcane.FastFloat {
-		return (this.b:hl.BytesAccess<hl.F32>)[i];
+		return (this.b : hl.BytesAccess<hl.F32>)[i];
 	}
 
 	@:op([]) public inline function set(i:Int, v:arcane.FastFloat):FastFloat {

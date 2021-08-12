@@ -6,4 +6,4 @@ res
 .tmp
 *.hdll
 *.hl
-hlprofile.dump
+*.dump

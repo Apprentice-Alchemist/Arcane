@@ -3,7 +3,7 @@ package common;
 import arcane.common.Math;
 
 class TestMath extends utest.Test {
-    // TODO : Vector and Matrix3 stuff. (Maybe.)
+	// TODO : Vector and Matrix3 stuff. (Maybe.)
 	function testMat4() {
 		assert(Matrix4.identity() * Matrix4.identity() == Matrix4.identity());
 		assert(Matrix4.identity() + Matrix4.identity() == new Matrix4(

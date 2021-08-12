@@ -7,6 +7,8 @@ import kinc.g4.Pipeline.StencilAction;
 import kinc.g4.RenderTarget;
 import arcane.common.arrays.Float32Array;
 import arcane.common.arrays.Int32Array;
+import arcane.Utils.assert;
+import arcane.util.Log;
 
 class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
@@ -42,7 +44,7 @@ class VertexBuffer implements IVertexBuffer {
 		assert(v != null);
 		assert(arr != null);
 		assert(arr.length > 0);
-		trace(v,arr.length);
+		trace(v, arr.length);
 		for (i in 0...arr.length)
 			v[i] = arr[i];
 		@:nullSafety(Off) buf.unlockAll();
@@ -50,7 +52,7 @@ class VertexBuffer implements IVertexBuffer {
 
 	private var last_range:Int = -1;
 
-	public function map(start:Int , range:Int):Float32Array {
+	public function map(start:Int, range:Int):Float32Array {
 		assert(buf != null);
 		last_range = range == -1 ? desc.size * buf.stride() : range;
 		var r:ArrayBuffer = untyped $new(ArrayBuffer);
@@ -86,7 +88,7 @@ class IndexBuffer implements IIndexBuffer {
 		this.buf = new kinc.g4.IndexBuffer(desc.size, IbFormat32BIT /*desc.is32 ? IbFormat32BIT : IbFormat16BIT*/);
 	}
 
-	public function upload(start:Int , arr:Int32Array) {
+	public function upload(start:Int, arr:Int32Array) {
 		assert(buf != null, "Buffer disposed");
 		assert(start + arr.length <= desc.size, "Trying to upload index data outside of buffer bounds!");
 		var x:hl.BytesAccess<Int> = buf.lock();
@@ -95,10 +97,11 @@ class IndexBuffer implements IIndexBuffer {
 		@:nullSafety(Off) buf.unlock();
 	}
 
-	public function map(start:Int , range:Int):Int32Array {
+	public function map(start:Int, range:Int):Int32Array {
 		assert(buf != null);
-		if(range == -1) range = desc.size;
-		return cast ArrayBuffer.fromBytes((buf.lock() : hl.Bytes).offset(start >> 2),range);
+		if (range == -1)
+			range = desc.size;
+		return cast ArrayBuffer.fromBytes((buf.lock() : hl.Bytes).offset(start >> 2), range);
 		// return cast (buf.lock() : hl.Bytes).offset(start >> 2).toBytes(range);
 	}
 
@@ -339,13 +342,15 @@ class KincDriver implements IGraphicsDriver {
 
 	var window:Int;
 
-	public function new(window:Int ) {
+	public function new(window:Int) {
 		this.window = window;
 		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
 	}
+
 	public function getName(details = false) {
 		return details ? "Kinc on " + kinc.System.getGraphicsApi().toString() : "Kinc";
 	}
+
 	public function dispose():Void {};
 
 	public function begin():Void {
@@ -460,18 +465,18 @@ class KincDriver implements IGraphicsDriver {
 	}
 
 	public function setConstantLocation(cl:IConstantLocation, floats:Float32Array):Void {
-		//Graphics4.setFloats(cast(cl, ConstantLocation).cl, [for (f in floats) (f : Single)]);
-		@:privateAccess Graphics4.__setFloats(cast(cl,ConstantLocation).cl, (cast floats).b,floats.length);
+		// Graphics4.setFloats(cast(cl, ConstantLocation).cl, [for (f in floats) (f : Single)]);
+		@:privateAccess Graphics4.__setFloats(cast(cl, ConstantLocation).cl, (cast floats).b, floats.length);
 	}
 
-	public function draw(start:Int , count:Int):Void {
+	public function draw(start:Int, count:Int):Void {
 		if (count < 0)
 			Graphics4.drawIndexedVertices();
 		else
 			Graphics4.drawIndexedVerticesFromTo(start, count);
 	}
 
-	public function drawInstanced(instanceCount:Int, start:Int , count:Int):Void {
+	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {
 		if (count < 0)
 			Graphics4.drawIndexedVerticesInstanced(instanceCount);
 		else

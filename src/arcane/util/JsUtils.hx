@@ -14,11 +14,11 @@ class JsUtils {
 	#end
 
 	@:noUsing public static macro function async(e:haxe.macro.Expr):haxe.macro.Expr {
-        function map(e:Expr) return e.map(e -> switch e {
-            case macro ($e): map(e);
-            case macro $e: map(e);
-        });
-        e = map(e);
+		// function map(e:Expr) return e.map(e -> switch e {
+		// 	case macro($e): map(e);
+		// 	case macro $e: map(e);
+		// });
+		// e = map(e);
 		switch e.expr {
 			case EFunction(_, {
 				args: args,
@@ -28,7 +28,7 @@ class JsUtils {
 				var t:ComplexType = TFunction(args.map(a -> a.type), macro:js.lib.Promise<$ret>);
 				return macro(js.Syntax.code("(async {0})", $e) : $t);
 			case _:
-				return e;
+				return macro js.Syntax.code("(async () => {0})()", {$e;});
 		}
 	}
 }

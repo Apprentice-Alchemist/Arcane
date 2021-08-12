@@ -8,4 +8,4 @@ interface IShaderCompiler {
 	 * @return haxe.io.Bytes 
 	 */
 	public function compile(id:String, source:haxe.io.Bytes, vertex:Bool):Void;
-	}
+}

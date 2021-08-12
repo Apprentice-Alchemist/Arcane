@@ -3,6 +3,7 @@ package asl;
 typedef ComplexType = haxe.macro.Expr.ComplexType;
 
 enum Type {
+	TVoid;
 	TBool;
 	TInt;
 	TFloat;
@@ -13,6 +14,8 @@ enum Type {
 	TMat2(t:Type);
 	TMat3(t:Type);
 	TMat4(t:Type);
+
+	TArray(t:Type,?size:Int);
 }
 
 // Geometry, tesselation and co aren't supported on webgpu/webgl, compute isn't supported on webgl.
@@ -92,16 +95,13 @@ enum TConstant {
 		The constant `null`.
 	**/
 	TNull;
+}
 
-	/**
-		The constant `this`.
-	**/
-	TThis;
-
-	/**
-		The constant `super`.
-	**/
-	TSuper;
+enum TVarKind {
+	Input;
+	Output;
+	Local;
+	Global;
 }
 
 /**
@@ -123,17 +123,7 @@ typedef TVar = {
 	**/
 	public var t(default, never):Type;
 
-	/**
-		Whether or not the variable has been captured by a closure.
-	**/
-	public var capture(default, never):Bool;
-
-	/**
-		Special information which is internally used to keep track of closure.
-		information
-	**/
-	// public var extra(default, never):Null<{params:Array<TypeParameter>, expr:Null<TypedExpr>}>;
-
+	public var kind:TVarKind;
 	/**
 		The metadata of the variable.
 	**/

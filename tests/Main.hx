@@ -1,39 +1,34 @@
 package;
 
+import arcane.util.Log;
+import utest.ui.common.PackageResult;
 import utest.ui.text.PlainTextReport;
 import utest.Runner;
 
-class Main {
-	public static function main() try {
-		var runner = new Runner();
-		runner.addCases(common);
-		var report = new PlainTextReport(runner, report -> {
-			arcane.util.Log.println(report.getResults());
-			// prevent utest from calling Sys.exit(0) because all calls to Sys.exit
-			// make the compiler exit with non zero exit code, thus making the CI fail
-			throw new ExitException(@:privateAccess report.result.stats.isOk);
-		});
-		@:privateAccess {
-			report.newline = "\n";
-			report.indent = "    ";
-		}
-		runner.run();
-	} catch(e:ExitException) {if(!e.success) Sys.exit(1);};
+private class Report extends PlainTextReport {
+	public function new(runner) {
+		this.newline = "\n";
+		this.indent = "    ";
+		super(runner);
+	}
+
+	override function complete(result:PackageResult) {
+		this.result = result;
+		Log.println(getResults());
+		#if eval
+		if (!result.stats.isOk)
+			Sys.exit(1);
+		#elseif sys
+		Sys.exit(results.stats.isOK ? 0 : 1);
+		#end
+	}
 }
 
-#if (haxe_ver > "4.1.0")
-class ExitException extends haxe.Exception {
-	public final success:Bool;
-	override public function new(success:Bool) {
-		super("");
-		this.success = success;
+class Main {
+	public static function main() {
+		var runner = new Runner();
+		runner.addCases(common);
+		var report = new Report(runner);
+		runner.run();
 	}
 }
-#else
-class ExitException {
-	public final success:Bool;
-	public function new(success:Bool){
-		this.success = success;
-	}
-}
-#end

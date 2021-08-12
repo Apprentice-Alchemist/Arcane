@@ -160,8 +160,9 @@ class KincAudioDriver implements IAudioDriver {
 				} : AudioBuffer);
 				#end
 			} else if (StringTools.endsWith(s, "wav")) {
-				var bytes = KincSystem.readFileInternal(s).sure();
-				final data = new format.wav.Reader(new haxe.io.BytesInput(bytes)).read();
+				var bytes = KincSystem.readFileInternal(s);
+				if(bytes == null) cb(Err("not found"));
+				final data = new format.wav.Reader(new haxe.io.BytesInput(cast bytes)).read();
 				final header = data.header;
 				final samples = Std.int(data.data.length / (header.channels * header.bitsPerSample / 8));
 				({

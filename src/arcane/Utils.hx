@@ -73,10 +73,14 @@ class Utils {
 	}
 
 	public static inline function sure<T>(v:Null<T>):T {
+		#if debug
 		if (v == null)
 			throw "did not expect a null value";
 		else
 			return (v : T);
+		#else
+		return cast v;
+		#end
 	}
 
 	public static inline function or<T>(v:Null<T>, other:T):T {

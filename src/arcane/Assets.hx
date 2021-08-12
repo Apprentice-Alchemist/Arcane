@@ -82,7 +82,7 @@ class Assets {
 	 * @param cache Wether to cache the bytes in `bytes_cache` for further use with getBytes.
 	 */
 	public static function loadBytesAsync(path:String, cb:(bytes:Bytes) -> Void, err:(error:AssetError) -> Void, cache:Bool = true) {
-		Lib.system.sure().readFile(path, data -> {
+		(cast Lib.system).readFile(path, data -> {
 			if (cache)
 				bytes_cache.set(path, data);
 			cb(data);

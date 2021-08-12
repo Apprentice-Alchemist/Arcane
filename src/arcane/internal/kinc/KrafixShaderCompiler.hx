@@ -24,14 +24,14 @@ class KrafixShaderCompiler implements IShaderCompiler {
 				"-"
 			], source);
 			// if (lang == "spirv") {
-				// trace(cmd("spirv-dis", [
-				// 	// "-o",
-				// 	// "out/shaders/" + id + (vertex ? ".vert.dis" : ".frag.dis"),
-				// 	"--comment",
-				// 	"-"]).stdout,s.stdout);
+			// trace(cmd("spirv-dis", [
+			// 	// "-o",
+			// 	// "out/shaders/" + id + (vertex ? ".vert.dis" : ".frag.dis"),
+			// 	"--comment",
+			// 	"-"]).stdout,s.stdout);
 			// }
 			// if (lang == "spirv")
-				// File.copy(output, "out/shaders/" + id + (vertex ? ".vert.spv" : ".frag.spv"));
+			// File.copy(output, "out/shaders/" + id + (vertex ? ".vert.spv" : ".frag.spv"));
 			Context.addResource('$id-${vertex ? "vert" : "frag"}-default', s.stdout);
 		} else {
 			var platform:String = if (Context.defined("html5") || Context.defined("js")) {
@@ -78,7 +78,6 @@ class KrafixShaderCompiler implements IShaderCompiler {
 			var data = '$tempdir/$id.${vertex ? "vert" : "frag"}.data';
 			var ret = cmd(k, [lang, input, output, tempdir, platform]);
 
-			
 			if (ret.code != 0)
 				haxe.macro.Context.error("Shader compilation failed : \n" + ret.stderr + "\n" + ret.stdout.toString(), haxe.macro.Context.currentPos());
 			Context.addResource('$id-${vertex ? "vert" : "frag"}-default', File.getBytes(output));

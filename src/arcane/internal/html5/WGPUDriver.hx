@@ -21,6 +21,9 @@ import js.html.CanvasElement;
 import arcane.common.arrays.Int32Array;
 import arcane.common.arrays.Float32Array;
 import arcane.system.IGraphicsDriver;
+import arcane.Utils.assert;
+
+using arcane.Utils;
 
 private class TextureUnit implements ITextureUnit {
 	public function new() {}
@@ -34,8 +37,8 @@ private class Pipeline implements IPipeline {
 	public var desc(default, null):PipelineDesc;
 
 	public final pipeline:GPURenderPipeline;
-	// public final layout:GPUPipelineLayout;
 
+	// public final layout:GPUPipelineLayout;
 	final driver:WGPUDriver;
 
 	public function new(driver:WGPUDriver, desc:PipelineDesc) {
@@ -153,7 +156,7 @@ private class VertexBuffer implements IVertexBuffer {
 		this.desc = desc;
 		this.driver = driver;
 		var stride = 0;
-		for (l in desc.attributes)
+		for (l in desc.attributes) {
 			stride += switch l.kind {
 				case Float1: 1 * 4;
 				case Float2: 2 * 4;
@@ -161,10 +164,13 @@ private class VertexBuffer implements IVertexBuffer {
 				case Float4: 4 * 4;
 				case Float4x4: 16 * 4;
 			}
+		}
 		this.buf_stride = stride;
+		trace(stride, buf_stride, desc.size, buf_stride * desc.size);
 		buffer = driver.device.createBuffer({
 			size: desc.size * buf_stride,
-			usage: VERTEX | COPY_DST
+			usage: VERTEX,
+			mappedAtCreation: true
 		});
 	}
 
@@ -173,11 +179,18 @@ private class VertexBuffer implements IVertexBuffer {
 	}
 
 	public function stride():Int {
-		return buf_stride;
+		return cast buf_stride / 4;
 	}
 
+	// static final mutex = js.Syntax.construct(untyped SharedArrayBuffer, 1); // (untyped new SharedArrayBuffer(1));
+
 	public function upload(start:Int, arr:Float32Array):Void {
-		driver.device.queue.writeBuffer(buffer, 0, arr);
+		// buffer.mapAsync(WRITE).then(_ -> {
+		new js.lib.Float32Array(buffer.getMappedRange()).set(cast arr);
+		buffer.unmap();
+		// untyped Atomics.wait(mutex, 0);
+		// });
+		// driver.device.queue.writeBuffer(buffer, 0, arr, 0, buf_stride * desc.size);
 	}
 
 	public function map(start:Int, range:Int):Float32Array {
@@ -245,6 +258,73 @@ private class Texture implements ITexture {
 	public function upload(bytes:haxe.io.Bytes):Void {}
 }
 
+private class RenderPass implements IRenderPass {
+	public final renderPass:GPURenderPassEncoder;
+
+	final driver:WGPUDriver;
+	final encoder:GPUCommandEncoder;
+
+	public function new(driver:WGPUDriver, desc:RenderPassDesc) {
+		this.driver = driver;
+		this.encoder = driver.encoder == null ? (throw "assert") : driver.encoder;
+		this.renderPass = encoder.beginRenderPass({
+			colorAttachments: [
+				for (a in desc.colorAttachments)
+					{
+						view: a.texture == null ? driver.getCurrentTexture().createView() : (cast a.texture : Texture).texture.createView(),
+						loadValue: switch a.load {
+							case Clear: {
+									r: a.loadValue.r / 0xFF,
+									g: a.loadValue.g / 0xFF,
+									b: a.loadValue.b / 0xFF,
+									a: a.loadValue.a / 0xFF
+								};
+							case Load: "load";
+						},
+						storeOp: switch a.store {
+							case Store: Store;
+							case Discard: Discard;
+						}
+					}
+			]});
+	}
+
+	public function setPipeline(p:IPipeline) {
+		renderPass.setPipeline((cast p : Pipeline).pipeline);
+	}
+
+	public function setVertexBuffer(buffer:IVertexBuffer) {
+		renderPass.setVertexBuffer(0, (cast buffer : VertexBuffer).buffer);
+	}
+
+	public function setVertexBuffers(buffers:Array<IVertexBuffer>) {
+		assert(renderPass != null);
+		final renderPass:GPURenderPassEncoder = renderPass;
+		for (i => buffer in buffers)
+			renderPass.setVertexBuffer(i, (cast buffer : VertexBuffer).buffer);
+	}
+
+	public function setIndexBuffer(buffer:IIndexBuffer) {
+		renderPass.setIndexBuffer((cast buffer : IndexBuffer).buffer, buffer.desc.is32 ? UInt32 : UInt16);
+	}
+
+	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {}
+
+	public function setConstantLocation(l:IConstantLocation, f:Float32Array) {}
+
+	public function draw(start:Int, count:Int) {
+		renderPass.drawIndexed(count, 1, start);
+	}
+
+	public function drawInstanced(instanceCount:Int, start:Int, count:Int) {
+		renderPass.drawIndexed(count, instanceCount, start);
+	}
+
+	public function end() {
+		renderPass.endPass();
+	}
+}
+
 @:allow(arcane.internal)
 class WGPUDriver implements IGraphicsDriver {
 	public final renderTargetFlipY:Bool = false;
@@ -259,7 +339,6 @@ class WGPUDriver implements IGraphicsDriver {
 	final getCurrentTexture:() -> GPUTexture;
 
 	var encoder:Null<GPUCommandEncoder>;
-	var renderPass:Null<GPURenderPassEncoder>;
 
 	public function new(canvas:CanvasElement, context:GPUPresentationContext, adapter:GPUAdapter, device:GPUDevice) {
 		untyped console.log(canvas, context, adapter, device);
@@ -299,26 +378,11 @@ class WGPUDriver implements IGraphicsDriver {
 
 	public function begin() {
 		encoder = device.createCommandEncoder();
-		renderPass = encoder.beginRenderPass({
-			colorAttachments: [
-				{
-					view: getCurrentTexture().createView(),
-					loadValue: {
-						r: 0.0,
-						g: 0.0,
-						b: 0.0,
-						a: 1.0
-					},
-					storeOp: Store
-				}
-			]
-		});
 	}
 
 	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int) {}
 
 	public function end() {
-		renderPass.sure().endPass();
 		device.queue.submit([encoder.sure().finish()]);
 	}
 
@@ -346,36 +410,8 @@ class WGPUDriver implements IGraphicsDriver {
 		return new Pipeline(this, desc);
 	}
 
-	public function setRenderTarget(?t:ITexture) {}
-
-	public function setPipeline(p:IPipeline) {
-		renderPass.sure().setPipeline((cast p : Pipeline).pipeline);
-	}
-
-	public function setVertexBuffer(buffer:IVertexBuffer) {
-		renderPass.sure().setVertexBuffer(0, (cast buffer : VertexBuffer).buffer);
-	}
-
-	public function setVertexBuffers(buffers:Array<IVertexBuffer>) {
-		final renderPass = renderPass.sure();
-		for (i => buffer in buffers)
-			renderPass.setVertexBuffer(i, (cast buffer : VertexBuffer).buffer);
-	}
-
-	public function setIndexBuffer(buffer:IIndexBuffer) {
-		renderPass.sure().setIndexBuffer((cast buffer : IndexBuffer).buffer, buffer.desc.is32 ? UInt32 : UInt16);
-	}
-
-	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {}
-
-	public function setConstantLocation(l:IConstantLocation, f:Float32Array) {}
-
-	public function draw(start:Int, count:Int) {
-		renderPass.sure().drawIndexed(count, 1, start);
-	}
-
-	public function drawInstanced(instanceCount:Int, start:Int, count:Int) {
-		renderPass.sure().drawIndexed(count, instanceCount, start);
+	public function beginRenderPass(desc:RenderPassDesc) {
+		return new RenderPass(this,desc);
 	}
 }
 #end

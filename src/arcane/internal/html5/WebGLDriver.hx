@@ -1,5 +1,7 @@
 package arcane.internal.html5;
 
+import arcane.util.Log;
+import arcane.Utils.assert;
 import arcane.system.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.html.webgl.Buffer;
@@ -398,125 +400,35 @@ class Texture implements ITexture {
 
 @:allow(arcane.internal.html5)
 @:access(arcane.internal.html5)
-class WebGLDriver implements IGraphicsDriver {
-	public final renderTargetFlipY:Bool = true;
-	public final instancedRendering:Bool;
-	public final uintIndexBuffers:Bool;
-
-	var canvas:CanvasElement;
-	var gl:GL;
-
+private class RenderPass implements IRenderPass {
+	final gl:GL;
 	var gl2(get, never):GL2;
-	var hasGL2:Bool;
-
-	// var curVertexBuffer:Null<VertexBuffer>;
-	var curIndexBuffer:Null<IndexBuffer>;
-	var curPipeline:Null<Pipeline>;
 
 	inline function get_gl2():GL2 return cast gl;
 
-	public function new(gl:GL, canvas:CanvasElement, hasGL2:Bool) {
-		this.canvas = canvas;
-		this.gl = gl;
-		this.hasGL2 = hasGL2;
+	final driver:WebGLDriver;
 
-		if (hasGL2) {
-			this.instancedRendering = true;
-			this.uintIndexBuffers = true;
-		} else {
-			this.uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
-			var ext = gl.getExtension(ANGLE_instanced_arrays);
-			if (ext != null) {
-				this.instancedRendering = true;
-				Reflect.setField(gl, "drawElementsInstanced", ext.drawElementsInstancedANGLE);
-				Reflect.setField(gl, "drawArraysInstanced", ext.drawArraysInstancedANGLE);
-				Reflect.setField(gl, "vertexAtribDivisor", ext.vertexAttribDivisorANGLE);
-			} else {
-				this.instancedRendering = false;
-			}
-		}
+	var curVertexBuffer:Null<VertexBuffer>;
+	var curIndexBuffer:Null<IndexBuffer>;
+	var curPipeline:Null<Pipeline>;
+
+	public function new(driver:WebGLDriver, desc:RenderPassDesc) {
+		this.driver = driver;
+		this.gl = driver.gl;
 	}
-
-	public function getName(details:Bool = false):String {
-		trace(gl.getParameter(GL.RENDERER));
-		trace(gl.getParameter(GL.VENDOR));
-		trace(gl.getParameter(GL.VERSION));
-		trace(gl.getParameter(GL.SHADING_LANGUAGE_VERSION));
-		return if(hasGL2) "WebGL2" else "WebGL";
-	}
-
-	public inline function check():Bool {
-		return gl != null && !gl.isContextLost();
-	}
-
-	public function dispose():Void {
-		@:nullSafety(Off) gl = null;
-	}
-
-	public function begin():Void {
-		gl.enable(GL.BLEND);
-		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-	}
-
-	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
-		var bits:arcane.common.IntFlags = 0;
-		if (col == null)
-			col = 0x000000;
-		gl.colorMask(true, true, true, true);
-		gl.clearColor(col.r, col.g, col.b, 0xff);
-		bits.add(GL.COLOR_BUFFER_BIT);
-		if (depth != null) {
-			gl.depthMask(true);
-			gl.clearDepth(depth);
-			bits.add(GL.DEPTH_BUFFER_BIT);
-		}
-		if (stencil != null) {
-			gl.clearStencil(stencil);
-			bits.add(GL.STENCIL_BUFFER_BIT);
-		}
-		gl.clear(bits);
-	}
-
-	@:noCompletion var enabled_things:Map<Int, Bool> = new Map();
 
 	function enable(cap:Int, b:Bool) {
 		if (b) {
-			@:nullSafety(Off) if (!enabled_things.exists(cap) || !enabled_things.get(cap)) {
+			@:nullSafety(Off) if (!driver.enabled_things.exists(cap) || !driver.enabled_things.get(cap)) {
 				gl.enable(cap);
-				enabled_things.set(cap, true);
+				driver.enabled_things.set(cap, true);
 			}
 		} else {
-			if (!enabled_things.exists(cap) || enabled_things.get(cap)) {
+			if (!driver.enabled_things.exists(cap) || driver.enabled_things.get(cap)) {
 				gl.disable(cap);
-				enabled_things.set(cap, false);
+				driver.enabled_things.set(cap, false);
 			}
 		}
-	}
-
-	public function end():Void {}
-
-	public function flush():Void {}
-
-	public function present():Void {}
-
-	public function createVertexBuffer(desc):IVertexBuffer {
-		return new VertexBuffer(this, desc);
-	}
-
-	public function createIndexBuffer(desc):IIndexBuffer {
-		return new IndexBuffer(this, desc);
-	}
-
-	public function createTexture(desc:TextureDesc):ITexture {
-		return new Texture(this, desc);
-	}
-
-	public function createShader(desc:ShaderDesc):IShader {
-		return new Shader(this, desc);
-	}
-
-	public function createPipeline(desc:PipelineDesc):IPipeline {
-		return new Pipeline(this, desc);
 	}
 
 	static function convertBlend(b:Blend):Int {
@@ -580,7 +492,7 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function setPipeline(p:IPipeline):Void {
 		var state:Pipeline = cast p;
-		assert(state.driver == this, "driver mismatch");
+		assert(state.driver == driver, "driver mismatch");
 		gl.useProgram(state.program);
 		curPipeline = state;
 		var desc = p.desc;
@@ -631,10 +543,10 @@ class WebGLDriver implements IGraphicsDriver {
 	public function setRenderTarget(?t:ITexture):Void {
 		if (t == null) {
 			@:nullSafety(Off) gl.bindFramebuffer(GL.FRAMEBUFFER, null);
-			gl.viewport(0, 0, canvas.width, canvas.height);
+			gl.viewport(0, 0, driver.canvas.width, driver.canvas.height);
 		} else {
 			var tex:Texture = cast t;
-			assert(tex.driver == this, "driver mismatch");
+			assert(tex.driver == driver, "driver mismatch");
 			gl.bindFramebuffer(GL.FRAMEBUFFER, tex.frameBuffer);
 			gl.viewport(0, 0, tex.desc.width, tex.desc.height);
 		}
@@ -655,7 +567,7 @@ class WebGLDriver implements IGraphicsDriver {
 			for (i in buffer.layout) {
 				gl.enableVertexAttribArray(enabledVertexAttribs + i.index);
 				gl.vertexAttribPointer(enabledVertexAttribs + i.index, i.size, GL.FLOAT, false, buffer.stride() * 4, i.pos * 4);
-				if (instancedRendering) {
+				if (driver.instancedRendering) {
 					gl2.vertexAttribDivisor(enabledVertexAttribs + i.index, buffer.desc.instanceDataStepRate);
 				}
 				++offset;
@@ -675,8 +587,8 @@ class WebGLDriver implements IGraphicsDriver {
 		for (i in vb.layout) {
 			gl.enableVertexAttribArray(i.index);
 			gl.vertexAttribPointer(i.index, i.size, GL.FLOAT, false, vb.stride() * 4, i.pos * 4);
-			if (instancedRendering) {
-				gl2.vertexAttribDivisor(i.index, 0);
+			if (driver.instancedRendering) {
+				driver.gl2.vertexAttribDivisor(i.index, 0);
 			}
 			++enabledVertexAttribs;
 		}
@@ -684,7 +596,7 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function setIndexBuffer(b:IIndexBuffer):Void {
 		var ib:IndexBuffer = cast b;
-		assert(ib.driver == this, "driver mismatch");
+		assert(ib.driver == driver, "driver mismatch");
 		curIndexBuffer = ib;
 	}
 
@@ -725,18 +637,134 @@ class WebGLDriver implements IGraphicsDriver {
 	public function draw(start:Int, count:Int):Void {
 		if (curIndexBuffer == null)
 			throw "Someone forgot to call setIndexBuffer";
-		var b = curIndexBuffer;
+		var b:IndexBuffer = cast curIndexBuffer;
 		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, b.buf);
 		gl.drawElements(GL.TRIANGLES, count == -1 ? b.desc.size : count, b.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start);
 	}
 
 	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {
-		if (instancedRendering) {
+		if (driver.instancedRendering) {
 			if (curIndexBuffer == null)
 				throw "Someone forgot to call setIndexBuffer";
-			var b = curIndexBuffer;
+			var b:IndexBuffer = cast curIndexBuffer;
 			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, b.buf);
 			gl2.drawElementsInstanced(GL.TRIANGLES, count == -1 ? b.desc.size : count, b.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start, instanceCount);
 		}
+	}
+
+	public function end() {}
+}
+
+@:allow(arcane.internal.html5)
+@:access(arcane.internal.html5)
+class WebGLDriver implements IGraphicsDriver {
+	public final renderTargetFlipY:Bool = true;
+	public final instancedRendering:Bool;
+	public final uintIndexBuffers:Bool;
+
+	var canvas:CanvasElement;
+	var gl:GL;
+
+	var gl2(get, never):GL2;
+	var hasGL2:Bool;
+
+	// var curVertexBuffer:Null<VertexBuffer>;
+	// var curIndexBuffer:Null<IndexBuffer>;
+	// var curPipeline:Null<Pipeline>;
+
+	inline function get_gl2():GL2 return cast gl;
+
+	public function new(gl:GL, canvas:CanvasElement, hasGL2:Bool) {
+		this.canvas = canvas;
+		this.gl = gl;
+		this.hasGL2 = hasGL2;
+
+		if (hasGL2) {
+			this.instancedRendering = true;
+			this.uintIndexBuffers = true;
+		} else {
+			this.uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
+			var ext = gl.getExtension(ANGLE_instanced_arrays);
+			if (ext != null) {
+				this.instancedRendering = true;
+				Reflect.setField(gl, "drawElementsInstanced", ext.drawElementsInstancedANGLE);
+				Reflect.setField(gl, "drawArraysInstanced", ext.drawArraysInstancedANGLE);
+				Reflect.setField(gl, "vertexAtribDivisor", ext.vertexAttribDivisorANGLE);
+			} else {
+				this.instancedRendering = false;
+			}
+		}
+	}
+
+	public function getName(details:Bool = false):String {
+		trace(gl.getParameter(GL.RENDERER));
+		trace(gl.getParameter(GL.VENDOR));
+		trace(gl.getParameter(GL.VERSION));
+		trace(gl.getParameter(GL.SHADING_LANGUAGE_VERSION));
+		return if (hasGL2) "WebGL2" else "WebGL";
+	}
+
+	public inline function check():Bool {
+		return gl != null && !gl.isContextLost();
+	}
+
+	public function dispose():Void {
+		@:nullSafety(Off) gl = null;
+	}
+
+	public function begin():Void {
+		gl.enable(GL.BLEND);
+		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+	}
+
+	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
+		var bits:arcane.common.IntFlags = 0;
+		if (col == null)
+			col = 0x000000;
+		gl.colorMask(true, true, true, true);
+		gl.clearColor(col.r, col.g, col.b, 0xff);
+		bits.add(GL.COLOR_BUFFER_BIT);
+		if (depth != null) {
+			gl.depthMask(true);
+			gl.clearDepth(depth);
+			bits.add(GL.DEPTH_BUFFER_BIT);
+		}
+		if (stencil != null) {
+			gl.clearStencil(stencil);
+			bits.add(GL.STENCIL_BUFFER_BIT);
+		}
+		gl.clear(bits);
+	}
+
+	@:noCompletion var enabled_things:Map<Int, Bool> = new Map();
+
+	public function end():Void {}
+
+	public function flush():Void {}
+
+	public function present():Void {}
+
+	public function createVertexBuffer(desc):IVertexBuffer {
+		return new VertexBuffer(this, desc);
+	}
+
+	public function createIndexBuffer(desc):IIndexBuffer {
+		return new IndexBuffer(this, desc);
+	}
+
+	public function createTexture(desc:TextureDesc):ITexture {
+		return new Texture(this, desc);
+	}
+
+	public function createShader(desc:ShaderDesc):IShader {
+		return new Shader(this, desc);
+	}
+
+	public function createPipeline(desc:PipelineDesc):IPipeline {
+		return new Pipeline(this, desc);
+	}
+
+	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
+		return new RenderPass(this,desc);
 	}
 }

@@ -14,7 +14,7 @@ import arcane.system.ISystem;
 import js.html.webgl.GL;
 
 @:access(arcane)
-// @:nullSafety(Strict)
+@:nullSafety(StrictThreaded)
 class HTML5System implements ISystem {
 	public var window:IWindow;
 	public var canvas:js.html.CanvasElement;
@@ -24,7 +24,8 @@ class HTML5System implements ISystem {
 	public function new() {
 		if (!js.Browser.supported)
 			throw "expected a browser environment";
-		var cdef:String = (haxe.macro.Compiler.getDefine("arcane.html5.canvas") : Null<String>).or("arcane");
+		var cdef = (haxe.macro.Compiler.getDefine("arcane.html5.canvas") : Null<String>);
+		if(cdef == null) cdef = "arcane";
 		canvas = cast js.Browser.window.document.getElementById(cdef);
 		if (canvas == null) {
 			throw 'Could not find canvas with id ${cdef}.';
@@ -52,19 +53,22 @@ class HTML5System implements ISystem {
 		canvas.onkeydown = (e:KeyboardEvent) -> {
 			e.stopPropagation();
 			var k = keytocode(e);
-			if (k.char != null) {
-				event(KeyPress(k.char));
+			var char = k.char;
+			var code = k.code;
+			if (char != null) {
+				event(KeyPress(char));
 				e.preventDefault();
 			}
-			if (k.code != null) {
-				event(KeyDown(k.code));
+			if (code != null) {
+				event(KeyDown(code));
 			}
 		}
 		canvas.onkeyup = (e:KeyboardEvent) -> {
 			e.stopPropagation();
 			var k = keytocode(e);
-			if (k.code != null) {
-				event(KeyUp(k.code));
+			var code = k.code;
+			if (code != null) {
+				event(KeyUp(code));
 			}
 		}
 
@@ -80,7 +84,9 @@ class HTML5System implements ISystem {
 					throw "Null adapter.";
 				}
 			}).then(device -> {
-				var context = untyped canvas.getContext("webgpu") || canvas.getContext("gpupresent");
+				var context = canvas.getContext("webgpu");
+				if (context == null)
+					context = canvas.getContext("gpupresent");
 				if (context == null) {
 					js.Browser.console.error("Could not aquire the WebGPU context of the canvas.");
 				} else {
@@ -144,7 +150,7 @@ class HTML5System implements ISystem {
 			case "PageDown": PageDown;
 			case "PageUp": PageUp;
 			case "Backspace": Backspace;
-			case "Clear": Clear;
+			case "Clear": KeyCode.Clear;
 			case "Copy": null;
 			case "CrSelf": null;
 			case "Cut": null;
@@ -232,7 +238,7 @@ class HTML5System implements ISystem {
 			lastTime = dt;
 			js.Browser.window.requestAnimationFrame(update);
 		} catch (e) {
-			js.Browser.window.alert(e.details());
+			(untyped console).error(e.details());
 		}
 	}
 
@@ -287,18 +293,27 @@ class HTML5System implements ISystem {
 	public function hideMouse():Void {}
 
 	public function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:AssetError) -> Void) {
-		var xhr = js.Browser.createXMLHttpRequest();
-		xhr.open('GET', path, true);
-		xhr.responseType = ARRAYBUFFER;
-		xhr.onload = e -> {
-			if (xhr.status != 200) {
-				err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
-				return;
+		js.Browser.window.fetch(path).then(response -> {
+			if (response.ok) {
+				response.arrayBuffer().then(b -> cb(Bytes.ofData(b))).catchError(e -> err(Other(path, Std.string(e))));
+			} else if (response.status == 404) {
+				err(NotFound(path));
+			} else {
+				err(Other(path, response.statusText));
 			}
-			final data = haxe.io.Bytes.ofData(xhr.response);
-			cb(data);
-		}
-		xhr.send();
+		}).catchError(e -> err(Other(path, Std.string(e))));
+		// var xhr = js.Browser.createXMLHttpRequest();
+		// xhr.open('GET', path, true);
+		// xhr.responseType = ARRAYBUFFER;
+		// xhr.onload = e -> {
+		// 	if (xhr.status != 200) {
+		// 		err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
+		// 		return;
+		// 	}
+		// 	final data = haxe.io.Bytes.ofData(xhr.response);
+		// 	cb(data);
+		// }
+		// xhr.send();
 	}
 
 	public function readSavefile(name:String, cb:Bytes->Void, err:() -> Void) {
