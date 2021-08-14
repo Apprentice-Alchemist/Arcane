@@ -1,6 +1,7 @@
 package arcane.internal.html5;
 
 #if wgpu_externs
+import wgpu.GPUTextureView;
 import wgpu.GPUPipelineLayout;
 import js.lib.Uint32Array;
 import wgpu.GPUVertexAttribute;
@@ -233,6 +234,7 @@ private class Texture implements ITexture {
 	public var desc(default, null):TextureDesc;
 
 	public final texture:GPUTexture;
+	public final view:GPUTextureView;
 
 	public function new(driver:WGPUDriver, desc:TextureDesc) {
 		this.desc = desc;
@@ -247,8 +249,9 @@ private class Texture implements ITexture {
 				case BGRA: BGRA8UNORM;
 				case ARGB: throw "assert";
 			},
-			usage: COPY_DST
+			usage: desc.isRenderTarget ? RENDER_ATTACHMENT : COPY_DST
 		});
+		view = texture.createView();
 	}
 
 	public function dispose() {
@@ -266,19 +269,25 @@ private class RenderPass implements IRenderPass {
 
 	public function new(driver:WGPUDriver, desc:RenderPassDesc) {
 		this.driver = driver;
-		this.encoder = driver.encoder == null ? (throw "assert") : driver.encoder;
+		this.encoder = cast driver.encoder == null ? (throw "assert") : driver.encoder;
 		this.renderPass = encoder.beginRenderPass({
 			colorAttachments: [
 				for (a in desc.colorAttachments)
 					{
 						view: a.texture == null ? driver.getCurrentTexture().createView() : (cast a.texture : Texture).texture.createView(),
 						loadValue: switch a.load {
+							case Clear if (a.loadValue != null): ({
+									r: (cast a.loadValue : arcane.common.Color).r / 0xFF,
+									g: (cast a.loadValue : arcane.common.Color).g / 0xFF,
+									b: (cast a.loadValue : arcane.common.Color).b / 0xFF,
+									a: (cast a.loadValue : arcane.common.Color).a / 0xFF
+								} : wgpu.GPUColorDict);
 							case Clear: {
-									r: a.loadValue.r / 0xFF,
-									g: a.loadValue.g / 0xFF,
-									b: a.loadValue.b / 0xFF,
-									a: a.loadValue.a / 0xFF
-								};
+									r: 0.0,
+									g: 0.0,
+									b: 0.0,
+									a: 1.0
+								}
 							case Load: "load";
 						},
 						storeOp: switch a.store {
@@ -298,8 +307,6 @@ private class RenderPass implements IRenderPass {
 	}
 
 	public function setVertexBuffers(buffers:Array<IVertexBuffer>) {
-		assert(renderPass != null);
-		final renderPass:GPURenderPassEncoder = renderPass;
 		for (i => buffer in buffers)
 			renderPass.setVertexBuffer(i, (cast buffer : VertexBuffer).buffer);
 	}
@@ -308,7 +315,9 @@ private class RenderPass implements IRenderPass {
 		renderPass.setIndexBuffer((cast buffer : IndexBuffer).buffer, buffer.desc.is32 ? UInt32 : UInt16);
 	}
 
-	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {}
+	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {
+		// driver.device.createBindGroup()
+	}
 
 	public function setConstantLocation(l:IConstantLocation, f:Float32Array) {}
 
@@ -380,10 +389,11 @@ class WGPUDriver implements IGraphicsDriver {
 		encoder = device.createCommandEncoder();
 	}
 
-	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int) {}
-
 	public function end() {
-		device.queue.submit([encoder.sure().finish()]);
+		if (encoder != null) {
+			final buffer = encoder.finish();
+			device.queue.submit([buffer]);
+		}
 	}
 
 	public function flush() {}
@@ -411,7 +421,7 @@ class WGPUDriver implements IGraphicsDriver {
 	}
 
 	public function beginRenderPass(desc:RenderPassDesc) {
-		return new RenderPass(this,desc);
+		return new RenderPass(this, desc);
 	}
 }
 #end

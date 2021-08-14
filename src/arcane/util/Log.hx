@@ -19,8 +19,14 @@ enum abstract Style(Int) {
 }
 
 class Log {
-	public static var is_verbose:Bool = false;
-	public static var warning_disabled:Bool = false;
+	public static var WARN = #if (log_no_warning) false #else true #end;
+	public static var VERBOSE = #if (log_verbose || verbose) true #else false #end;
+	// in the js console positions will show up anyway
+	public static var LOG_POSITION = #if (log_position || (js && (!debug && !source_maps))) true #else false #end;
+
+	static inline function format(message:Dynamic, pos:haxe.PosInfos) {
+		return #if log_position haxe.Log.formatOutput(message, pos) #else Std.string(message) #end;
+	}
 
 	public static inline function setColor(color:Color, style:Style = Style.Normal):String {
 		#if arcane_log_color
@@ -31,7 +37,8 @@ class Log {
 		#end
 	}
 
-	public static function println(msg:String):Void {
+	public static inline function println(msg:Dynamic, ?pos:haxe.PosInfos):Void {
+		final msg = format(msg, pos);
 		#if sys
 		Sys.println(msg);
 		#elseif js
@@ -39,13 +46,14 @@ class Log {
 		#end
 	}
 
-	public static function info(msg:String):Void {
-		if (is_verbose)
-			println(msg);
+	public static inline function info(msg:Dynamic, ?pos:haxe.PosInfos):Void {
+		if (VERBOSE)
+			println(msg, pos);
 	}
 
-	public static function warn(msg:String):Void {
-		if (!warning_disabled)
+	public static inline function warn(msg:Dynamic, ?pos:haxe.PosInfos):Void {
+		final msg = format(msg, pos);
+		if (WARN)
 			#if js
 			js.Browser.console.warn(msg);
 			#else
@@ -53,7 +61,8 @@ class Log {
 			#end
 	}
 
-	public static function error(msg:String):Void {
+	public static inline function error(msg:Dynamic, ?pos:haxe.PosInfos):Void {
+		final msg = format(msg, pos);
 		#if js
 		js.Browser.console.error(msg);
 		#else

@@ -198,6 +198,7 @@ class Shader implements IShader {
 		shader = kinc.g4.Shader.create(bytes, switch desc.kind {
 			case Fragment: FragmentShader;
 			case Vertex: VertexShader;
+			case _: throw "unsupported";
 		});
 	}
 
@@ -335,87 +336,42 @@ class Pipeline implements IPipeline {
 	}
 }
 
-class KincDriver implements IGraphicsDriver {
-	public final renderTargetFlipY:Bool;
-	public final instancedRendering = true;
-	public final uintIndexBuffers = true;
-
-	var window:Int;
-
-	public function new(window:Int) {
-		this.window = window;
-		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
-	}
-
-	public function getName(details = false) {
-		return details ? "Kinc on " + kinc.System.getGraphicsApi().toString() : "Kinc";
-	}
-
-	public function dispose():Void {};
-
-	public function begin():Void {
-		Graphics4.begin(window);
-	}
-
-	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
-		var flags = 0;
-		if (col != null)
-			flags |= 1;
-		if (depth != null)
-			flags |= 2;
-		if (stencil != null)
-			flags |= 3;
-		var col:Int = col == null ? 0 : col;
-		var depth:hl.F32 = depth == null ? 0 : (depth : Float);
-		var stencil:hl.F32 = stencil == null ? 0 : (stencil : Float);
-		Graphics4.clear(flags, col, depth, stencil);
-	}
-
-	public function end():Void {
-		Graphics4.end(window);
-	}
-
-	public function flush():Void {
-		Graphics4.flush();
-	}
-
-	public function present():Void {
-		Graphics4.swapBuffers();
-	}
-
-	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer {
-		return new VertexBuffer(desc);
-	}
-
-	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer {
-		return new IndexBuffer(desc);
-	}
-
-	public function createTexture(desc:TextureDesc):ITexture {
-		return new Texture(desc);
-	}
-
-	public function createShader(desc:ShaderDesc):IShader {
-		return new Shader(desc);
-	}
-
-	public function createPipeline(desc:PipelineDesc):IPipeline {
-		return new Pipeline(desc);
-	}
-
-	var renderTargets = new hl.NativeArray(8);
-
-	public function setRenderTarget(?t:ITexture):Void {
-		if (t == null) {
+private class RenderPass implements IRenderPass {
+	public function new(desc:RenderPassDesc) {
+		if(desc.colorAttachments[0].texture == null) {
 			Graphics4.restoreRenderTarget();
-			return;
+		} else {
+			var targets = new hl.NativeArray<kinc.g4.RenderTarget>(desc.colorAttachments.length);
+			for(i => a in desc.colorAttachments)
+				targets[i] = cast (cast a.texture:Texture).renderTarget;
+			Graphics4.setRenderTargets(targets);
 		}
-		var rt:Texture = cast t;
-		if (rt.desc.isRenderTarget && rt.renderTarget != null) {
-			renderTargets[0] = rt.renderTarget;
-			Graphics4.setRenderTargets(renderTargets);
-		}
+		// var flags = 0;
+		// if (col != null)
+		// 	flags |= 1;
+		// if (depth != null)
+		// 	flags |= 2;
+		// if (stencil != null)
+		// 	flags |= 3;
+		// var col:Int = col == null ? 0 : col;
+		// var depth:hl.F32 = depth == null ? 0 : (depth : Float);
+		// var stencil:hl.F32 = stencil == null ? 0 : (stencil : Float);
+		// Graphics4.clear(flags, col, depth, stencil);
 	}
+
+	// var renderTargets = new hl.NativeArray(8);
+
+	// public function setRenderTarget(?t:ITexture):Void {
+	// 	if (t == null) {
+	// 		Graphics4.restoreRenderTarget();
+	// 		return;
+	// 	}
+	// 	var rt:Texture = cast t;
+	// 	if (rt.desc.isRenderTarget && rt.renderTarget != null) {
+	// 		renderTargets[0] = rt.renderTarget;
+	// 		Graphics4.setRenderTargets(renderTargets);
+	// 	}
+	// }
 
 	public function setPipeline(p:IPipeline):Void {
 		var p:Pipeline = cast p;
@@ -481,5 +437,66 @@ class KincDriver implements IGraphicsDriver {
 			Graphics4.drawIndexedVerticesInstanced(instanceCount);
 		else
 			Graphics4.drawIndexedVerticesInstancedFromTo(instanceCount, start, count);
+	}
+
+	public function end() {}
+}
+
+class KincDriver implements IGraphicsDriver {
+	public final renderTargetFlipY:Bool;
+	public final instancedRendering = true;
+	public final uintIndexBuffers = true;
+
+	var window:Int;
+
+	public function new(window:Int) {
+		this.window = window;
+		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
+	}
+
+	public function getName(details = false) {
+		return details ? "Kinc on " + kinc.System.getGraphicsApi().toString() : "Kinc";
+	}
+
+	public function dispose():Void {};
+
+	public function begin():Void {
+		Graphics4.begin(window);
+	}
+
+	public function end():Void {
+		Graphics4.end(window);
+	}
+
+	public function flush():Void {
+		Graphics4.flush();
+	}
+
+	public function present():Void {
+		Graphics4.swapBuffers();
+	}
+
+	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer {
+		return new VertexBuffer(desc);
+	}
+
+	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer {
+		return new IndexBuffer(desc);
+	}
+
+	public function createTexture(desc:TextureDesc):ITexture {
+		return new Texture(desc);
+	}
+
+	public function createShader(desc:ShaderDesc):IShader {
+		return new Shader(desc);
+	}
+
+	public function createPipeline(desc:PipelineDesc):IPipeline {
+		return new Pipeline(desc);
+	}
+
+	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
+		return new RenderPass(desc);
 	}
 }

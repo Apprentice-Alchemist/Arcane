@@ -7,6 +7,7 @@ import arcane.common.arrays.Int32Array;
 enum ShaderKind {
 	Vertex;
 	Fragment;
+	Compute;
 }
 
 enum VertexData {
@@ -151,9 +152,6 @@ typedef InputLayout = Array<{
 }
 
 @:structInit class ShaderDesc {
-	// /**
-	//  * The platform specific shader data
-	//  */
 	public var id:String;
 
 	/**
@@ -175,12 +173,12 @@ enum StoreOp {
 }
 
 @:structInit class ColorAttachment {
-	@:optional public var texture:ITexture;
+	@:optional public var texture:Null<ITexture>;
 
 	public var load:LoadOp;
 	public var store:StoreOp;
 
-	@:optional public var loadValue:Color;
+	@:optional public var loadValue:Null<Color>;
 }
 
 @:structInit class RenderPassDesc {
@@ -277,7 +275,7 @@ interface IGraphicsDriver extends IDisposable {
 	function getName(details:Bool = false):String;
 
 	function begin():Void;
-	function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void;
+	// function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void;
 	function end():Void;
 	function flush():Void;
 	function present():Void;

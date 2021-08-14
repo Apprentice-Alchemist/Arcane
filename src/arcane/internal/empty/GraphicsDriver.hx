@@ -102,6 +102,28 @@ class Texture implements ITexture {
 	public function upload(bytes:haxe.io.Bytes):Void {}
 }
 
+class RenderPass implements IRenderPass {
+	public function new(desc:RenderPassDesc) {}
+
+	public function setPipeline(p:IPipeline) {}
+
+	public function setVertexBuffer(b:IVertexBuffer) {}
+
+	public function setVertexBuffers(buffers:Array<IVertexBuffer>) {}
+
+	public function setIndexBuffer(b:IIndexBuffer) {}
+
+	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {}
+
+	public function setConstantLocation(l:IConstantLocation, f:Float32Array) {}
+
+	public function draw(start:Int, count:Int) {}
+
+	public function drawInstanced(instanceCount:Int, start:Int, count:Int) {}
+
+	public function end() {}
+}
+
 class GraphicsDriver implements IGraphicsDriver {
 	public final renderTargetFlipY:Bool = false;
 	public final instancedRendering:Bool = false;
@@ -117,55 +139,33 @@ class GraphicsDriver implements IGraphicsDriver {
 
 	public function begin():Void {}
 
-	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {}
-
 	public function end():Void {}
 
 	public function flush():Void {}
 
 	public function present():Void {}
 
-	public function createVertexBuffer(desc:VertexBufferDesc):VertexBuffer {
+	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer {
 		return new VertexBuffer(desc);
 	}
 
-	public function createIndexBuffer(desc:IndexBufferDesc):IndexBuffer {
+	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer {
 		return new IndexBuffer(desc);
 	}
 
-	public function createTexture(desc:TextureDesc):Texture {
+	public function createTexture(desc:TextureDesc):ITexture {
 		return new Texture(desc);
 	}
 
-	public function createShader(desc:ShaderDesc):Shader {
+	public function createShader(desc:ShaderDesc):IShader {
 		return new Shader(desc);
 	}
 
-	public function createPipeline(desc:PipelineDesc):Pipeline {
+	public function createPipeline(desc:PipelineDesc):IPipeline {
 		return new Pipeline(desc);
 	}
 
-	public function setRenderTarget(?t:ITexture):Void {
-		if (t == null) {
-			// restore
-		} else {
-			// set
-		}
+	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
+		return new RenderPass(desc);
 	}
-
-	public function setPipeline(p:IPipeline):Void {}
-
-	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {}
-
-	public function setVertexBuffer(b:IVertexBuffer):Void {}
-
-	public function setIndexBuffer(b:IIndexBuffer):Void {}
-
-	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void {}
-
-	public function setConstantLocation(l:IConstantLocation, f:Float32Array):Void {}
-
-	public function draw(start:Int, count:Int):Void {}
-
-	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {}
 }

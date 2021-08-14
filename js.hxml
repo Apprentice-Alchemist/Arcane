@@ -4,7 +4,7 @@
 
 -lib wgpu-externs
 --macro arcane.internal.Macros.initSourceMaps()
---macro nullSafety("arcane",StrictThreaded)
---macro nullSafety("asl",StrictThreaded)
+--macro nullSafety("arcane",Strict)
+--macro nullSafety("asl",Strict)
 --debug
 -js out/html5/app.js

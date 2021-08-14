@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+import js.html.webgl.extension.WEBGLDrawBuffers;
 import arcane.util.Log;
 import arcane.Utils.assert;
 import arcane.system.IGraphicsDriver;
@@ -17,7 +18,7 @@ import js.lib.Uint32Array as JsUint32Array;
 import js.lib.Int32Array as JsInt32Array;
 import arcane.common.arrays.*;
 
-class VertexBuffer implements IVertexBuffer {
+private class VertexBuffer implements IVertexBuffer {
 	public var desc:VertexBufferDesc;
 
 	var driver:WebGLDriver;
@@ -100,7 +101,7 @@ class VertexBuffer implements IVertexBuffer {
 	}
 }
 
-class IndexBuffer implements IIndexBuffer {
+private class IndexBuffer implements IIndexBuffer {
 	public var desc:IndexBufferDesc;
 
 	var driver:WebGLDriver;
@@ -172,7 +173,7 @@ class IndexBuffer implements IIndexBuffer {
 	}
 }
 
-class Shader implements IShader {
+private class Shader implements IShader {
 	public var desc:ShaderDesc;
 
 	var driver:WebGLDriver;
@@ -209,7 +210,7 @@ class Shader implements IShader {
 	}
 }
 
-class ConstantLocation implements IConstantLocation {
+private class ConstantLocation implements IConstantLocation {
 	public var type:Int;
 	public var name:String;
 	public var uniform:UniformLocation;
@@ -225,7 +226,7 @@ class ConstantLocation implements IConstantLocation {
 	}
 }
 
-class TextureUnit implements ITextureUnit {
+private class TextureUnit implements ITextureUnit {
 	public var index:Int;
 	public var name:String;
 	public var uniform:UniformLocation;
@@ -241,13 +242,13 @@ class TextureUnit implements ITextureUnit {
 	}
 }
 
-class Pipeline implements IPipeline {
+private class Pipeline implements IPipeline {
 	public var desc:PipelineDesc;
 
-	var driver:WebGLDriver;
-	var program:Program;
-	var locs:Array<ConstantLocation> = [];
-	var tus:Array<TextureUnit> = [];
+	final driver:WebGLDriver;
+	final program:Program;
+	final locs:Array<ConstantLocation> = [];
+	final tus:Array<TextureUnit> = [];
 
 	public function new(driver, desc) {
 		this.driver = driver;
@@ -318,13 +319,13 @@ class Pipeline implements IPipeline {
 	}
 }
 
-class Texture implements ITexture {
+private class Texture implements ITexture {
 	public var desc:TextureDesc;
 
-	var driver:WebGLDriver;
-	var texture:js.html.webgl.Texture;
-	@:nullSafety(Off) var frameBuffer:Framebuffer;
-	@:nullSafety(Off) var renderBuffer:Renderbuffer;
+	final driver:WebGLDriver;
+	final texture:js.html.webgl.Texture;
+	@:nullSafety(Off) final frameBuffer:Framebuffer;
+	@:nullSafety(Off) final renderBuffer:Renderbuffer;
 
 	public function new(driver, desc) {
 		this.driver = driver;
@@ -408,13 +409,31 @@ private class RenderPass implements IRenderPass {
 
 	final driver:WebGLDriver;
 
-	var curVertexBuffer:Null<VertexBuffer>;
+	// var curVertexBuffer:Null<VertexBuffer>;
 	var curIndexBuffer:Null<IndexBuffer>;
 	var curPipeline:Null<Pipeline>;
 
 	public function new(driver:WebGLDriver, desc:RenderPassDesc) {
 		this.driver = driver;
 		this.gl = driver.gl;
+		final t = desc.colorAttachments[0].texture;
+		if (t == null) {
+			@:nullSafety(Off) gl.bindFramebuffer(GL.FRAMEBUFFER, null);
+			gl.viewport(0, 0, driver.canvas.width, driver.canvas.height);
+		} else {
+			var tex:Texture = cast t;
+			assert(tex.driver == driver, "driver mismatch");
+			gl.bindFramebuffer(GL.FRAMEBUFFER, tex.frameBuffer);
+			gl.viewport(0, 0, tex.desc.width, tex.desc.height);
+			if (desc.colorAttachments.length > 1 && driver.multipleColorAttachments) {
+				final attachments = [];
+				for (i => attachment in desc.colorAttachments) {
+					gl.framebufferTexture2D(GL.FRAMEBUFFER, GL2.COLOR_ATTACHMENT0 + i, GL.TEXTURE_2D, (cast attachment.texture : Texture).texture, 0);
+					attachments.push(GL2.COLOR_ATTACHMENT0 + i);
+				}
+				gl2.drawBuffers(attachments);
+			}
+		}
 	}
 
 	function enable(cap:Int, b:Bool) {
@@ -540,23 +559,11 @@ private class RenderPass implements IRenderPass {
 		}
 	}
 
-	public function setRenderTarget(?t:ITexture):Void {
-		if (t == null) {
-			@:nullSafety(Off) gl.bindFramebuffer(GL.FRAMEBUFFER, null);
-			gl.viewport(0, 0, driver.canvas.width, driver.canvas.height);
-		} else {
-			var tex:Texture = cast t;
-			assert(tex.driver == driver, "driver mismatch");
-			gl.bindFramebuffer(GL.FRAMEBUFFER, tex.frameBuffer);
-			gl.viewport(0, 0, tex.desc.width, tex.desc.height);
-		}
-	}
-
 	private var enabledVertexAttribs = 0;
 
 	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {
 		var vb:Array<VertexBuffer> = cast buffers;
-		// assert(vb.driver == this, "driver mismatch");
+		// assert(vb.driver == driver, "driver mismatch");
 		// curVertexBuffer = vb;
 		for (i in 0...enabledVertexAttribs)
 			gl.disableVertexAttribArray(i);
@@ -578,7 +585,7 @@ private class RenderPass implements IRenderPass {
 
 	public function setVertexBuffer(b:IVertexBuffer):Void {
 		var vb:VertexBuffer = cast b;
-		// assert(vb.driver == this, "driver mismatch");
+		assert(vb.driver == driver, "driver mismatch");
 		// curVertexBuffer = vb;
 		for (i in 0...enabledVertexAttribs)
 			gl.disableVertexAttribArray(i);
@@ -661,6 +668,7 @@ class WebGLDriver implements IGraphicsDriver {
 	public final renderTargetFlipY:Bool = true;
 	public final instancedRendering:Bool;
 	public final uintIndexBuffers:Bool;
+	public final multipleColorAttachments:Bool;
 
 	var canvas:CanvasElement;
 	var gl:GL;
@@ -682,6 +690,7 @@ class WebGLDriver implements IGraphicsDriver {
 		if (hasGL2) {
 			this.instancedRendering = true;
 			this.uintIndexBuffers = true;
+			this.multipleColorAttachments = true;
 		} else {
 			this.uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
 			var ext = gl.getExtension(ANGLE_instanced_arrays);
@@ -693,14 +702,21 @@ class WebGLDriver implements IGraphicsDriver {
 			} else {
 				this.instancedRendering = false;
 			}
+			var ext = gl.getExtension(WEBGL_draw_buffers);
+			if (ext != null) {
+				this.multipleColorAttachments = true;
+				Reflect.setField(gl, "drawBuffers", ext.drawBuffersWEBGL);
+			} else {
+				this.multipleColorAttachments = false;
+			}
 		}
 	}
 
 	public function getName(details:Bool = false):String {
-		trace(gl.getParameter(GL.RENDERER));
-		trace(gl.getParameter(GL.VENDOR));
-		trace(gl.getParameter(GL.VERSION));
-		trace(gl.getParameter(GL.SHADING_LANGUAGE_VERSION));
+		// Log.info(gl.getParameter(GL.RENDERER));
+		// Log.info(gl.getParameter(GL.VENDOR));
+		// Log.info(gl.getParameter(GL.VERSION));
+		// Log.info(gl.getParameter(GL.SHADING_LANGUAGE_VERSION));
 		return if (hasGL2) "WebGL2" else "WebGL";
 	}
 
@@ -765,6 +781,6 @@ class WebGLDriver implements IGraphicsDriver {
 	}
 
 	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
-		return new RenderPass(this,desc);
+		return new RenderPass(this, desc);
 	}
 }
