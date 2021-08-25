@@ -31,8 +31,8 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 			Sys.println(s.stderr);
 			Sys.exit(1);
 		}
-		var webgl1 = Macros.cmd("spirv-cross", ["--es", "--version", "100", "-"], s.stdout);
-		var webgl2 = Macros.cmd("spirv-cross", ["--es", "--version", "300", "-"], s.stdout);
+		var webgl1 = Macros.cmd("spirv-cross", ["--es", "--version", "100", "--glsl-emit-ubo-as-plain-uniforms", "-"], s.stdout);
+		var webgl2 = Macros.cmd("spirv-cross", ["--es", "--version", "300", "--glsl-emit-ubo-as-plain-uniforms", "-"], s.stdout);
 		if (webgl1.code != 0 || webgl1.stderr.trim() != "") {
 			Sys.println("Error while compiling shader " + id);
 			Sys.println(webgl1.stderr);

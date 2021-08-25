@@ -1,46 +1,147 @@
 package asl;
 
-import asl.Ast;
+import haxe.macro.Context;
 import haxe.macro.Expr;
+import asl.Ast;
 
-class Typer {
-	public function typeModule():ShaderModule {
-		final m:ShaderModule = {
-			uniforms: [],
-			stage: cast null,
-			outputs: [],
-			inputs: [],
-			functions: [],
-			entryPoint: "main"
-		};
-
-		return m;
+abstract Pos(asl.Ast.Position) from asl.Ast.Position to asl.Ast.Position {
+	#if macro
+	@:from static function fromP(p:haxe.macro.Expr.Position) {
+		return cast Context.getPosInfos(p);
 	}
 
-	static function tryUnify(a:Type, b:Type):Bool {
+	@:to function toP() {
+		return Context.makePosition(this);
+	}
+	#end
+}
+
+@:nullSafety(Strict)
+class Typer {
+	static var std = macro {
+		function vec4<T:Float>(x:T, y:T, z:T, w:T):Vec4 {}
+	}
+	@:noCompletion static var __id:Int = 0;
+
+	static function allocID():Int {
+		return __id++;
+	}
+
+	var vars:Map<String, TVar> = [];
+
+	public function new() {}
+
+	public static function makeModule(e:Expr, stage:ShaderStage):ShaderModule {
+		final typer = inline new Typer();
+		return switch e.expr {
+			case EBlock(exprs): typer.typeModule(exprs, stage);
+			case _: throw "expected block declaration";
+		}
+	}
+
+	function typeModule(exprs:Array<Expr>, stage:ShaderStage):ShaderModule {
+		var uniforms:Array<TVar> = [];
+		var outputs = [];
+		var inputs = [];
+		var functions:Array<{
+			var name:String;
+			var args:Array<TVar>;
+			var ret:Type;
+			var expr:TypedExpr;
+		}> = [];
+		var entryPoint = "main";
+		for (e in exprs) {
+			switch e {
+				case macro @:in var $name:$t:
+					var tvar:TVar = {
+						id: allocID(),
+						name: name,
+						t: toType(t, e.pos),
+						kind: Input
+					};
+					inputs.push(tvar);
+					vars.set(name, tvar);
+				case macro @:uniform var $name:$t:
+					var tvar:TVar = {
+						id: allocID(),
+						name: name,
+						t: toType(t, e.pos),
+						kind: Uniform
+					};
+					uniforms.push(tvar);
+					vars.set(name, tvar);
+
+				case macro @:out var $name:$t:
+					var tvar:TVar = {
+						id: allocID(),
+						name: name,
+						t: toType(t, e.pos),
+						kind: Output
+					};
+					outputs.push(tvar);
+					vars.set(name, tvar);
+				case macro @:builtin(${_b = _.expr => EConst(CString(s)) | EConst(CIdent(s))}) var $name:$t:
+					var b:Builtin = try Builtin.fromString(s) catch (e) error(Std.string(e), _b.pos);
+					var kind = b.kind(stage);
+					var tvar:TVar = {
+						id: allocID(),
+						name: name,
+						t: toType(t, e.pos),
+						kind: kind,
+						builtin: b
+					};
+						(switch kind {
+							case Input: inputs;
+							case Output: outputs;
+							case _: throw "assert";
+						}).push(tvar);
+					vars.set(name, tvar);
+				case _.expr => EFunction(_ => FNamed(name, _), f):
+					functions.push({
+						name: name,
+						args: [
+							for (arg in f.args)
+								{
+									id: allocID(),
+									name: arg.name,
+									t: toType(arg.type, e.pos),
+									kind: Local
+								}
+						],
+						ret: f.ret == null ? TVoid : toType(f.ret, e.pos),
+						expr: typeExpr(f.expr)
+					});
+
+				case _:
+			}
+		}
+		return {
+			uniforms: uniforms,
+			stage: stage,
+			outputs: outputs,
+			inputs: inputs,
+			functions: functions,
+			entryPoint: entryPoint
+		}
+	}
+
+	function tryUnify(a:Type, b:Type):Bool {
 		if (a == b)
 			return true;
 		return switch [a, b] {
-			case [TVec2(a), TVec2(b)] if (a == b): true;
-			case [TVec3(a), TVec3(b)] if (a == b): true;
-			case [TVec4(a), TVec4(b)] if (a == b): true;
-
-			case [TMat2(a), TMat2(b)] if (a == b): true;
-			case [TMat3(a), TMat3(b)] if (a == b): true;
-			case [TMat4(a), TMat4(b)] if (a == b): true;
+			case [TVec(a, s1), TVec(b, s2)] if (a == b && s1 == s2): true;
+			case [TMat(a, s1), TMat(b, s2)] if (a == b && s1 == s2): true;
 			case [TArray(t1, size1), TArray(t2, size2)] if (t1 == t2 && size1 == size2): true;
 			case [_, _]: false;
 		}
 	}
 
-	static function unify(a, b) {
-		if (tryUnify(a, b))
-			return a
-		else
-			throw "could not unify " + a + " and " + b;
+	function unify(a:Type, b:Type, pos:Pos) {
+		if (!tryUnify(a, b))
+			error(a + " should be " + b, pos);
 	}
 
-	static function error(message:String, pos:Position):Dynamic {
+	function error(message:String, pos:Pos):Dynamic {
 		#if macro
 		return haxe.macro.Context.error(message, pos);
 		#else
@@ -48,104 +149,253 @@ class Typer {
 		#end
 	}
 
-	inline static function t(e:TypedExprDef, type:Type, p):TypedExpr {
-		return {
-			expr: e,
-			pos: p,
-			t: type
+	function toFloat(e:TypedExpr) {
+		if (e.t != TInt)
+			throw "assert";
+		switch (e.expr) {
+			case TConst(TInt(v)):
+				e.expr = TConst(TFloat(Std.string(v)));
+				e.t = TFloat;
+			default:
+				// e.expr = TCall({e: TGlobal(ToFloat), t: TFun([]), p: e.p}, [{e: e.e, t: e.t, p: e.p}]);
+				// e.t = TFloat;
 		}
 	}
 
-	static function typeExpr(e:Expr):TypedExpr {
-		return switch e.expr {
-			case EConst(CIdent(ident)): cast null;
+	function unifyExpr(e:TypedExpr, t:Type) {
+		if (!tryUnify(e.t, t)) {
+			if (e.t == TInt && t == TFloat) {
+				toFloat(e);
+				return;
+			}
+			error(e.t + " should be " + t, e.pos);
+		}
+	}
+
+	function typeBinop(op:Binop, e1:TypedExpr, e2:TypedExpr, pos:Pos) {
+		return switch (op) {
+			case OpAssign, OpAssignOp(_): throw "assert";
+			case OpMult, OpAdd, OpSub, OpDiv, OpMod:
+				switch ([op, e1.t, e2.t]) {
+					case [OpMult, TMat(TFloat, 4), TVec(TFloat, 4)]:
+						TVec(TFloat, 4);
+					// case [OpMult, TVec(TFloat,3), TMat3x4]:
+					// 	vec3;
+					case [OpMult, TVec(TFloat, 3), TMat(TFloat, 3)]:
+						TVec(TFloat, 3);
+					case [OpMult, TVec(TFloat, 2), TMat(TFloat, 2)]:
+						TVec(TFloat, 2);
+					case [_, TInt, TInt]: TInt;
+					case [_, TFloat, TFloat]: TFloat;
+					case [_, TInt, TFloat]:
+						toFloat(e1);
+						TFloat;
+					case [_, TFloat, TInt]:
+						toFloat(e2);
+						TFloat;
+					case [_, TVec(TFloat, size1), TVec(TFloat, size2)] if (size1 == size2): TVec(TFloat, size1);
+					case [_, TFloat, TVec(TFloat, _)]: e2.t;
+					case [_, TVec(TFloat, _), TFloat]: e1.t;
+					case [_, TInt, TVec(TFloat, _)]:
+						toFloat(e1);
+						e2.t;
+					case [_, TVec(TFloat, _), TInt]:
+						toFloat(e2);
+						e1.t;
+					case [OpMult, TMat(TFloat, size1), TMat(TFloat, size2)] if (size1 == size2): TMat(TFloat, size1);
+					default:
+						var opName = switch (op) {
+							case OpMult: "multiply";
+							case OpAdd: "add";
+							case OpSub: "subtract";
+							case OpDiv: "divide";
+							default: throw "assert";
+						}
+						error("Cannot " + opName + " " + e1.t + " and " + e2.t, pos);
+				}
+			case OpLt, OpGt, OpLte, OpGte, OpEq, OpNotEq:
+				switch (e1.t) {
+					case TFloat, TInt if (e2.t != TVoid):
+						unifyExpr(e2, e1.t);
+						TBool;
+					case TBool if ((op == OpEq || op == OpNotEq) && e2.t != TVoid):
+						unifyExpr(e2, e1.t);
+						TBool;
+					case TVec(_) if (e2.t != TVoid):
+						unifyExpr(e2, e1.t);
+						e1.t;
+					default:
+						switch ([e1.expr, e2.expr]) {
+							// case [TVar(v), TConst(CNull)], [TConst(CNull), TVar(v)]:
+							// 	if (!v.hasQualifier(Nullable))
+							// 		error("Variable is not declared as nullable", e1.p);
+							// 	TBool;
+							default:
+								error("Cannot compare " + e1.t + " and " + e2.t, pos);
+						}
+				}
+			case OpBoolAnd, OpBoolOr:
+				unifyExpr(e1, TBool);
+				unifyExpr(e2, TBool);
+				TBool;
+			case OpInterval:
+				unifyExpr(e1, TInt);
+				unifyExpr(e2, TInt);
+				TArray(TInt, 0);
+			case OpShl, OpShr, OpUShr, OpOr, OpAnd, OpXor:
+				unifyExpr(e1, TInt);
+				unifyExpr(e2, TInt);
+				TInt;
+			default:
+				error("Unsupported operator " + op, pos);
+		}
+	}
+
+	function checkWrite(e:TypedExpr) {
+		switch (e.expr) {
+			case TLocal(v):
+				switch (v.kind) {
+					case Local, Output:
+						return;
+					default:
+				}
+			case TSwiz(e, _):
+				checkWrite(e);
+				return;
+			default:
+		}
+		error("This expression cannot be assigned", e.pos);
+	}
+
+	function typeExpr(e:Expr):TypedExpr {
+		var type:Null<Type> = null;
+		final expr:TypedExprDef = switch e.expr {
+			case EConst(CIdent("PI")):
+				type = TFloat;
+				TConst(TFloat(Std.string(Math.PI)));
+			case EConst(CIdent("true")):
+				type = TBool;
+				TConst(TBool(true));
+			case EConst(CIdent("false")):
+				type = TBool;
+				TConst(TBool(false));
+			case EConst(CIdent(name)) if (name != "vec4"):
+				var v = vars.get(name);
+				if (v != null) {
+					type = v.t;
+					TLocal(v);
+				} else {
+					trace(name);
+					error("TODO", e.pos);
+				}
 			case EConst(c):
-				return switch c {
+				switch c {
 					case CInt(i):
-						t(TConst(TInt(Std.parseInt(i))), TInt, e.pos);
+						type = TInt;
+						TConst(TInt(Std.parseInt(i)));
 					case CFloat(f):
-						t(TConst(TFloat(f)), TFloat, e.pos);
+						type = TFloat;
+						TConst(TFloat(f));
 					case _: error("Invalid expression", e.pos);
 				}
 			case EArray(typeExpr(_) => e1, typeExpr(_) => e2):
-				var _t = switch e1.t {
-					case TVec2(t), TVec3(t), TVec4(t), TMat2(t), TMat3(t), TMat4(t), TArray(t, _): t;
-					case _: error("Cannot do array access on " + e1.t,e1.pos);
+				var t = switch e1.t {
+					case TMat(t, size): TVec(t, size);
+					case TVec(t, _), TArray(t, _): t;
+					case _: error("Cannot do array access on " + e1.t, e1.pos);
 				}
-				if(e2.t != TInt) error("Expected an int",e1.pos);
-				t(TypedExprDef.TArray(e1,e1),_t,e.pos);
-			// case EBinop(op, e1, e2):
+				if (e2.t != TInt)
+					error("Expected an integer", e1.pos);
+				type = t;
+				TypedExprDef.TArray(e1, e2);
+			case EBinop(op, typeExpr(_) => e1, typeExpr(_) => e2):
+				switch (op) {
+					case OpAssign:
+						checkWrite(e1);
+						unify(e2.t, e1.t, e2.pos);
+						type = e1.t;
+					case OpAssignOp(op):
+						checkWrite(e1);
+						unify(typeBinop(op, e1, e2, e.pos), e1.t, e2.pos);
+						type = e1.t;
+					default:
+						type = typeBinop(op, e1, e2, e.pos);
+				}
+				// type = typeBinop(op, e1, e2, e.pos);
+				TBinop(op, e1, e2);
 			// case EField(e, field):
-			// case EParenthesis(e):
+
+			case EParenthesis(typeExpr(_) => e):
+				type = e.t;
+				TParenthesis(e);
+			case ECall(_.expr => EConst(CIdent("vec4")), params):
+				type = TVec(TFloat, 4);
+				TCall({
+					expr: TLocal({
+						id: allocID(),
+						name: "vec4",
+						t: TVec(TFloat, 4),
+						kind: Local
+					}),
+					pos: (e.pos : Pos),
+					t: TVec(TFloat, 4)
+				}, [for (p in params) typeExpr(p)]);
 			// case EObjectDecl(fields):
 			// case EArrayDecl(values):
 			// case ECall(e, params):
 			// case EUnop(op, postFix, e):
-			// case EVars(vars):
-			// case EBlock(exprs):
-			// case EFor(it, expr):
-			// case EIf(econd, eif, eelse):
-			// case EWhile(econd, e, normalWhile):
-			// case ESwitch(e, cases, edef):
-
-			// case EReturn(e):
-			// case EBreak:
-			// case EContinue:
+			case EVars(_vars):
+				if (_vars.length != 1)
+					error("Multi variable declarations not yet supported", e.pos);
+				var v = _vars[0];
+				var expr = v.expr == null ? null : typeExpr(v.expr);
+				var t = v.type == null ? expr.t : toType(v.type, e.pos);
+				unifyExpr(expr, t);
+				var v:TVar = {
+					id: allocID(),
+					name: v.name,
+					t: t,
+					kind: Local
+				};
+				vars.set(v.name, v);
+				TVar(v, expr);
+			case EBlock(exprs):
+				type = TVoid;
+				TBlock([for (e in exprs) typeExpr(e)]);
+			case EFor(it, expr):
+				error("TODO", e.pos);
+			case EIf(typeExpr(_) => econd, typeExpr(_) => eif, typeExpr(_) => eelse):
+				unify(econd.t, TBool, econd.pos);
+				TIf(econd, eif, eelse);
+			case EWhile(typeExpr(_) => econd, typeExpr(_) => e, normalWhile):
+				unifyExpr(econd, TBool);
+				type = e.t;
+				TWhile(econd, e, normalWhile);
+			case EReturn(e):
+				type = TVoid;
+				TReturn(if (e == null) null else typeExpr(e));
+			case EBreak:
+				type = TVoid;
+				TBreak;
+			case EContinue:
+				type = TVoid;
+				TContinue;
 			// case EDisplay(e, displayKind):
-			// case ETernary(econd, eif, eelse):
+			// case ETernary(typeExpr(_) => econd, typeExpr(_) => eif, typeExpr(_) => eelse):
+			// 	unifyExpr(econd,TBool);
+			// 	type = unify(eif.t,eelse.t,e.pos);
+			// 	TTernary
 			// case EMeta(s, e):
-			default: cast null;
+			default: error("Invalid expression", e.pos);
+		}
+		return {
+			expr: expr,
+			t: type,
+			pos: (e.pos : Pos)
 		}
 	}
 
-	// static function typeof(e:Expr):Type {
-	// 	return switch e.expr {
-	// 		case EConst(c): switch c {
-	// 				case CInt(v): TInt;
-	// 				case CFloat(f): TFloat;
-	// 				case CString(s, kind): throw "no strings";
-	// 				case CIdent(s): throw "ident";
-	// 				case CRegexp(r, opt): throw "no regexes";
-	// 			}
-	// 		case EArray(e1, e2):
-	// 		case EBinop(op, e1, e2):
-	// 		case EField(e, field):
-	// 		case EParenthesis(e):
-	// 		case EObjectDecl(fields):
-	// 		case EArrayDecl(values):
-	// 		case ECall(e, params):
-	// 		case EUnop(op, postFix, e):
-	// 		case EVars(vars):
-
-	// 		case EBlock(exprs):
-	// 		case EFor(it, expr):
-	// 		case EIf(econd, eif, eelse):
-	// 		case EWhile(econd, e, normalWhile):
-	// 		case ESwitch(e, cases, edef):
-
-	// 		case EReturn(e): typeof(e);
-	// 		case EBreak: TVoid;
-	// 		case EContinue: TVoid;
-
-	// 		case EDisplay(e, displayKind): cast null;
-	// 		case ETernary(econd, eif, eelse):
-	// 		case EMeta(s, e):
-	// 		default: throw "unsupported expression";
-	// 	}
-	// 	switch e {
-	// 		case _.expr => EBinop(op, e1, e2):
-	// 			var t = typeof(e1);
-	// 			if (unify(t, typeof(e1)))
-	// 				return t
-	// 			else
-	// 				throw "assert";
-
-	// 		case _:
-	// 			throw "untyped expr";
-	// 	}
-	// }
-
-	static function toType(c:ComplexType) {
+	function toType(c:ComplexType, pos:Pos) {
 		return switch c {
             // @formatter:off
             case macro:Bool: TBool;
@@ -153,30 +403,38 @@ class Typer {
             case macro:Float: TFloat;
 
             // VecX<T:Bool | Int | Float = Float> 
-            case macro:Vec2: TVec2(TFloat);
-            case macro:Vec3: TVec3(TFloat);
-            case macro:Vec4: TVec4(TFloat);
-            case macro:Vec2<$t>: TVec2(toType(t));
-            case macro:Vec3<$t>: TVec3(toType(t));
-            case macro:Vec4<$t>: TVec4(toType(t));
+            case macro:Vec2: TVec(TFloat,2);
+            case macro:Vec3: TVec(TFloat,3);
+            case macro:Vec4: TVec(TFloat,4);
+            case macro:Vec2<$t>: TVec(toType(t,pos),2);
+            case macro:Vec3<$t>: TVec(toType(t,pos),3);
+            case macro:Vec4<$t>: TVec(toType(t,pos),4);
 
             // MatX<T:Bool | Int | Float = Float> 
-            case macro:Mat2: TMat2(TFloat);
-            case macro:Mat3: TMat3(TFloat);
-            case macro:Mat4: TMat4(TFloat);
-            case macro:Mat2<$t>: TMat2(toType(t));
-            case macro:Mat3<$t>: TMat3(toType(t));
-            case macro:Mat4<$t>: TMat4(toType(t));
+            case macro:Mat2: TMat(TFloat,2);
+            case macro:Mat3: TMat(TFloat,3);
+            case macro:Mat4: TMat(TFloat,4);
+            case macro:Mat2<$t>: TMat(toType(t,pos),2);
+            case macro:Mat3<$t>: TMat(toType(t,pos),3);
+            case macro:Mat4<$t>: TMat(toType(t,pos),4);
+
+			case TPath({pack: [], name: "Array", params: [TPType(toType(_,pos) => t),TPExpr(_.expr => EConst(CInt(Std.parseInt(_) => size)))], sub: null}):
+				if(t.match(TArray(_,_))) error("Multidimensional arrays not supported",pos);
+				TArray(t,size);
             // @formatter:on
-			// case TPath(p):
-			// case TFunction(args, ret):
-			// case TAnonymous(fields):
-			// case TParent(t):
-			// case TExtend(p, fields):
-			// case TOptional(t):
-			// case TNamed(n, t):
-			default:
-				throw "unsupported type";
+			case TAnonymous(fields): TStruct([
+					for (field in fields)
+						{
+							name: field.name,
+							type: toType(switch field.kind {
+								case FVar(t, e):
+									if (e != null)
+										error("Did not expect an expression here", e.pos);
+									t;
+								case _: error("Not supported", field.pos);
+							}, pos)
+						}]);
+			default: error("Unsupported type", pos);
 		}
 	}
 }

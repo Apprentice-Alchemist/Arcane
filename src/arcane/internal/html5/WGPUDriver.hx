@@ -1,6 +1,9 @@
 package arcane.internal.html5;
 
 #if wgpu_externs
+import wgpu.GPUBindGroupLayout;
+import wgpu.GPUCanvasConfiguration;
+import wgpu.GPUCanvasContext;
 import wgpu.GPUTextureView;
 import wgpu.GPUPipelineLayout;
 import js.lib.Uint32Array;
@@ -13,11 +16,9 @@ import wgpu.GPUBuffer;
 import wgpu.GPUShaderModule;
 import wgpu.GPURenderPipeline;
 import wgpu.GPUTexture;
-import wgpu.GPUPresentationConfiguration;
 import wgpu.GPUTextureFormat;
 import wgpu.GPUDevice;
 import wgpu.GPUAdapter;
-import wgpu.GPUPresentationContext;
 import js.html.CanvasElement;
 import arcane.common.arrays.Int32Array;
 import arcane.common.arrays.Float32Array;
@@ -39,7 +40,8 @@ private class Pipeline implements IPipeline {
 
 	public final pipeline:GPURenderPipeline;
 
-	// public final layout:GPUPipelineLayout;
+	public final layout:GPUBindGroupLayout;
+
 	final driver:WGPUDriver;
 
 	public function new(driver:WGPUDriver, desc:PipelineDesc) {
@@ -66,7 +68,15 @@ private class Pipeline implements IPipeline {
 						stride += 4 * 4;
 						FLOAT32X4;
 					case Float4x4:
-						throw "assert";
+						stride += 4 * 4 * 4;
+						for (_i in 0...4) {
+							attributes.push({
+								format: FLOAT32X4,
+								offset: offset + (_i * 4),
+								shaderLocation: i++
+							});
+						}
+						continue;
 				}
 				attributes.push({
 					format: format,
@@ -76,29 +86,11 @@ private class Pipeline implements IPipeline {
 			}
 			buffers.push({
 				arrayStride: stride,
-				stepMode: l.instanced ? Instance : Vertex,
+				stepMode: l.instanced ? INSTANCE : VERTEX,
 				attributes: attributes
 			});
 		}
-		// layout = driver.device.createPipelineLayout({
-		// 	bindGroupLayouts: []
-		// });
-		// final bindGroupLayout = driver.device.createBindGroupLayout({
-		// 	entries: [
-		// 		{
-		// 			binding: 0,
-		// 			visibility: VERTEX,
-		// 			buffer: {type: Uniform, hasDynamicOffset: true},
-		// 			sampler: {type: Filtering}
-		// 		}
-		// 	]
-		// });
-		// var v = (null:Texture).texture.createView();
-		// driver.device.createBindGroup({
-		// 	layout: bindGroupLayout,
-		// 	entries: [{resource: v,binding: 0}]
-		// });
-		// driver.device.createSampler()
+
 		pipeline = driver.device.createRenderPipeline({
 			vertex: {
 				buffers: buffers,
@@ -116,6 +108,7 @@ private class Pipeline implements IPipeline {
 				entryPoint: "main"
 			}
 		});
+		layout = pipeline.getBindGroupLayout(0);
 	}
 
 	public function getConstantLocation(name:String):ConstantLocation {
@@ -136,10 +129,10 @@ private class Shader implements IShader {
 
 	public function new(driver:WGPUDriver, desc:ShaderDesc) {
 		this.desc = desc;
-		module = driver.device.createShaderModule(({
-			code: new Uint32Array(haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-webgpu').getData()),
+		module = driver.device.createShaderModule({
+			code: cast new Uint32Array(haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-webgpu').getData()),
 			label: 'arcane-${desc.id}'
-		} : wgpu.GPUShaderModuleDescriptorSPIRV));
+		});
 	}
 
 	public function dispose() {}
@@ -170,7 +163,7 @@ private class VertexBuffer implements IVertexBuffer {
 		trace(stride, buf_stride, desc.size, buf_stride * desc.size);
 		buffer = driver.device.createBuffer({
 			size: desc.size * buf_stride,
-			usage: VERTEX,
+			usage: VERTEX | COPY_DST,
 			mappedAtCreation: true
 		});
 	}
@@ -183,15 +176,10 @@ private class VertexBuffer implements IVertexBuffer {
 		return cast buf_stride / 4;
 	}
 
-	// static final mutex = js.Syntax.construct(untyped SharedArrayBuffer, 1); // (untyped new SharedArrayBuffer(1));
-
 	public function upload(start:Int, arr:Float32Array):Void {
-		// buffer.mapAsync(WRITE).then(_ -> {
 		new js.lib.Float32Array(buffer.getMappedRange()).set(cast arr);
 		buffer.unmap();
-		// untyped Atomics.wait(mutex, 0);
-		// });
-		// driver.device.queue.writeBuffer(buffer, 0, arr, 0, buf_stride * desc.size);
+		// driver.device.queue.writeBuffer(buffer, 0, cast arr, 0, buf_stride * desc.size);
 	}
 
 	public function map(start:Int, range:Int):Float32Array {
@@ -217,10 +205,12 @@ private class IndexBuffer implements IIndexBuffer {
 		});
 	}
 
-	public function dispose() {}
+	public function dispose() {
+		buffer.destroy();
+	}
 
 	public function upload(start:Int, arr:Int32Array):Void {
-		driver.device.queue.writeBuffer(buffer, 0, arr);
+		driver.device.queue.writeBuffer(buffer, 0, cast arr);
 	}
 
 	public function map(start:Int, range:Int):Int32Array {
@@ -236,20 +226,23 @@ private class Texture implements ITexture {
 	public final texture:GPUTexture;
 	public final view:GPUTextureView;
 
+	final driver:WGPUDriver;
+
 	public function new(driver:WGPUDriver, desc:TextureDesc) {
 		this.desc = desc;
+		this.driver = driver;
 		texture = driver.device.createTexture({
 			size: {
 				width: desc.width,
 				height: desc.height,
-				depth: 0
+				depthOrArrayLayers: 0
 			},
 			format: switch desc.format {
 				case RGBA: RGBA8UNORM;
 				case BGRA: BGRA8UNORM;
 				case ARGB: throw "assert";
 			},
-			usage: desc.isRenderTarget ? RENDER_ATTACHMENT : COPY_DST
+			usage: (desc.isRenderTarget ? RENDER_ATTACHMENT : COPY_DST) | TEXTURE_BINDING
 		});
 		view = texture.createView();
 	}
@@ -258,7 +251,10 @@ private class Texture implements ITexture {
 		texture.destroy();
 	}
 
-	public function upload(bytes:haxe.io.Bytes):Void {}
+	public function upload(bytes:haxe.io.Bytes):Void {
+		// driver.encoder.
+		driver.device.queue.writeTexture({texture: texture}, @:privateAccess bytes.b, {}, {width: this.desc.width, height: this.desc.height});
+	}
 }
 
 private class RenderPass implements IRenderPass {
@@ -274,13 +270,13 @@ private class RenderPass implements IRenderPass {
 			colorAttachments: [
 				for (a in desc.colorAttachments)
 					{
-						view: a.texture == null ? driver.getCurrentTexture().createView() : (cast a.texture : Texture).texture.createView(),
+						view: a.texture == null ? cast driver.currentTextureView : (cast a.texture : Texture).texture.createView(),
 						loadValue: switch a.load {
 							case Clear if (a.loadValue != null): ({
-									r: (cast a.loadValue : arcane.common.Color).r / 0xFF,
-									g: (cast a.loadValue : arcane.common.Color).g / 0xFF,
-									b: (cast a.loadValue : arcane.common.Color).b / 0xFF,
-									a: (cast a.loadValue : arcane.common.Color).a / 0xFF
+									r: a.loadValue.r / 0xFF,
+									g: a.loadValue.g / 0xFF,
+									b: a.loadValue.b / 0xFF,
+									a: a.loadValue.a / 0xFF
 								} : wgpu.GPUColorDict);
 							case Clear: {
 									r: 0.0,
@@ -291,14 +287,17 @@ private class RenderPass implements IRenderPass {
 							case Load: "load";
 						},
 						storeOp: switch a.store {
-							case Store: Store;
-							case Discard: Discard;
+							case Store: STORE;
+							case Discard: DISCARD;
 						}
 					}
 			]});
 	}
 
+	var curPipeline:Pipeline = cast null;
+
 	public function setPipeline(p:IPipeline) {
+		curPipeline = cast p;
 		renderPass.setPipeline((cast p : Pipeline).pipeline);
 	}
 
@@ -312,14 +311,34 @@ private class RenderPass implements IRenderPass {
 	}
 
 	public function setIndexBuffer(buffer:IIndexBuffer) {
-		renderPass.setIndexBuffer((cast buffer : IndexBuffer).buffer, buffer.desc.is32 ? UInt32 : UInt16);
+		renderPass.setIndexBuffer((cast buffer : IndexBuffer).buffer, buffer.desc.is32 ? UINT32 : UINT16);
 	}
 
-	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {
-		// driver.device.createBindGroup()
-	}
+	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {}
 
-	public function setConstantLocation(l:IConstantLocation, f:Float32Array) {}
+	public function setConstantLocation(l:IConstantLocation, f:Float32Array) {
+		var f:js.lib.Float32Array = cast f;
+		renderPass.setBindGroup(0, driver.device.createBindGroup({
+			layout: curPipeline.pipeline.getBindGroupLayout(0),
+			entries: [
+				{
+					binding: 0,
+					resource: {
+						buffer: {
+							var buf = driver.device.createBuffer({
+								size: f.byteLength,
+								usage: UNIFORM,
+								mappedAtCreation: true
+							});
+							new js.lib.Float32Array(buf.getMappedRange()).set(f);
+							buf.unmap();
+							buf;
+						}
+					}
+				}
+			]
+		}));
+	}
 
 	public function draw(start:Int, count:Int) {
 		renderPass.drawIndexed(count, 1, start);
@@ -341,15 +360,21 @@ class WGPUDriver implements IGraphicsDriver {
 	public final uintIndexBuffers:Bool = true;
 
 	final canvas:CanvasElement;
-	final context:GPUPresentationContext;
+	final context:GPUCanvasContext;
 	final adapter:GPUAdapter;
 	final device:GPUDevice;
 	final preferredFormat:GPUTextureFormat;
 	final getCurrentTexture:() -> GPUTexture;
 
+	/**The texture of the the current swapchain image**/
+	var currentTexture:Null<GPUTexture>;
+
+	/**The texture view of the the current swapchain image**/
+	var currentTextureView:Null<GPUTextureView>;
+
 	var encoder:Null<GPUCommandEncoder>;
 
-	public function new(canvas:CanvasElement, context:GPUPresentationContext, adapter:GPUAdapter, device:GPUDevice) {
+	public function new(canvas:CanvasElement, context:GPUCanvasContext, adapter:GPUAdapter, device:GPUDevice) {
 		untyped console.log(canvas, context, adapter, device);
 		this.canvas = canvas;
 		this.context = context;
@@ -357,7 +382,7 @@ class WGPUDriver implements IGraphicsDriver {
 		this.device = device;
 
 		this.preferredFormat = try context.getPreferredFormat(adapter) catch (_) untyped context.getSwapChainPreferredFormat(adapter);
-		final presentationConfiguration:GPUPresentationConfiguration = {
+		final presentationConfiguration:GPUCanvasConfiguration = {
 			device: device,
 			format: preferredFormat,
 			usage: RENDER_ATTACHMENT
@@ -366,7 +391,7 @@ class WGPUDriver implements IGraphicsDriver {
 			context.configure(presentationConfiguration);
 			context.getCurrentTexture;
 		} catch (_) {
-			final swapChain:wgpu.GPUSwapChain = untyped context.configureSwapChain(presentationConfiguration);
+			final swapChain = untyped context.configureSwapChain(presentationConfiguration);
 			swapChain.getCurrentTexture;
 		}
 		device.lost.then(error -> (untyped console).error("WebGPU device lost", error.message, error.reason));
@@ -386,6 +411,8 @@ class WGPUDriver implements IGraphicsDriver {
 	}
 
 	public function begin() {
+		currentTexture = getCurrentTexture();
+		currentTextureView = @:nullSafety(Off) currentTexture.createView();
 		encoder = device.createCommandEncoder();
 	}
 
@@ -396,7 +423,10 @@ class WGPUDriver implements IGraphicsDriver {
 		}
 	}
 
-	public function flush() {}
+	public function flush() {
+		end();
+		// device.queue.onSubmittedWorkDone().
+	}
 
 	public function present() {}
 

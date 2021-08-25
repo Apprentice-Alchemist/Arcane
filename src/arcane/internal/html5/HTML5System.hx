@@ -1,5 +1,7 @@
 package arcane.internal.html5;
 
+import haxe.MainLoop;
+import haxe.EntryPoint;
 import arcane.system.IAudioDriver;
 import haxe.crypto.Base64;
 import haxe.io.Bytes;
@@ -25,7 +27,8 @@ class HTML5System implements ISystem {
 		if (!js.Browser.supported)
 			throw "expected a browser environment";
 		var cdef = (haxe.macro.Compiler.getDefine("arcane.html5.canvas") : Null<String>);
-		if(cdef == null) cdef = "arcane";
+		if (cdef == null)
+			cdef = "arcane";
 		canvas = cast js.Browser.window.document.getElementById(cdef);
 		if (canvas == null) {
 			throw 'Could not find canvas with id ${cdef}.';
@@ -74,29 +77,37 @@ class HTML5System implements ISystem {
 
 		#if wgpu_externs
 		if (js.Syntax.typeof(untyped navigator.gpu) != "undefined") {
-			(untyped navigator.gpu : wgpu.GPU).requestAdapter().then(adapter -> {
-				if (adapter != null) {
-					gpuAdapter = adapter;
-					adapter.requestDevice({
-						label: "arcane"
-					});
-				} else {
-					throw "Null adapter.";
-				}
-			}).then(device -> {
-				var context = canvas.getContext("webgpu");
-				if (context == null)
-					context = canvas.getContext("gpupresent");
-				if (context == null) {
-					js.Browser.console.error("Could not aquire the WebGPU context of the canvas.");
-				} else {
-					gdriver = new WGPUDriver(canvas, context, cast gpuAdapter, device);
-				}
-				cb();
-				js.Browser.window.requestAnimationFrame(update);
-			}).catchError(e -> {
-				js.Browser.console.error("Could not aquire a WebGPU context.", e);
-			});
+			(untyped navigator.gpu : wgpu.GPU).requestAdapter()
+				.then(adapter -> {
+					if (adapter != null) {
+						gpuAdapter = adapter;
+						adapter.requestDevice({
+							label: "arcane"
+						});
+					} else {
+						throw "Null adapter.";
+					}
+				})
+				.then(device -> {
+					var context = canvas.getContext("webgpu");
+					if (context == null)
+						context = canvas.getContext("gpupresent");
+					if (context == null) {
+						js.Browser.console.error("Could not aquire the WebGPU context of the canvas.");
+					} else {
+						gdriver = new WGPUDriver(canvas, context, cast gpuAdapter, device);
+					}
+				})
+				.catchError(e -> {
+					js.Browser.console.error("Could not aquire a WebGPU context.", e);
+				})
+				.then(_ -> {
+					cb();
+					// MainLoop.add(() -> update(0));
+					js.Browser.window.requestAnimationFrame(update);
+					return;
+				})
+				.catchError(e -> untyped console.error(e));
 		} else {
 		#end
 			var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});

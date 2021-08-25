@@ -1,6 +1,6 @@
 -cp test
 -cp src
--main Triangle
+-main Main
 -lib kinc
 -lib format
 
@@ -17,9 +17,8 @@
 # -D hl-hot-reload
 # -D vulkan
 
---macro nullSafety("arcane",Strict)
---macro nullSafety("asl",Strict)
---macro nullSafety("a2d",Strict)
+--macro nullSafety("arcane",StrictThreaded)
+--macro nullSafety("asl",StrictThreaded)
 
 
 -hl out/out.hl

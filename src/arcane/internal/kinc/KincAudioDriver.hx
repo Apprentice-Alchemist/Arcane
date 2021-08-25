@@ -9,10 +9,9 @@ import arcane.system.IAudioDriver;
 
 @:structInit
 class AudioBuffer implements IAudioBuffer {
-	public var data:Bytes;
-
-	// public var left:Bytes;
-	// public var right:Bytes;
+	// public var data:Bytes;
+	public var left:Bytes;
+	public var right:Bytes;
 	public var samples:Int;
 	public var sampleRate:Int;
 	public var channels:Int;
@@ -38,7 +37,7 @@ typedef OggFile = hl.Abstract<"fmt_ogg">;
 #end
 
 class KincAudioDriver implements IAudioDriver {
-	static final sources:Array<AudioSource> = [];
+	static final sources:Array<Null<AudioSource>> = [];
 	static final mutex = new sys.thread.Mutex();
 
 	static inline function lerp(a:Float, b:Float, w:Float) {
@@ -64,17 +63,25 @@ class KincAudioDriver implements IAudioDriver {
 	static var sample_rate = 0;
 
 	static function mix(abuffer:kinc.audio2.Buffer, samples:Int) {
-		for (_ in 0...samples) {
-			// var left = (i % 2) == 0;
+		for (i in 0...samples) {
+			var left = (i % 2) == 0;
 			var value:Float = 0.0;
 			mutex.acquire();
 			for (source in sources) {
+				if (source == null)
+					continue;
 				final buffer = source.buffer;
-				value += sampleLinear(buffer.data, source.position);
-				// if (!left)
-				source.position += (buffer.sampleRate / sample_rate);
+				final pos = source.position;
+				value += sampleLinear(left ? buffer.left : buffer.right, pos);
+
+				value = value > 1.0 ? 1.0 : value < -1.0 ? -1.0 : value;
+				if (!left)
+					source.position += (buffer.sampleRate / sample_rate);
 				if (source.position + 1 >= buffer.samples) {
-					source.position = 0;
+					if (source.loop)
+						source.position = 0;
+					else
+						sources[sources.indexOf(source)] = null;
 				}
 			}
 			mutex.release();
@@ -85,12 +92,11 @@ class KincAudioDriver implements IAudioDriver {
 		}
 	}
 
-	var sampling_rate:Int;
-
 	public function new() {
 		Audio.init();
 		Audio.setCallback(mix);
-		sampling_rate = sample_rate = Audio.getSamplesPerSecond();
+		sample_rate = Audio.getSamplesPerSecond();
+		// trace(sample_rate);
 		mutex.acquire();
 		sources.resize(0);
 		mutex.release();
@@ -145,15 +151,21 @@ class KincAudioDriver implements IAudioDriver {
 				var frequency = s.format.samples_per_second;
 				var channels = s.format.channels;
 				var samples = Std.int(s.size);
-				var output = Bytes.alloc(s.size * 4);
-				var out:hl.BytesAccess<hl.UI16> = output;
-				for (i in 0...s.size) {
-					out[i * 2] = s.left[i];
-					out[i * 2 + 1] = s.right[i];
-				}
+				// var output = Bytes.alloc(s.size * 4);
+				// var out:hl.BytesAccess<hl.UI16> = output;
+				// for (i in 0...s.size) {
+				// 	out[i * 2] = s.left[i];
+				// 	out[i * 2 + 1] = s.right[i];
+				// }
+				var left = Bytes.alloc(s.size * 2);
+				var right = Bytes.alloc(s.size * 2);
+				(left : hl.Bytes).blit(0, s.left, 0, left.length);
+				(right : hl.Bytes).blit(0, s.right, 0, right.length);
 				s.destroy();
 				({
-					data: output,
+					// data: output,
+					left: left,
+					right: right,
 					samples: samples,
 					sampleRate: frequency,
 					channels: channels
@@ -161,32 +173,42 @@ class KincAudioDriver implements IAudioDriver {
 				#end
 			} else if (StringTools.endsWith(s, "wav")) {
 				var bytes = KincSystem.readFileInternal(s);
-				if(bytes == null) cb(Err("not found"));
+				if (bytes == null)
+					cb(Err("not found"));
 				final data = new format.wav.Reader(new haxe.io.BytesInput(cast bytes)).read();
 				final header = data.header;
 				final samples = Std.int(data.data.length / (header.channels * header.bitsPerSample / 8));
-				({
-					data: data.data,
-					samples: samples,
-					sampleRate: header.samplingRate,
-					channels: header.channels
-				} : AudioBuffer);
+				// ({
+				// 	data: data.data,
+				// 	samples: samples,
+				// 	sampleRate: header.samplingRate,
+				// 	channels: header.channels
+				// } : AudioBuffer);
+				cast null;
 			} else
 				throw "";
 		}, (b:AudioBuffer) -> cb(Ok(b)), e -> throw e);
 	}
 
 	public function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {
-		var s:AudioSource = {
+		var source:AudioSource = {
 			buffer: cast buffer,
 			volume: volume,
 			pitch: pitch,
 			loop: loop
 		};
 		mutex.acquire();
-		sources.push(s);
+		var found = false;
+		for (i => s in sources)
+			if (s == null) {
+				found = true;
+				sources[i] = s;
+				break;
+			}
+		if (!found)
+			sources.push(source);
 		mutex.release();
-		return s;
+		return source;
 	}
 
 	public function getVolume(i:IAudioSource) return 1.0;

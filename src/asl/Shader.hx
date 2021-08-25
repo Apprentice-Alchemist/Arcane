@@ -2,6 +2,7 @@ package asl;
 
 import arcane.system.IGraphicsDriver;
 import haxe.io.Bytes;
+import asl.Ast;
 
 /**
  * Shader base class, extend and use @:vertex and @:fragment metadata to supply glsl source code.
@@ -12,9 +13,13 @@ import haxe.io.Bytes;
 #end
 class Shader {
 	public final id:String;
+	public final vertex:ShaderModule;
+	public final fragment:ShaderModule;
 
-	public function new(id:String) {
+	public function new(id:String, vertex:ShaderModule, fragment:ShaderModule) {
 		this.id = id;
+		this.vertex = vertex;
+		this.fragment = fragment;
 	}
 
 	public function make(d:IGraphicsDriver) {

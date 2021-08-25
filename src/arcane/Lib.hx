@@ -65,6 +65,7 @@ class Lib {
 	static function handle_update(dt:Float):Void {
 		fps = 1 / (dt);
 		// Ensure haxe.Timer works
+		#if !js
 		#if ((target.threaded && !cppia) && haxe >= version("4.2.0"))
 		// MainLoop.tick() is automatically called by the main thread's event loop.
 		#if (arcane_event_loop_array && !eval)
@@ -75,6 +76,7 @@ class Lib {
 		#end
 		#else
 		@:privateAccess haxe.MainLoop.tick();
+		#end
 		#end
 		update.trigger(dt);
 		#if hl_profile

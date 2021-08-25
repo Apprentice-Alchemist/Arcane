@@ -58,9 +58,9 @@ class ThreadPool {
 
 	/**
 	 * Add a task to be executed on another thread.
-	 * @param execute
-	 * @param complete
-	 * @param err
+	 * @param execute Callback that will be called on another thread.
+	 * @param complete Callback that will be executed on the main thread.
+	 * @param err Optional function to handle exceptions.
 	 */
 	public function addTask<R>(execute:() -> R, complete:R->Void, ?err:haxe.Exception->Void):Void {
 		final error:haxe.Exception->Void = err == null ? e -> Log.error("Unhandled exception in threadpool : " + e.message) : err;

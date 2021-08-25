@@ -86,80 +86,80 @@ enum Operation {
 }
 
 typedef VertexAttribute = {
-	var name:String;
-	var kind:VertexData;
+	final name:String;
+	final kind:VertexData;
 }
 
 typedef InputLayout = Array<{
-	var instanced:Bool;
-	var attributes:Array<VertexAttribute>;
+	final instanced:Bool;
+	final attributes:Array<VertexAttribute>;
 }>;
 
 @:structInit class BlendDesc {
-	public var src:Blend = One;
-	public var dst:Blend = Zero;
-	public var alphaSrc:Blend = One;
-	public var alphaDst:Blend = Zero;
-	public var op:Operation = Add;
-	public var alphaOp:Operation = Add;
+	public final src:Blend = One;
+	public final dst:Blend = Zero;
+	public final alphaSrc:Blend = One;
+	public final alphaDst:Blend = Zero;
+	public final op:Operation = Add;
+	public final alphaOp:Operation = Add;
 }
 
 @:structInit class StencilDesc {
-	public var readMask:Int = 0xff;
-	public var writeMask:Int = 0xff;
-	public var reference:Int = 0;
+	public final readMask:Int = 0xff;
+	public final writeMask:Int = 0xff;
+	public final reference:Int = 0;
 
-	public var frontTest:Compare = Always;
-	public var frontPass:StencilOp = Keep;
-	public var frontSTfail:StencilOp = Keep;
-	public var frontDPfail:StencilOp = Keep;
+	public final frontTest:Compare = Always;
+	public final frontPass:StencilOp = Keep;
+	public final frontSTfail:StencilOp = Keep;
+	public final frontDPfail:StencilOp = Keep;
 
-	public var backTest:Compare = Always;
-	public var backPass:StencilOp = Keep;
-	public var backSTfail:StencilOp = Keep;
-	public var backDPfail:StencilOp = Keep;
+	public final backTest:Compare = Always;
+	public final backPass:StencilOp = Keep;
+	public final backSTfail:StencilOp = Keep;
+	public final backDPfail:StencilOp = Keep;
 }
 
 @:structInit class PipelineDesc {
-	public var blend:BlendDesc = {};
-	public var stencil:StencilDesc = {};
-	public var culling:Face = None;
-	public var depthWrite:Bool = false;
-	public var depthTest:Compare = Always;
-	public var inputLayout:InputLayout;
-	public var vertexShader:IShader;
-	public var fragmentShader:IShader;
+	public final blend:BlendDesc = {};
+	public final stencil:StencilDesc = {};
+	public final culling:Face = None;
+	public final depthWrite:Bool = false;
+	public final depthTest:Compare = Always;
+	public final inputLayout:InputLayout;
+	public final vertexShader:IShader;
+	public final fragmentShader:IShader;
 }
 
 @:structInit class VertexBufferDesc {
-	public var attributes:Array<VertexAttribute>;
-	public var instanceDataStepRate:Int = 0;
-	public var size:Int;
-	public var dyn:Bool = true;
+	public final attributes:Array<VertexAttribute>;
+	public final instanceDataStepRate:Int = 0;
+	public final size:Int;
+	public final dyn:Bool = true;
 }
 
 @:structInit class IndexBufferDesc {
-	public var size:Int;
-	public var is32:Bool = true;
+	public final size:Int;
+	public final is32:Bool = true;
 }
 
 @:structInit class TextureDesc {
-	public var width:Int;
-	public var height:Int;
-	public var format:arcane.Image.PixelFormat;
-	public var data:Null<haxe.io.Bytes> = null;
-	public var isRenderTarget:Bool = false;
+	public final width:Int;
+	public final height:Int;
+	public final format:arcane.Image.PixelFormat;
+	public final data:Null<haxe.io.Bytes> = null;
+	public final isRenderTarget:Bool = false;
 }
 
 @:structInit class ShaderDesc {
-	public var id:String;
+	public final id:String;
 
 	/**
 	 * The kind of shader.
 	 */
-	public var kind:ShaderKind;
+	public final kind:ShaderKind;
 
-	// @:optional public var fromGlslSrc:Bool = false;
+	// @:optional public final fromGlslSrc:Bool = false;
 }
 
 enum LoadOp {
@@ -173,16 +173,18 @@ enum StoreOp {
 }
 
 @:structInit class ColorAttachment {
-	@:optional public var texture:Null<ITexture>;
+	@:optional public final texture:Null<ITexture>;
 
-	public var load:LoadOp;
-	public var store:StoreOp;
+	public final load:LoadOp;
+	public final store:StoreOp;
 
-	@:optional public var loadValue:Null<Color>;
+	@:optional public final loadValue:Null<Color>;
 }
 
 @:structInit class RenderPassDesc {
-	public var colorAttachments:Array<ColorAttachment>;
+	public final colorAttachments:Array<ColorAttachment>;
+	// public final stencilAttachment:StencilAttachment;
+	// public final depthAttachment:DepthAttachment;
 }
 
 private interface IDisposable {

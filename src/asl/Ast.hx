@@ -1,21 +1,38 @@
 package asl;
 
-typedef ComplexType = haxe.macro.Expr.ComplexType;
+/**
+	Represents a position in a file.
+**/
+typedef Position = {
+	/**
+		Reference to the filename.
+	**/
+	var file:String;
+
+	/**
+		Position of the first character.
+	**/
+	var min:Int;
+
+	/**
+		Position of the last character.
+	**/
+	var max:Int;
+}
 
 enum Type {
 	TVoid;
 	TBool;
 	TInt;
 	TFloat;
+	TVec(t:Type, size:Int);
+	TMat(t:Type, size:Int);
+	TArray(t:Type, ?size:Int);
+	TStruct(fields:Array<{name:String, type:Type}>);
 
-	TVec2(t:Type);
-	TVec3(t:Type);
-	TVec4(t:Type);
-	TMat2(t:Type);
-	TMat3(t:Type);
-	TMat4(t:Type);
-
-	TArray(t:Type,?size:Int);
+	TSampler2D;
+	TSampler2DArray;
+	TSamplerCube;
 }
 
 // Geometry, tesselation and co aren't supported on webgpu/webgl, compute isn't supported on webgl.
@@ -25,22 +42,34 @@ enum ShaderStage {
 	Compute;
 }
 
-@:structInit class ShaderModule {
+enum abstract Builtin(String) from String {
+	var position;
+	var instanceIndex;
+
+	public static function fromString(s:String):Builtin {
+		return cast switch (cast s : Builtin) {
+			case position, instanceIndex: s;
+			case _:
+				throw "unknown builtin";
+		}
+	}
+
+	public function kind(stage:ShaderStage):TVarKind {
+		return switch (cast this : Builtin) {
+			case position: Output;
+			case instanceIndex: Input;
+		}
+	}
+}
+
+typedef ShaderModule = {
 	final stage:ShaderStage;
-	final inputs:Array<{
-		var name:String;
-		var type:Type;
-	}>;
-	final outputs:Array<{
-		var name:String;
-		var type:Type;
-	}>;
-	final uniforms:Array<{
-		var name:String;
-		var type:String;
-	}>;
+	final inputs:Array<TVar>;
+	final outputs:Array<TVar>;
+	final uniforms:Array<TVar>;
 	final functions:Array<{
 		var name:String;
+		var args:Array<TVar>;
 		var ret:Type;
 		var expr:TypedExpr;
 	}>;
@@ -59,7 +88,7 @@ typedef TypedExpr = {
 	/**
 		The position of the expression.
 	**/
-	var pos:haxe.macro.Expr.Position;
+	var pos:Position;
 
 	/**
 		The type of the expression.
@@ -101,7 +130,7 @@ enum TVarKind {
 	Input;
 	Output;
 	Local;
-	Global;
+	Uniform;
 }
 
 /**
@@ -124,10 +153,7 @@ typedef TVar = {
 	public var t(default, never):Type;
 
 	public var kind:TVarKind;
-	/**
-		The metadata of the variable.
-	**/
-	public var meta(default, never):Null<haxe.macro.Type.MetaAccess>;
+	@:optional public var builtin:Builtin;
 }
 
 /**
@@ -155,32 +181,7 @@ typedef TFunc = {
 	Represents the kind of field access in the typed AST.
  */
 enum FieldAccess {
-	// /**
-	// 	Access of field `cf` on a class instance `c` with type parameters
-	// 	`params`.
-	// **/
-	// FInstance(c:Ref<ClassType>, params:Array<Type>, cf:Ref<ClassField>);
-	// /**
-	// 	Static access of a field `cf` on a class `c`.
-	// **/
-	// FStatic(c:Ref<ClassType>, cf:Ref<ClassField>);
-	// /**
-	// 	Access of field `cf` on an anonymous structure.
-	// **/
-	// FAnon(cf:Ref<ClassField>);
-	// /**
-	// 	Dynamic field access of a field named `s`.
-	// **/
-	// FDynamic(s:String);
-	// /**
-	// 	Closure field access of field `cf` on a class instance `c` with type
-	// 	parameters `params`.
-	// **/
-	// FClosure(c:Null<{c:Ref<ClassType>, params:Array<Type>}>, cf:Ref<ClassField>);
-	// /**
-	// 	Field access to an enum constructor `ef` of enum `e`.
-	// **/
-	// FEnum(e:Ref<EnumType>, ef:EnumField);
+	FMat(x:Int, ?y:Int);
 }
 
 enum TypedExprDef {
@@ -278,7 +279,7 @@ enum TypedExprDef {
 		Represents a `switch` expression with related cases and an optional
 		`default` case if edef != null.
 	**/
-	TSwitch(e:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:Null<TypedExpr>);
+	// TSwitch(e:TypedExpr, cases:Array<{values:Array<TypedExpr>, expr:TypedExpr}>, edef:Null<TypedExpr>);
 
 	/**
 		A `return` or `return e` expression.
@@ -300,8 +301,12 @@ enum TypedExprDef {
 	**/
 	TMeta(m:haxe.macro.Expr.MetadataEntry, e1:TypedExpr);
 
-	/**
-		An unknown identifier.
-	**/
-	TIdent(s:String);
+	TSwiz(e:TypedExpr, components:Array<Component>);
+}
+
+enum Component {
+	X;
+	Y;
+	Z;
+	W;
 }

@@ -192,7 +192,7 @@ private class Shader implements IShader {
 		if ((driver.gl.getShaderParameter(shader, GL.COMPILE_STATUS) != cast 1)) {
 			(untyped console).error(log);
 			(untyped console).info(data);
-			throw "Shader Compilation Error, check the console.";
+			// throw "Shader Compilation Error, check the console.";
 		}
 	}
 
@@ -222,7 +222,7 @@ private class ConstantLocation implements IConstantLocation {
 	}
 
 	function toString() {
-		return '#ConstantLocation : $name with $type at uniform $uniform';
+		return 'ConstantLocation($name,$type)';
 	}
 }
 
@@ -238,7 +238,7 @@ private class TextureUnit implements ITextureUnit {
 	}
 
 	function toString() {
-		return '#TextureUnit : $name at $index';
+		return 'TextureUnit($name,$index)';
 	}
 }
 
@@ -282,16 +282,20 @@ private class Pipeline implements IPipeline {
 		for (i in 0...loc_count) {
 			var info = driver.gl.getActiveUniform(program, i);
 			var uniform = driver.gl.getUniformLocation(program, info.name);
+			var name = info.name.charAt(info.name.length - 1) == "]" ? info.name.substr(0, info.name.length - 3) : info.name;
+			var n = name.split(".");
+			n.shift();
+			name = n.join("");
 			if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE)
-				tus.push(new TextureUnit(info.name, tus.length, uniform));
+				tus.push(new TextureUnit(name, tus.length, uniform));
 			else
-				locs.push(new ConstantLocation(info.name, info.type, uniform));
+				locs.push(new ConstantLocation(name, info.type, uniform));
 		}
 	}
 
 	public function getConstantLocation(name:String):IConstantLocation {
 		for (i in locs)
-			if (i.name == name || i.name == (name + "[0]"))
+			if (i.name == name)
 				return i;
 		Log.warn("Uniform " + name + " not found.");
 		@:nullSafety(Off) return new ConstantLocation("invalid", -1, null);
@@ -675,10 +679,6 @@ class WebGLDriver implements IGraphicsDriver {
 
 	var gl2(get, never):GL2;
 	var hasGL2:Bool;
-
-	// var curVertexBuffer:Null<VertexBuffer>;
-	// var curIndexBuffer:Null<IndexBuffer>;
-	// var curPipeline:Null<Pipeline>;
 
 	inline function get_gl2():GL2 return cast gl;
 

@@ -13,8 +13,8 @@ import arcane.util.Log;
 class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
 
-	public var buf:Null<kinc.g4.VertexBuffer>;
-	public var struc:Null<kinc.g4.VertexStructure>;
+	public var buf:kinc.g4.VertexBuffer;
+	public var struc:kinc.g4.VertexStructure;
 
 	public function new(desc:VertexBufferDesc) {
 		this.desc = desc;
@@ -44,7 +44,7 @@ class VertexBuffer implements IVertexBuffer {
 		assert(v != null);
 		assert(arr != null);
 		assert(arr.length > 0);
-		trace(v, arr.length);
+		// trace(v, arr.length);
 		for (i in 0...arr.length)
 			v[i] = arr[i];
 		@:nullSafety(Off) buf.unlockAll();
@@ -68,19 +68,15 @@ class VertexBuffer implements IVertexBuffer {
 	}
 
 	public function dispose() {
-		if (buf != null)
-			buf.destroy();
-		if (struc != null)
-			struc.destroy();
-		buf = null;
-		struc = null;
+		buf.destroy();
+		struc.destroy();
 	}
 }
 
 class IndexBuffer implements IIndexBuffer {
 	public var desc(default, null):IndexBufferDesc;
 
-	public var buf:Null<kinc.g4.IndexBuffer>;
+	public final buf:kinc.g4.IndexBuffer;
 
 	public function new(desc:IndexBufferDesc) {
 		this.desc = desc;
@@ -111,10 +107,7 @@ class IndexBuffer implements IIndexBuffer {
 	}
 
 	public function dispose() {
-		if (buf != null) {
-			buf.destroy();
-			buf = null;
-		}
+		buf.destroy();
 	}
 }
 
@@ -122,8 +115,8 @@ class IndexBuffer implements IIndexBuffer {
 class Texture implements ITexture {
 	public var desc(default, null):TextureDesc;
 
-	public var tex:Null<kinc.g4.Texture>;
-	public var renderTarget:Null<kinc.g4.RenderTarget>;
+	public final tex:Null<kinc.g4.Texture>;
+	public final renderTarget:Null<kinc.g4.RenderTarget>;
 
 	public function new(desc:TextureDesc) {
 		this.desc = desc;
@@ -142,17 +135,19 @@ class Texture implements ITexture {
 
 	public function upload(data:haxe.io.Bytes):Void {
 		assert(!desc.isRenderTarget && tex != null);
-		var t = tex.lock();
-		var stride = @:nullSafety(Off) tex.stride();
-		for (y in 0...desc.height) {
-			for (x in 0...desc.width) {
-				t[y * stride + x * 4 + 0] = data.get((y * desc.width + x) * 4 + 0);
-				t[y * stride + x * 4 + 1] = data.get((y * desc.width + x) * 4 + 1);
-				t[y * stride + x * 4 + 2] = data.get((y * desc.width + x) * 4 + 2);
-				t[y * stride + x * 4 + 3] = data.get((y * desc.width + x) * 4 + 4);
+		if (tex != null) @:nullSafety(Off) {
+			var t = tex.lock();
+			var stride = tex.stride();
+			for (y in 0...desc.height) {
+				for (x in 0...desc.width) {
+					t[y * stride + x * 4 + 0] = data.get((y * desc.width + x) * 4 + 0);
+					t[y * stride + x * 4 + 1] = data.get((y * desc.width + x) * 4 + 1);
+					t[y * stride + x * 4 + 2] = data.get((y * desc.width + x) * 4 + 2);
+					t[y * stride + x * 4 + 3] = data.get((y * desc.width + x) * 4 + 4);
+				}
 			}
+			tex.unlock();
 		}
-		@:nullSafety(Off) tex.unlock();
 	}
 
 	public function dispose():Void {
@@ -160,15 +155,13 @@ class Texture implements ITexture {
 			tex.destroy();
 		if (renderTarget != null)
 			renderTarget.destroy();
-		tex = null;
-		renderTarget = null;
 	}
 }
 
 class Shader implements IShader {
 	public var desc(default, null):ShaderDesc;
 
-	public var shader:kinc.g4.Shader;
+	public final shader:kinc.g4.Shader;
 
 	public function new(desc:ShaderDesc) {
 		this.desc = desc;
@@ -213,13 +206,13 @@ class Shader implements IShader {
 }
 
 class TextureUnit implements ITextureUnit {
-	public var tu:kinc.g4.TextureUnit;
+	public final tu:kinc.g4.TextureUnit;
 
 	public function new(tu) this.tu = tu;
 }
 
 class ConstantLocation implements IConstantLocation {
-	public var cl:kinc.g4.ConstantLocation;
+	public final cl:kinc.g4.ConstantLocation;
 
 	public function new(cl) this.cl = cl;
 }
@@ -227,11 +220,11 @@ class ConstantLocation implements IConstantLocation {
 class Pipeline implements IPipeline {
 	public var desc(default, null):PipelineDesc;
 
-	public var state:Null<kinc.g4.Pipeline>;
+	public final state:kinc.g4.Pipeline;
 
 	public function new(desc:PipelineDesc) {
 		this.desc = desc;
-		var state = new kinc.g4.Pipeline();
+		state = new kinc.g4.Pipeline();
 
 		assert(desc.vertexShader.desc.kind.match(Vertex));
 		assert(desc.fragmentShader.desc.kind.match(Fragment));
@@ -277,8 +270,6 @@ class Pipeline implements IPipeline {
 		state.alpha_blend_destination = convertBlend(desc.blend.alphaDst);
 		state.blend_destination = convertBlend(desc.blend.dst);
 		state.compile();
-
-		this.state = state;
 	}
 
 	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingOperation {
@@ -329,21 +320,21 @@ class Pipeline implements IPipeline {
 		return new TextureUnit(if (state != null) state.getTextureUnit(name) else throw "Pipeline was disposed.");
 
 	public function dispose():Void {
-		if (state != null) {
-			state.destroy();
-			state = null;
-		}
+		state.destroy();
 	}
 }
 
 private class RenderPass implements IRenderPass {
 	public function new(desc:RenderPassDesc) {
-		if(desc.colorAttachments[0].texture == null) {
+		if (desc.colorAttachments[0].texture == null) {
 			Graphics4.restoreRenderTarget();
 		} else {
 			var targets = new hl.NativeArray<kinc.g4.RenderTarget>(desc.colorAttachments.length);
-			for(i => a in desc.colorAttachments)
-				targets[i] = cast (cast a.texture:Texture).renderTarget;
+			for (i => a in desc.colorAttachments) {
+				final rt = (cast a.texture : Texture).renderTarget;
+				assert(rt != null);
+				targets[i] = rt;
+			}
 			Graphics4.setRenderTargets(targets);
 		}
 		// var flags = 0;
@@ -356,22 +347,9 @@ private class RenderPass implements IRenderPass {
 		// var col:Int = col == null ? 0 : col;
 		// var depth:hl.F32 = depth == null ? 0 : (depth : Float);
 		// var stencil:hl.F32 = stencil == null ? 0 : (stencil : Float);
+		Graphics4.clear(1, 0xFF000000, 0, 0);
 		// Graphics4.clear(flags, col, depth, stencil);
 	}
-
-	// var renderTargets = new hl.NativeArray(8);
-
-	// public function setRenderTarget(?t:ITexture):Void {
-	// 	if (t == null) {
-	// 		Graphics4.restoreRenderTarget();
-	// 		return;
-	// 	}
-	// 	var rt:Texture = cast t;
-	// 	if (rt.desc.isRenderTarget && rt.renderTarget != null) {
-	// 		renderTargets[0] = rt.renderTarget;
-	// 		Graphics4.setRenderTargets(renderTargets);
-	// 	}
-	// }
 
 	public function setPipeline(p:IPipeline):Void {
 		var p:Pipeline = cast p;
@@ -388,8 +366,6 @@ private class RenderPass implements IRenderPass {
 		else
 			Log.warn("Trying to use disposed index buffer");
 	}
-
-	// var vertexBuffers = new hl.NativeArray<kinc.g4.VertexBuffer>(8);
 
 	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {
 		var buffers:Array<VertexBuffer> = cast buffers;
@@ -421,7 +397,6 @@ private class RenderPass implements IRenderPass {
 	}
 
 	public function setConstantLocation(cl:IConstantLocation, floats:Float32Array):Void {
-		// Graphics4.setFloats(cast(cl, ConstantLocation).cl, [for (f in floats) (f : Single)]);
 		@:privateAccess Graphics4.__setFloats(cast(cl, ConstantLocation).cl, (cast floats).b, floats.length);
 	}
 
@@ -449,13 +424,15 @@ class KincDriver implements IGraphicsDriver {
 
 	var window:Int;
 
+	public static final api:kinc.System.GraphicsApi = kinc.System.getGraphicsApi();
+
 	public function new(window:Int) {
 		this.window = window;
 		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
 	}
 
 	public function getName(details = false) {
-		return details ? "Kinc on " + kinc.System.getGraphicsApi().toString() : "Kinc";
+		return details ? "Kinc on " + api.toString() : "Kinc";
 	}
 
 	public function dispose():Void {};

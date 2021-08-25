@@ -1,10 +1,10 @@
 -cp test
 -cp src
--m Triangle
-
+-m Main
+-D eval-stack
 -lib wgpu-externs
 --macro arcane.internal.Macros.initSourceMaps()
---macro nullSafety("arcane",Strict)
---macro nullSafety("asl",Strict)
+--macro nullSafety("arcane",StrictThreaded)
+--macro nullSafety("asl",StrictThreaded)
 --debug
 -js out/html5/app.js
