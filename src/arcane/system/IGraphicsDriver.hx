@@ -4,6 +4,13 @@ import arcane.common.Color;
 import arcane.common.arrays.Float32Array;
 import arcane.common.arrays.Int32Array;
 
+enum Feature {
+	ComputeShaders;
+	UintIndexBuffers;
+	MultiRenderTargets;
+	FlippedRenderTarget;
+}
+
 enum ShaderKind {
 	Vertex;
 	Fragment;
@@ -187,6 +194,12 @@ enum StoreOp {
 	// public final depthAttachment:DepthAttachment;
 }
 
+@:structInit class ComputePassDesc {}
+
+@:structInit class ComputePipelineDesc {
+	public final shader:IShader;
+}
+
 private interface IDisposable {
 	/**
 	 * Dispose native resources. The object should not be used after this function has been called.
@@ -269,15 +282,22 @@ interface IRenderPass {
 	function end():Void;
 }
 
+interface IComputePipeline extends IDisposable extends IDescribed<ComputePipelineDesc> {}
+
+interface IComputePass {
+	function setPipeline(p:IComputePipeline):Void;
+	function compute(x:Int, y:Int, z:Int):Void;
+}
+
 interface IGraphicsDriver extends IDisposable {
-	final renderTargetFlipY:Bool;
-	final instancedRendering:Bool;
-	final uintIndexBuffers:Bool;
+	function hasFeature(f:Feature):Bool;
 
 	function getName(details:Bool = false):String;
 
-	function begin():Void;
-	// function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void;
+	/**
+	 * @return The current swapchain image
+	 */
+	function begin():ITexture;
 	function end():Void;
 	function flush():Void;
 	function present():Void;
@@ -289,4 +309,7 @@ interface IGraphicsDriver extends IDisposable {
 	function createPipeline(desc:PipelineDesc):IPipeline;
 
 	function beginRenderPass(desc:RenderPassDesc):IRenderPass;
+	
+	function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline;
+	function beginComputePass(desc:ComputePassDesc):IComputePass;
 }

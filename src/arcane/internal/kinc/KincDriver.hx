@@ -1,5 +1,6 @@
 package arcane.internal.kinc;
 
+import kinc.compute.ComputeShader;
 import arcane.common.arrays.ArrayBuffer;
 import arcane.system.IGraphicsDriver;
 import kinc.g4.Graphics4;
@@ -135,7 +136,8 @@ class Texture implements ITexture {
 
 	public function upload(data:haxe.io.Bytes):Void {
 		assert(!desc.isRenderTarget && tex != null);
-		if (tex != null) @:nullSafety(Off) {
+		if (tex != null)
+			@:nullSafety(Off) {
 			var t = tex.lock();
 			var stride = tex.stride();
 			for (y in 0...desc.height) {
@@ -324,9 +326,34 @@ class Pipeline implements IPipeline {
 	}
 }
 
+private class ComputePipeline implements IComputePipeline {
+	public var desc(default, null):ComputePipelineDesc;
+
+	public final shader:ComputeShader;
+
+	public function new(desc:ComputePipelineDesc) {
+		shader = cast null;
+		this.desc = desc;
+		// shader = new ComputeShader()
+	}
+
+	public function dispose() {}
+}
+
+private class ComputePass implements IComputePass {
+	public function new(desc:ComputePassDesc) {}
+
+	public function setPipeline(p:IComputePipeline) {}
+
+	public function compute(x:Int, y:Int, z:Int) {
+		kinc.compute.Compute.compute(x, y, z);
+	}
+}
+
 private class RenderPass implements IRenderPass {
 	public function new(desc:RenderPassDesc) {
-		if (desc.colorAttachments[0].texture == null) {
+		if (desc.colorAttachments[0].texture == KincDriver.dummyTex) {
+			assert(desc.colorAttachments.length == 1, "Rendering to swapchain image and extra targets at the same time is not supported right now.");
 			Graphics4.restoreRenderTarget();
 		} else {
 			var targets = new hl.NativeArray<kinc.g4.RenderTarget>(desc.colorAttachments.length);
@@ -431,14 +458,27 @@ class KincDriver implements IGraphicsDriver {
 		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
 	}
 
+	public function hasFeature(f:Feature):Bool {
+		return switch f {
+			case ComputeShaders: true;
+			case UintIndexBuffers: true;
+			case MultiRenderTargets: true;
+			case FlippedRenderTarget: Graphics4.renderTargetsInvertedY();
+		}
+	}
+
 	public function getName(details = false) {
 		return details ? "Kinc on " + api.toString() : "Kinc";
 	}
 
 	public function dispose():Void {};
 
-	public function begin():Void {
+	@:allow(arcane.internal.kinc)
+	static final dummyTex = Type.createEmptyInstance(Texture);
+
+	public function begin():ITexture {
 		Graphics4.begin(window);
+		return dummyTex;
 	}
 
 	public function end():Void {
@@ -475,5 +515,13 @@ class KincDriver implements IGraphicsDriver {
 
 	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
 		return new RenderPass(desc);
+	}
+
+	public function beginComputePass(desc:ComputePassDesc):IComputePass {
+		return new ComputePass(desc);
+	}
+
+	public function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline {
+		return new ComputePipeline(desc);
 	}
 }

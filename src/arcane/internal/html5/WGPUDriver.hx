@@ -1,40 +1,26 @@
 package arcane.internal.html5;
 
 #if wgpu_externs
-import wgpu.GPUBindGroupLayout;
-import wgpu.GPUCanvasConfiguration;
-import wgpu.GPUCanvasContext;
-import wgpu.GPUTextureView;
-import wgpu.GPUPipelineLayout;
-import js.lib.Uint32Array;
-import wgpu.GPUVertexAttribute;
-import wgpu.GPUVertexFormat;
-import wgpu.GPUVertexBufferLayout;
-import wgpu.GPURenderPassEncoder;
-import wgpu.GPUCommandEncoder;
-import wgpu.GPUBuffer;
-import wgpu.GPUShaderModule;
-import wgpu.GPURenderPipeline;
-import wgpu.GPUTexture;
-import wgpu.GPUTextureFormat;
-import wgpu.GPUDevice;
-import wgpu.GPUAdapter;
-import js.html.CanvasElement;
-import arcane.common.arrays.Int32Array;
 import arcane.common.arrays.Float32Array;
+import arcane.common.arrays.Int32Array;
 import arcane.system.IGraphicsDriver;
-import arcane.Utils.assert;
+import js.html.CanvasElement;
+import js.lib.Uint32Array;
+import wgpu.*;
 
 using arcane.Utils;
 
+@:nullSafety(Strict)
 private class TextureUnit implements ITextureUnit {
 	public function new() {}
 }
 
+@:nullSafety(Strict)
 private class ConstantLocation implements IConstantLocation {
 	public function new() {}
 }
 
+@:nullSafety(Strict)
 private class Pipeline implements IPipeline {
 	public var desc(default, null):PipelineDesc;
 
@@ -122,6 +108,7 @@ private class Pipeline implements IPipeline {
 	public function dispose() {}
 }
 
+@:nullSafety(Strict)
 private class Shader implements IShader {
 	public var desc(default, null):ShaderDesc;
 
@@ -138,6 +125,7 @@ private class Shader implements IShader {
 	public function dispose() {}
 }
 
+@:nullSafety(Strict)
 private class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDesc;
 
@@ -189,6 +177,7 @@ private class VertexBuffer implements IVertexBuffer {
 	public function unmap():Void {}
 }
 
+@:nullSafety(Strict)
 private class IndexBuffer implements IIndexBuffer {
 	public var desc(default, null):IndexBufferDesc;
 
@@ -220,6 +209,7 @@ private class IndexBuffer implements IIndexBuffer {
 	public function unmap():Void {}
 }
 
+@:nullSafety(Strict)
 private class Texture implements ITexture {
 	public var desc(default, null):TextureDesc;
 
@@ -257,6 +247,7 @@ private class Texture implements ITexture {
 	}
 }
 
+@:nullSafety(Strict)
 private class RenderPass implements IRenderPass {
 	public final renderPass:GPURenderPassEncoder;
 
@@ -353,12 +344,42 @@ private class RenderPass implements IRenderPass {
 	}
 }
 
+@:nullSafety(Strict)
+private class ComputePipeline implements IComputePipeline {
+	public var desc(default, null):ComputePipelineDesc;
+
+	final pipeline:GPUComputePipeline;
+
+	public function new(driver:WGPUDriver, desc:ComputePipelineDesc) {
+		this.desc = desc;
+		this.pipeline = driver.device.createComputePipeline({
+			compute: cast null
+		});
+	}
+
+	public function dispose() {}
+}
+
+@:nullSafety(Strict)
+private class ComputePass implements IComputePass {
+	final pass:GPUComputePassEncoder;
+	final encoder:GPUCommandEncoder;
+
+	public function new(driver:WGPUDriver, desc:ComputePassDesc) {
+		this.encoder = cast driver.encoder == null ? (throw "assert") : driver.encoder;
+		this.pass = encoder.beginComputePass();
+	}
+
+	public function setPipeline(p:IComputePipeline) {}
+
+	public function compute(x:Int, y:Int, z:Int) {
+		pass.dispatch(x, y, z);
+	}
+}
+
+@:nullSafety(Strict)
 @:allow(arcane.internal)
 class WGPUDriver implements IGraphicsDriver {
-	public final renderTargetFlipY:Bool = false;
-	public final instancedRendering:Bool = true;
-	public final uintIndexBuffers:Bool = true;
-
 	final canvas:CanvasElement;
 	final context:GPUCanvasContext;
 	final adapter:GPUAdapter;
@@ -375,7 +396,6 @@ class WGPUDriver implements IGraphicsDriver {
 	var encoder:Null<GPUCommandEncoder>;
 
 	public function new(canvas:CanvasElement, context:GPUCanvasContext, adapter:GPUAdapter, device:GPUDevice) {
-		untyped console.log(canvas, context, adapter, device);
 		this.canvas = canvas;
 		this.context = context;
 		this.adapter = adapter;
@@ -397,6 +417,15 @@ class WGPUDriver implements IGraphicsDriver {
 		device.lost.then(error -> (untyped console).error("WebGPU device lost", error.message, error.reason));
 	}
 
+	public function hasFeature(f:Feature):Bool {
+		return switch f {
+			case ComputeShaders: true;
+			case UintIndexBuffers: true;
+			case MultiRenderTargets: true;
+			case FlippedRenderTarget: false;
+		}
+	}
+
 	public function getName(details:Bool = false):String {
 		if (details) {
 			return "WebGPU : " + adapter.name;
@@ -410,10 +439,21 @@ class WGPUDriver implements IGraphicsDriver {
 		context.unconfigure();
 	}
 
-	public function begin() {
+	public function begin():ITexture {
 		currentTexture = getCurrentTexture();
 		currentTextureView = @:nullSafety(Off) currentTexture.createView();
 		encoder = device.createCommandEncoder();
+		final t:{texture:GPUTexture, view:GPUTextureView, desc:TextureDesc} = cast Type.createEmptyInstance(Texture);
+		t.texture = getCurrentTexture();
+		t.view = t.texture.createView();
+		t.desc = {
+			width: canvas.clientWidth,
+			isRenderTarget: true,
+			height: canvas.clientHeight,
+			format: RGBA,
+			data: null
+		}
+		return cast t;
 	}
 
 	public function end() {
@@ -423,10 +463,7 @@ class WGPUDriver implements IGraphicsDriver {
 		}
 	}
 
-	public function flush() {
-		end();
-		// device.queue.onSubmittedWorkDone().
-	}
+	public function flush() {}
 
 	public function present() {}
 
@@ -450,8 +487,16 @@ class WGPUDriver implements IGraphicsDriver {
 		return new Pipeline(this, desc);
 	}
 
+	public function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline {
+		return new ComputePipeline(this, desc);
+	}
+
 	public function beginRenderPass(desc:RenderPassDesc) {
 		return new RenderPass(this, desc);
+	}
+
+	public function beginComputePass(desc:ComputePassDesc):IComputePass {
+		return new ComputePass(this, desc);
 	}
 }
 #end

@@ -52,13 +52,14 @@ class AudioSource implements IAudioSource {
 	}
 }
 
+@:nullSafety(Strict)
 class WebAudioDriver implements IAudioDriver {
 	public var context:AudioContext;
 
 	public function new() {
 		context = new AudioContext();
 		arcane.Lib.onEvent.add(e -> switch e {
-			case KeyDown(_), KeyUp(_), KeyPress(_), MouseDown(_, _, _), MouseUp(_, _, _), MouseEnter, MouseLeave, MouseMove(_, _), MouseWheel(_):
+			case KeyDown(_), KeyUp(_), KeyPress(_), MouseDown(_, _, _), MouseUp(_, _, _), MouseEnter, MouseLeave:
 				context.resume();
 			case _:
 		});

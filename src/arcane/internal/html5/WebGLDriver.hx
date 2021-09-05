@@ -18,6 +18,7 @@ import js.lib.Uint32Array as JsUint32Array;
 import js.lib.Int32Array as JsInt32Array;
 import arcane.common.arrays.*;
 
+@:nullSafety(Strict)
 private class VertexBuffer implements IVertexBuffer {
 	public var desc:VertexBufferDesc;
 
@@ -101,6 +102,7 @@ private class VertexBuffer implements IVertexBuffer {
 	}
 }
 
+@:nullSafety(Strict)
 private class IndexBuffer implements IIndexBuffer {
 	public var desc:IndexBufferDesc;
 
@@ -173,6 +175,7 @@ private class IndexBuffer implements IIndexBuffer {
 	}
 }
 
+@:nullSafety(Strict)
 private class Shader implements IShader {
 	public var desc:ShaderDesc;
 
@@ -210,6 +213,7 @@ private class Shader implements IShader {
 	}
 }
 
+@:nullSafety(Strict)
 private class ConstantLocation implements IConstantLocation {
 	public var type:Int;
 	public var name:String;
@@ -226,6 +230,7 @@ private class ConstantLocation implements IConstantLocation {
 	}
 }
 
+@:nullSafety(Strict)
 private class TextureUnit implements ITextureUnit {
 	public var index:Int;
 	public var name:String;
@@ -242,6 +247,7 @@ private class TextureUnit implements ITextureUnit {
 	}
 }
 
+@:nullSafety(Strict)
 private class Pipeline implements IPipeline {
 	public var desc:PipelineDesc;
 
@@ -323,6 +329,7 @@ private class Pipeline implements IPipeline {
 	}
 }
 
+@:nullSafety(Strict)
 private class Texture implements ITexture {
 	public var desc:TextureDesc;
 
@@ -403,6 +410,7 @@ private class Texture implements ITexture {
 	}
 }
 
+@:nullSafety(Strict)
 @:allow(arcane.internal.html5)
 @:access(arcane.internal.html5)
 private class RenderPass implements IRenderPass {
@@ -666,6 +674,7 @@ private class RenderPass implements IRenderPass {
 	public function end() {}
 }
 
+@:nullSafety(Strict)
 @:allow(arcane.internal.html5)
 @:access(arcane.internal.html5)
 class WebGLDriver implements IGraphicsDriver {
@@ -712,6 +721,15 @@ class WebGLDriver implements IGraphicsDriver {
 		}
 	}
 
+	public function hasFeature(f:Feature):Bool {
+		return switch f {
+			case ComputeShaders: false;
+			case UintIndexBuffers: uintIndexBuffers;
+			case MultiRenderTargets: multipleColorAttachments;
+			case FlippedRenderTarget: true;
+		}
+	}
+
 	public function getName(details:Bool = false):String {
 		// Log.info(gl.getParameter(GL.RENDERER));
 		// Log.info(gl.getParameter(GL.VENDOR));
@@ -728,9 +746,10 @@ class WebGLDriver implements IGraphicsDriver {
 		@:nullSafety(Off) gl = null;
 	}
 
-	public function begin():Void {
+	public function begin():ITexture {
 		gl.enable(GL.BLEND);
 		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+		return cast null;
 	}
 
 	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
@@ -782,5 +801,13 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
 		return new RenderPass(this, desc);
+	}
+
+	public function beginComputePass(desc:ComputePassDesc):IComputePass {
+		throw "Compute Shaders are not available on WebGL";
+	}
+
+	public function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline {
+		throw new haxe.exceptions.NotImplementedException();
 	}
 }
