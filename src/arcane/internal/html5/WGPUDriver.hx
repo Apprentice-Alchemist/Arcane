@@ -1,6 +1,7 @@
 package arcane.internal.html5;
 
 #if wgpu_externs
+import js.lib.ArrayBuffer;
 import arcane.common.arrays.Float32Array;
 import arcane.common.arrays.Int32Array;
 import arcane.system.IGraphicsDriver;
@@ -9,6 +10,86 @@ import js.lib.Uint32Array;
 import wgpu.*;
 
 using arcane.Utils;
+
+private typedef BufferChunk = {
+	final buffer:GPUBuffer;
+	final size:Int;
+	var offset:Int;
+}
+
+private class StagingBuffers {
+	final chunk_size:Int;
+	final active_chunks:Array<BufferChunk>;
+	final closed_chunks:Array<BufferChunk>;
+	final free_chunks:Array<BufferChunk>;
+
+	public function new(size:Int) {
+		this.chunk_size = size;
+		this.active_chunks = [];
+		this.closed_chunks = [];
+		this.free_chunks = [];
+	}
+
+	public function writeBuffer(device:GPUDevice, encoder:GPUCommandEncoder, target:GPUBuffer, offset:Int, size:Int):ArrayBuffer {
+		var chunk:Null<BufferChunk> = null;
+		inline function swap_remove(arr:Array<BufferChunk>, i:Int):Void @:nullSafety(Off) {
+			if (arr.length == 1) {
+				arr.pop();
+			} else {
+				arr[i] = arr.pop();
+			}
+		}
+		for (i => c in active_chunks) {
+			if (c.offset + size <= c.size) {
+				chunk = active_chunks[i];
+				swap_remove(active_chunks, i);
+				break;
+			}
+		}
+		if (chunk == null) {
+			for (i => c in free_chunks) {
+				if (size <= c.size) {
+					chunk = free_chunks[i];
+					swap_remove(free_chunks, i);
+					break;
+				}
+			}
+		}
+		final chunk:BufferChunk = if (chunk == null) {
+			buffer: device.createBuffer({
+				label: "staging",
+				size: size > chunk_size ? size : chunk_size,
+				usage: MAP_WRITE | COPY_SRC,
+				mappedAtCreation: true
+			}),
+			size: size,
+			offset: 0
+		} else chunk;
+		encoder.copyBufferToBuffer(chunk.buffer, chunk.offset, target, offset, size);
+		final old_offset = chunk.offset;
+		chunk.offset += size;
+		final remainder = chunk.offset % 8;
+		if (remainder != 0)
+			chunk.offset += 8 - remainder;
+		active_chunks.push(chunk);
+		return chunk.buffer.getMappedRange(old_offset, size);
+	}
+
+	public function finish() {
+		while (active_chunks.length > 0) {
+			final chunk:BufferChunk = cast active_chunks.pop();
+			chunk.buffer.unmap();
+			closed_chunks.push(chunk);
+		}
+	}
+
+	public function recall() {
+		while (closed_chunks.length > 0) {
+			final chunk:BufferChunk = cast closed_chunks.pop();
+			chunk.buffer.mapAsync(WRITE).then(_ -> free_chunks.push(chunk)).catchError(e -> (untyped console).error(e));
+		}
+	}
+}
 
 @:nullSafety(Strict)
 private class TextureUnit implements ITextureUnit {
@@ -167,11 +248,12 @@ private class VertexBuffer implements IVertexBuffer {
 	public function upload(start:Int, arr:Float32Array):Void {
 		new js.lib.Float32Array(buffer.getMappedRange()).set(cast arr);
 		buffer.unmap();
-		// driver.device.queue.writeBuffer(buffer, 0, cast arr, 0, buf_stride * desc.size);
+		driver.device.queue.writeBuffer(buffer, start * buf_stride, cast arr, 0, (cast arr : js.lib.Float32Array).byteLength);
 	}
 
 	public function map(start:Int, range:Int):Float32Array {
-		return new Float32Array(range == -1 ? (desc.size * stride()) - start : range);
+		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * buf_stride, range * buf_stride);
+		return cast new js.lib.Float32Array(result);
 	}
 
 	public function unmap():Void {}
@@ -203,7 +285,8 @@ private class IndexBuffer implements IIndexBuffer {
 	}
 
 	public function map(start:Int, range:Int):Int32Array {
-		return new Int32Array(range == -1 ? desc.size - start : range);
+		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * 4, range * 4);
+		return cast new js.lib.Int32Array(result);
 	}
 
 	public function unmap():Void {}
@@ -242,7 +325,6 @@ private class Texture implements ITexture {
 	}
 
 	public function upload(bytes:haxe.io.Bytes):Void {
-		// driver.encoder.
 		driver.device.queue.writeTexture({texture: texture}, @:privateAccess bytes.b, {}, {width: this.desc.width, height: this.desc.height});
 	}
 }
@@ -395,6 +477,8 @@ class WGPUDriver implements IGraphicsDriver {
 
 	var encoder:Null<GPUCommandEncoder>;
 
+	final stagingBuffers:StagingBuffers;
+
 	public function new(canvas:CanvasElement, context:GPUCanvasContext, adapter:GPUAdapter, device:GPUDevice) {
 		this.canvas = canvas;
 		this.context = context;
@@ -415,6 +499,10 @@ class WGPUDriver implements IGraphicsDriver {
 			swapChain.getCurrentTexture;
 		}
 		device.lost.then(error -> (untyped console).error("WebGPU device lost", error.message, error.reason));
+		// todo : let the user set the chunk_size
+		this.stagingBuffers = new StagingBuffers(1024);
+		
+		this.encoder = device.createCommandEncoder();
 	}
 
 	public function hasFeature(f:Feature):Bool {
@@ -442,7 +530,7 @@ class WGPUDriver implements IGraphicsDriver {
 	public function begin():ITexture {
 		currentTexture = getCurrentTexture();
 		currentTextureView = @:nullSafety(Off) currentTexture.createView();
-		encoder = device.createCommandEncoder();
+
 		final t:{texture:GPUTexture, view:GPUTextureView, desc:TextureDesc} = cast Type.createEmptyInstance(Texture);
 		t.texture = getCurrentTexture();
 		t.view = t.texture.createView();
@@ -457,10 +545,13 @@ class WGPUDriver implements IGraphicsDriver {
 	}
 
 	public function end() {
+		stagingBuffers.finish();
 		if (encoder != null) {
 			final buffer = encoder.finish();
 			device.queue.submit([buffer]);
 		}
+		stagingBuffers.recall();
+		encoder = device.createCommandEncoder();
 	}
 
 	public function flush() {}
