@@ -1,9 +1,8 @@
 package arcane.internal.html5;
 
 #if wgpu_externs
-import js.lib.ArrayBuffer;
-import arcane.common.arrays.Float32Array;
-import arcane.common.arrays.Int32Array;
+import js.lib.ArrayBuffer as JsArrayBuffer;
+import arcane.common.arrays.*;
 import arcane.system.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.lib.Uint32Array;
@@ -30,7 +29,7 @@ private class StagingBuffers {
 		this.free_chunks = [];
 	}
 
-	public function writeBuffer(device:GPUDevice, encoder:GPUCommandEncoder, target:GPUBuffer, offset:Int, size:Int):ArrayBuffer {
+	public function writeBuffer(device:GPUDevice, encoder:GPUCommandEncoder, target:GPUBuffer, offset:Int, size:Int):JsArrayBuffer {
 		var chunk:Null<BufferChunk> = null;
 		inline function swap_remove(arr:Array<BufferChunk>, i:Int):Void @:nullSafety(Off) {
 			if (arr.length == 1) {
@@ -65,6 +64,8 @@ private class StagingBuffers {
 			size: size,
 			offset: 0
 		} else chunk;
+		// arcane.Utils.assert(chunk.size >= chunk.offset + size);
+		// arcane.Utils.assert()
 		encoder.copyBufferToBuffer(chunk.buffer, chunk.offset, target, offset, size);
 		final old_offset = chunk.offset;
 		chunk.offset += size;
@@ -92,18 +93,26 @@ private class StagingBuffers {
 }
 
 @:nullSafety(Strict)
-private class TextureUnit implements ITextureUnit {
-	public function new() {}
+private class BindGroupLayout implements IBindGroupLayout {
+	public final layout:GPUBindGroupLayout;
+
+	public function new(layout) {
+		this.layout = layout;
+	}
 }
 
 @:nullSafety(Strict)
-private class ConstantLocation implements IConstantLocation {
-	public function new() {}
+private class BindGroup implements IBindGroup {
+	public final group:GPUBindGroup;
+
+	public function new(group) {
+		this.group = group;
+	}
 }
 
 @:nullSafety(Strict)
-private class Pipeline implements IPipeline {
-	public var desc(default, null):PipelineDesc;
+private class RenderPipeline implements IRenderPipeline {
+	public var desc(default, null):RenderPipelineDescriptor;
 
 	public final pipeline:GPURenderPipeline;
 
@@ -111,7 +120,7 @@ private class Pipeline implements IPipeline {
 
 	final driver:WGPUDriver;
 
-	public function new(driver:WGPUDriver, desc:PipelineDesc) {
+	public function new(driver:WGPUDriver, desc:RenderPipelineDescriptor) {
 		this.desc = desc;
 		this.driver = driver;
 		var buffers:Array<GPUVertexBufferLayout> = [];
@@ -178,27 +187,26 @@ private class Pipeline implements IPipeline {
 		layout = pipeline.getBindGroupLayout(0);
 	}
 
-	public function getConstantLocation(name:String):ConstantLocation {
-		return new ConstantLocation();
-	}
-
-	public function getTextureUnit(name:String):TextureUnit {
-		return new TextureUnit();
-	}
+	// public function getConstantLocation(name:String):ConstantLocation {
+	// 	return new ConstantLocation();
+	// }
+	// public function getTextureUnit(name:String):TextureUnit {
+	// 	return new TextureUnit();
+	// }
 
 	public function dispose() {}
 }
 
 @:nullSafety(Strict)
-private class Shader implements IShader {
-	public var desc(default, null):ShaderDesc;
+private class Shader implements IShaderModule {
+	public var desc(default, null):ShaderDescriptor;
 
 	public final module:GPUShaderModule;
 
-	public function new(driver:WGPUDriver, desc:ShaderDesc) {
+	public function new(driver:WGPUDriver, desc:ShaderDescriptor) {
 		this.desc = desc;
 		module = driver.device.createShaderModule({
-			code: cast new Uint32Array(haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-webgpu').getData()),
+			code: haxe.Resource.getString('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-webgpu'),
 			label: 'arcane-${desc.id}'
 		});
 	}
@@ -208,14 +216,14 @@ private class Shader implements IShader {
 
 @:nullSafety(Strict)
 private class VertexBuffer implements IVertexBuffer {
-	public var desc(default, null):VertexBufferDesc;
+	public var desc(default, null):VertexBufferDescriptor;
 
 	public final buffer:GPUBuffer;
 	public final buf_stride:Int = 0;
 
 	final driver:WGPUDriver;
 
-	public function new(driver:WGPUDriver, desc:VertexBufferDesc) {
+	public function new(driver:WGPUDriver, desc:VertexBufferDescriptor) {
 		this.desc = desc;
 		this.driver = driver;
 		var stride = 0;
@@ -229,11 +237,9 @@ private class VertexBuffer implements IVertexBuffer {
 			}
 		}
 		this.buf_stride = stride;
-		trace(stride, buf_stride, desc.size, buf_stride * desc.size);
 		buffer = driver.device.createBuffer({
 			size: desc.size * buf_stride,
-			usage: VERTEX | COPY_DST,
-			mappedAtCreation: true
+			usage: VERTEX | COPY_DST
 		});
 	}
 
@@ -246,14 +252,13 @@ private class VertexBuffer implements IVertexBuffer {
 	}
 
 	public function upload(start:Int, arr:Float32Array):Void {
-		new js.lib.Float32Array(buffer.getMappedRange()).set(cast arr);
-		buffer.unmap();
-		driver.device.queue.writeBuffer(buffer, start * buf_stride, cast arr, 0, (cast arr : js.lib.Float32Array).byteLength);
+		var jsarray:js.lib.Float32Array = arr;
+		driver.device.queue.writeBuffer(buffer, start * buf_stride, cast jsarray.buffer, jsarray.byteOffset, jsarray.byteLength);
 	}
 
 	public function map(start:Int, range:Int):Float32Array {
 		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * buf_stride, range * buf_stride);
-		return cast new js.lib.Float32Array(result);
+		return new js.lib.Float32Array(result);
 	}
 
 	public function unmap():Void {}
@@ -261,13 +266,13 @@ private class VertexBuffer implements IVertexBuffer {
 
 @:nullSafety(Strict)
 private class IndexBuffer implements IIndexBuffer {
-	public var desc(default, null):IndexBufferDesc;
+	public var desc(default, null):IndexBufferDescriptor;
 
 	public final buffer:GPUBuffer;
 
 	final driver:WGPUDriver;
 
-	public function new(driver:WGPUDriver, desc:IndexBufferDesc) {
+	public function new(driver:WGPUDriver, desc:IndexBufferDescriptor) {
 		this.desc = desc;
 		this.driver = driver;
 		buffer = driver.device.createBuffer({
@@ -281,7 +286,7 @@ private class IndexBuffer implements IIndexBuffer {
 	}
 
 	public function upload(start:Int, arr:Int32Array):Void {
-		driver.device.queue.writeBuffer(buffer, 0, cast arr);
+		driver.device.queue.writeBuffer(buffer, start * 4, cast arr);
 	}
 
 	public function map(start:Int, range:Int):Int32Array {
@@ -293,15 +298,48 @@ private class IndexBuffer implements IIndexBuffer {
 }
 
 @:nullSafety(Strict)
+private class UniformBuffer implements IUniformBuffer {
+	public var desc(default, null):UniformBufferDescriptor;
+
+	public final buffer:GPUBuffer;
+
+	final driver:WGPUDriver;
+
+	public function new(driver:WGPUDriver, desc:UniformBufferDescriptor) {
+		this.desc = desc;
+		this.driver = driver;
+		buffer = driver.device.createBuffer({
+			size: desc.size,
+			usage: UNIFORM | COPY_DST
+		});
+	}
+
+	public function dispose() {
+		buffer.destroy();
+	}
+
+	public function upload(start:Int, arr:ArrayBuffer):Void {
+		driver.device.queue.writeBuffer(buffer, 0, cast arr, start);
+	}
+
+	public function map(start:Int, range:Int):ArrayBuffer {
+		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * 4, range * 4);
+		return result;
+	}
+
+	public function unmap():Void {}
+}
+
+@:nullSafety(Strict)
 private class Texture implements ITexture {
-	public var desc(default, null):TextureDesc;
+	public var desc(default, null):TextureDescriptor;
 
 	public final texture:GPUTexture;
 	public final view:GPUTextureView;
 
 	final driver:WGPUDriver;
 
-	public function new(driver:WGPUDriver, desc:TextureDesc) {
+	public function new(driver:WGPUDriver, desc:TextureDescriptor) {
 		this.desc = desc;
 		this.driver = driver;
 		texture = driver.device.createTexture({
@@ -330,20 +368,46 @@ private class Texture implements ITexture {
 }
 
 @:nullSafety(Strict)
-private class RenderPass implements IRenderPass {
-	public final renderPass:GPURenderPassEncoder;
+private class CommandEncoder implements ICommandEncoder {
+	public final encoder:GPUCommandEncoder;
 
-	final driver:WGPUDriver;
+	public function new(driver:WGPUDriver) {
+		this.encoder = driver.device.createCommandEncoder();
+	}
+
+	public function beginComputePass(desc:ComputePassDescriptor):IComputePass {
+		return new ComputePass(encoder, desc);
+	}
+
+	public function beginRenderPass(desc:RenderPassDescriptor):IRenderPass {
+		return new RenderPass(encoder, desc);
+	}
+
+	public function finish():ICommandBuffer {
+		return new CommandBuffer(encoder.finish());
+	}
+}
+
+private class CommandBuffer implements ICommandBuffer {
+	public final buffer:GPUCommandBuffer;
+
+	public function new(buffer:GPUCommandBuffer) {
+		this.buffer = buffer;
+	}
+}
+
+@:nullSafety(Strict)
+private class RenderPass implements IRenderPass {
+	final renderPass:GPURenderPassEncoder;
 	final encoder:GPUCommandEncoder;
 
-	public function new(driver:WGPUDriver, desc:RenderPassDesc) {
-		this.driver = driver;
-		this.encoder = cast driver.encoder == null ? (throw "assert") : driver.encoder;
+	public function new(encoder, desc:RenderPassDescriptor) {
+		this.encoder = encoder;
 		this.renderPass = encoder.beginRenderPass({
 			colorAttachments: [
 				for (a in desc.colorAttachments)
 					{
-						view: a.texture == null ? cast driver.currentTextureView : (cast a.texture : Texture).texture.createView(),
+						view: (cast a.texture : Texture).view,
 						loadValue: switch a.load {
 							case Clear if (a.loadValue != null): ({
 									r: a.loadValue.r / 0xFF,
@@ -367,11 +431,8 @@ private class RenderPass implements IRenderPass {
 			]});
 	}
 
-	var curPipeline:Pipeline = cast null;
-
-	public function setPipeline(p:IPipeline) {
-		curPipeline = cast p;
-		renderPass.setPipeline((cast p : Pipeline).pipeline);
+	public function setPipeline(p:IRenderPipeline) {
+		renderPass.setPipeline((cast p : RenderPipeline).pipeline);
 	}
 
 	public function setVertexBuffer(buffer:IVertexBuffer) {
@@ -387,30 +448,8 @@ private class RenderPass implements IRenderPass {
 		renderPass.setIndexBuffer((cast buffer : IndexBuffer).buffer, buffer.desc.is32 ? UINT32 : UINT16);
 	}
 
-	public function setTextureUnit(t:ITextureUnit, tex:ITexture) {}
-
-	public function setConstantLocation(l:IConstantLocation, f:Float32Array) {
-		var f:js.lib.Float32Array = cast f;
-		renderPass.setBindGroup(0, driver.device.createBindGroup({
-			layout: curPipeline.pipeline.getBindGroupLayout(0),
-			entries: [
-				{
-					binding: 0,
-					resource: {
-						buffer: {
-							var buf = driver.device.createBuffer({
-								size: f.byteLength,
-								usage: UNIFORM,
-								mappedAtCreation: true
-							});
-							new js.lib.Float32Array(buf.getMappedRange()).set(f);
-							buf.unmap();
-							buf;
-						}
-					}
-				}
-			]
-		}));
+	public function setBindGroup(index:Int, group:IBindGroup) {
+		renderPass.setBindGroup(index, (cast group : BindGroup).group);
 	}
 
 	public function draw(start:Int, count:Int) {
@@ -428,11 +467,11 @@ private class RenderPass implements IRenderPass {
 
 @:nullSafety(Strict)
 private class ComputePipeline implements IComputePipeline {
-	public var desc(default, null):ComputePipelineDesc;
+	public var desc(default, null):ComputePipelineDescriptor;
 
-	final pipeline:GPUComputePipeline;
+	public final pipeline:GPUComputePipeline;
 
-	public function new(driver:WGPUDriver, desc:ComputePipelineDesc) {
+	public function new(driver:WGPUDriver, desc:ComputePipelineDescriptor) {
 		this.desc = desc;
 		this.pipeline = driver.device.createComputePipeline({
 			compute: cast null
@@ -447,12 +486,18 @@ private class ComputePass implements IComputePass {
 	final pass:GPUComputePassEncoder;
 	final encoder:GPUCommandEncoder;
 
-	public function new(driver:WGPUDriver, desc:ComputePassDesc) {
-		this.encoder = cast driver.encoder == null ? (throw "assert") : driver.encoder;
+	public function new(encoder:GPUCommandEncoder, desc:ComputePassDescriptor) {
+		this.encoder = encoder;
 		this.pass = encoder.beginComputePass();
 	}
 
-	public function setPipeline(p:IComputePipeline) {}
+	public function setBindGroup(index:Int, group:IBindGroup) {
+		pass.setBindGroup(index, (cast group : BindGroup).group);
+	}
+
+	public function setPipeline(p:IComputePipeline) {
+		pass.setPipeline((cast p : ComputePipeline).pipeline);
+	}
 
 	public function compute(x:Int, y:Int, z:Int) {
 		pass.dispatch(x, y, z);
@@ -462,12 +507,15 @@ private class ComputePass implements IComputePass {
 @:nullSafety(Strict)
 @:allow(arcane.internal)
 class WGPUDriver implements IGraphicsDriver {
+	public final features:DriverFeatures;
+	public final limits:DriverLimits;
+
 	final canvas:CanvasElement;
 	final context:GPUCanvasContext;
 	final adapter:GPUAdapter;
 	final device:GPUDevice;
 	final preferredFormat:GPUTextureFormat;
-	final getCurrentTexture:() -> GPUTexture;
+	final _getCurrentTexture:() -> GPUTexture;
 
 	/**The texture of the the current swapchain image**/
 	var currentTexture:Null<GPUTexture>;
@@ -480,6 +528,15 @@ class WGPUDriver implements IGraphicsDriver {
 	final stagingBuffers:StagingBuffers;
 
 	public function new(canvas:CanvasElement, context:GPUCanvasContext, adapter:GPUAdapter, device:GPUDevice) {
+		features = {
+			compute: true,
+			uintIndexBuffers: true,
+			multipleColorAttachments: true,
+			flippedRenderTargets: false,
+			instancedRendering: true
+		};
+		limits = {};
+
 		this.canvas = canvas;
 		this.context = context;
 		this.adapter = adapter;
@@ -491,27 +548,19 @@ class WGPUDriver implements IGraphicsDriver {
 			format: preferredFormat,
 			usage: RENDER_ATTACHMENT
 		}
-		getCurrentTexture = try {
+		_getCurrentTexture = try {
 			context.configure(presentationConfiguration);
 			context.getCurrentTexture;
 		} catch (_) {
 			final swapChain = untyped context.configureSwapChain(presentationConfiguration);
 			swapChain.getCurrentTexture;
 		}
-		device.lost.then(error -> (untyped console).error("WebGPU device lost", error.message, error.reason));
+		if (device.lost != null)
+			device.lost.then(error -> (untyped console).error("WebGPU device lost", error.message, error.reason));
 		// todo : let the user set the chunk_size
 		this.stagingBuffers = new StagingBuffers(1024);
-		
-		this.encoder = device.createCommandEncoder();
-	}
 
-	public function hasFeature(f:Feature):Bool {
-		return switch f {
-			case ComputeShaders: true;
-			case UintIndexBuffers: true;
-			case MultiRenderTargets: true;
-			case FlippedRenderTarget: false;
-		}
+		this.encoder = device.createCommandEncoder();
 	}
 
 	public function getName(details:Bool = false):String {
@@ -527,13 +576,13 @@ class WGPUDriver implements IGraphicsDriver {
 		context.unconfigure();
 	}
 
-	public function begin():ITexture {
-		currentTexture = getCurrentTexture();
+	public function getCurrentTexture():ITexture {
+		currentTexture = _getCurrentTexture();
 		currentTextureView = @:nullSafety(Off) currentTexture.createView();
 
-		final t:{texture:GPUTexture, view:GPUTextureView, desc:TextureDesc} = cast Type.createEmptyInstance(Texture);
-		t.texture = getCurrentTexture();
-		t.view = t.texture.createView();
+		final t:{texture:GPUTexture, view:GPUTextureView, desc:TextureDescriptor} = cast Type.createEmptyInstance(Texture);
+		t.texture = cast currentTexture;
+		t.view = cast currentTextureView;
 		t.desc = {
 			width: canvas.clientWidth,
 			isRenderTarget: true,
@@ -544,50 +593,99 @@ class WGPUDriver implements IGraphicsDriver {
 		return cast t;
 	}
 
-	public function end() {
-		stagingBuffers.finish();
-		if (encoder != null) {
-			final buffer = encoder.finish();
-			device.queue.submit([buffer]);
-		}
-		stagingBuffers.recall();
-		encoder = device.createCommandEncoder();
-	}
-
-	public function flush() {}
-
-	public function present() {}
-
-	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer {
+	public function createVertexBuffer(desc:VertexBufferDescriptor):IVertexBuffer {
 		return new VertexBuffer(this, desc);
 	}
 
-	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer {
+	public function createIndexBuffer(desc:IndexBufferDescriptor):IIndexBuffer {
 		return new IndexBuffer(this, desc);
 	}
 
-	public function createTexture(desc:TextureDesc):ITexture {
+	public function createUniformBuffer(desc:UniformBufferDescriptor):IUniformBuffer {
+		return new UniformBuffer(this, desc);
+	}
+
+	public function createTexture(desc:TextureDescriptor):ITexture {
 		return new Texture(this, desc);
 	}
 
-	public function createShader(desc:ShaderDesc):IShader {
+	public function createShader(desc:ShaderDescriptor):IShaderModule {
 		return new Shader(this, desc);
 	}
 
-	public function createPipeline(desc:PipelineDesc):IPipeline {
-		return new Pipeline(this, desc);
+	public function createRenderPipeline(desc:RenderPipelineDescriptor):IRenderPipeline {
+		return new RenderPipeline(this, desc);
 	}
 
-	public function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline {
+	public function createComputePipeline(desc:ComputePipelineDescriptor):IComputePipeline {
 		return new ComputePipeline(this, desc);
 	}
 
-	public function beginRenderPass(desc:RenderPassDesc) {
-		return new RenderPass(this, desc);
+	public function createCommandEncoder():ICommandEncoder {
+		return new CommandEncoder(this);
 	}
 
-	public function beginComputePass(desc:ComputePassDesc):IComputePass {
-		return new ComputePass(this, desc);
+	public function createBindGroup(desc:BindGroupDescriptor):IBindGroup {
+		return new BindGroup(device.createBindGroup({
+			layout: cast desc.layout,
+			entries: [
+				for (entry in desc.entries)
+					{
+						binding: entry.binding,
+						resource: switch entry.resource {
+							case Buffer(buffer): cast buffer;
+							case Texture(texture): cast texture;
+							case Sampler(sampler): cast sampler;
+						}
+					}
+			]
+		}));
 	}
+
+	public function createBindGroupLayout(desc:BindGroupLayoutDescriptor):IBindGroupLayout {
+		var layout:GPUBindGroupLayoutDescriptor = {
+			entries: [
+				for (entry in desc.entries) {
+					var e:GPUBindGroupLayoutEntry = {
+						binding: entry.binding,
+						visibility: cast entry.visibility
+					};
+					switch entry.kind {
+						case Buffer(hasDynamicOffset, minBindingSize):
+							e.buffer = {
+								type: UNIFORM,
+								hasDynamicOffset: hasDynamicOffset,
+								minBindingSize: minBindingSize
+							};
+						case Sampler(type):
+							e.sampler = {
+								type: switch type {
+									case Filtering: FILTERING;
+									case NonFiltering: NON_FILTERING;
+									case Comparison: COMPARISON;
+								}
+							}
+						case Texture:
+							e.texture = {
+								sampleType: FLOAT,
+								viewDimension: _2D,
+								multisampled: false
+							}
+					}
+					e;
+				}
+			]
+		};
+		return new BindGroupLayout(device.createBindGroupLayout(layout));
+	}
+
+	public function submit(buffers:Array<ICommandBuffer>) @:nullSafety(Off) {
+		stagingBuffers.finish();
+		device.queue.submit(buffers.map(b -> (cast b : CommandBuffer).buffer).concat([this.encoder.finish()]));
+		this.encoder = device.createCommandEncoder({label: "staging encoder"});
+		stagingBuffers.recall();
+	}
+
+	public function present() {}
 }
 #end

@@ -46,7 +46,7 @@ class Utils {
 	}
 
 	/**
-	 * Assertion helper.
+	 * Assertion helper, if `b` is true, return true else throw an error.
 	 */
 	@:noUsing public static macro function assert(b:haxe.macro.Expr.ExprOf<Bool>, ?msg:String):haxe.macro.Expr.ExprOf<Bool> {
 		return macro @:pos(b.pos) if (!$b) {

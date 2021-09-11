@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+import haxe.ds.ReadOnlyArray;
 import js.html.webgl.extension.WEBGLDrawBuffers;
 import arcane.util.Log;
 import arcane.Utils.assert;
@@ -16,11 +17,23 @@ import js.lib.Float32Array as JsFloat32Array;
 import js.lib.Uint16Array as JsUint16Array;
 import js.lib.Uint32Array as JsUint32Array;
 import js.lib.Int32Array as JsInt32Array;
+import js.lib.ArrayBuffer as JsArrayBuffer;
 import arcane.common.arrays.*;
+
+private enum Command {
+	BeginRenderPass(desc:RenderPassDescriptor);
+	EndRenderPass;
+	SetVertexBuffers(b:Array<VertexBuffer>);
+	SetIndexBuffer(b:IndexBuffer);
+	SetPipeline(p:RenderPipeline);
+	SetBindGroup(index:Int, b:BindGroup);
+	Draw(start:Int, count:Int);
+	DrawInstanced(instanceCount:Int, start:Int, count:Int);
+}
 
 @:nullSafety(Strict)
 private class VertexBuffer implements IVertexBuffer {
-	public var desc:VertexBufferDesc;
+	public var desc:VertexBufferDescriptor;
 
 	var driver:WebGLDriver;
 	var buf:Buffer;
@@ -104,7 +117,7 @@ private class VertexBuffer implements IVertexBuffer {
 
 @:nullSafety(Strict)
 private class IndexBuffer implements IIndexBuffer {
-	public var desc:IndexBufferDesc;
+	public var desc:IndexBufferDescriptor;
 
 	var driver:WebGLDriver;
 	var buf:Buffer;
@@ -114,7 +127,7 @@ private class IndexBuffer implements IIndexBuffer {
 		this.driver = driver;
 		this.desc = desc;
 
-		if (desc.is32 && !this.driver.uintIndexBuffers) {
+		if (desc.is32 && !this.driver.features.uintIndexBuffers) {
 			throw "32bit buffers are not supported without webgl2 or the OES_element_index_uint extension.";
 		}
 		this.data = new JsInt32Array(desc.size);
@@ -176,8 +189,75 @@ private class IndexBuffer implements IIndexBuffer {
 }
 
 @:nullSafety(Strict)
-private class Shader implements IShader {
-	public var desc:ShaderDesc;
+private class UniformBuffer implements IUniformBuffer {
+	public var desc:UniformBufferDescriptor;
+
+	var driver:WebGLDriver;
+	var buf:Null<Buffer>;
+	var data:JsArrayBuffer;
+
+	public function new(driver, desc) {
+		this.driver = driver;
+		this.desc = desc;
+
+		this.data = new JsArrayBuffer(desc.size);
+		if (driver.hasGL2) {
+			this.buf = driver.gl.createBuffer();
+			this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, buf);
+			this.driver.gl.bufferData(GL2.UNIFORM_BUFFER, desc.size, GL2.DYNAMIC_DRAW);
+			@:nullSafety(Off) this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, null);
+		}
+	}
+
+	public function upload(start:Int, arr:ArrayBuffer):Void {
+		if (driver.hasGL2) {
+			this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, cast buf);
+			this.driver.gl.bufferSubData(GL2.UNIFORM_BUFFER, start, arr);
+			@:nullSafety(Off) this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, null);
+		} else {
+			var src = new js.lib.Uint8Array(arr);
+			var dst = new js.lib.Uint8Array(this.data);
+			dst.set(src, start);
+		}
+	}
+
+	var last_start = 0;
+	var map_data:Null<ArrayBuffer>;
+
+	public function map(start:Int, range:Int):ArrayBuffer {
+		last_start = start;
+		return map_data = new ArrayBuffer(range);
+	}
+
+	public function unmap():Void {
+		if (driver.hasGL2) {
+			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, cast buf);
+			@:nullSafety(Off) this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start, map_data);
+			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+		} else {
+			@:nullSafety(Off) var src = new js.lib.Uint8Array(map_data);
+			var dst = new js.lib.Uint8Array(this.data);
+			dst.set(src, last_start);
+		}
+	}
+
+	public function dispose() {
+		if (driver.hasGL2 && driver.check()) {
+			driver.gl.deleteBuffer(cast this.buf);
+		}
+	}
+
+	public inline function check(?driver:WebGLDriver):Bool {
+		if (driver != null) {
+			assert(driver == this.driver, "driver mismatch");
+		}
+		return this.driver.check();
+	}
+}
+
+@:nullSafety(Strict)
+private class Shader implements IShaderModule {
+	public var desc:ShaderDescriptor;
 
 	var driver:WebGLDriver;
 	var shader:js.html.webgl.Shader;
@@ -186,8 +266,8 @@ private class Shader implements IShader {
 		this.driver = driver;
 		this.desc = desc;
 
-		this.shader = driver.gl.createShader(desc.kind.match(Vertex) ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
-		var id = '${desc.id}-${desc.kind.match(Vertex) ? "vert" : "frag"}-${driver.hasGL2 ? "webgl2" : "default"}';
+		this.shader = driver.gl.createShader(desc.kind == (Vertex) ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
+		var id = '${desc.id}-${desc.kind == (Vertex) ? "vert" : "frag"}-${driver.hasGL2 ? "webgl2" : "default"}';
 		var data = haxe.Resource.getString(id);
 		driver.gl.shaderSource(shader, data);
 		driver.gl.compileShader(shader);
@@ -195,7 +275,6 @@ private class Shader implements IShader {
 		if ((driver.gl.getShaderParameter(shader, GL.COMPILE_STATUS) != cast 1)) {
 			(untyped console).error(log);
 			(untyped console).info(data);
-			// throw "Shader Compilation Error, check the console.";
 		}
 	}
 
@@ -248,8 +327,8 @@ private class TextureUnit implements ITextureUnit {
 }
 
 @:nullSafety(Strict)
-private class Pipeline implements IPipeline {
-	public var desc:PipelineDesc;
+private class RenderPipeline implements IRenderPipeline {
+	public var desc:RenderPipelineDescriptor;
 
 	final driver:WebGLDriver;
 	final program:Program;
@@ -331,7 +410,7 @@ private class Pipeline implements IPipeline {
 
 @:nullSafety(Strict)
 private class Texture implements ITexture {
-	public var desc:TextureDesc;
+	public var desc:TextureDescriptor;
 
 	final driver:WebGLDriver;
 	final texture:js.html.webgl.Texture;
@@ -411,55 +490,117 @@ private class Texture implements ITexture {
 }
 
 @:nullSafety(Strict)
-@:allow(arcane.internal.html5)
-@:access(arcane.internal.html5)
 private class RenderPass implements IRenderPass {
-	final gl:GL;
-	var gl2(get, never):GL2;
+	final encoder:CommandEncoder;
 
-	inline function get_gl2():GL2 return cast gl;
-
-	final driver:WebGLDriver;
-
-	// var curVertexBuffer:Null<VertexBuffer>;
-	var curIndexBuffer:Null<IndexBuffer>;
-	var curPipeline:Null<Pipeline>;
-
-	public function new(driver:WebGLDriver, desc:RenderPassDesc) {
-		this.driver = driver;
-		this.gl = driver.gl;
-		final t = desc.colorAttachments[0].texture;
-		if (t == null) {
-			@:nullSafety(Off) gl.bindFramebuffer(GL.FRAMEBUFFER, null);
-			gl.viewport(0, 0, driver.canvas.width, driver.canvas.height);
-		} else {
-			var tex:Texture = cast t;
-			assert(tex.driver == driver, "driver mismatch");
-			gl.bindFramebuffer(GL.FRAMEBUFFER, tex.frameBuffer);
-			gl.viewport(0, 0, tex.desc.width, tex.desc.height);
-			if (desc.colorAttachments.length > 1 && driver.multipleColorAttachments) {
-				final attachments = [];
-				for (i => attachment in desc.colorAttachments) {
-					gl.framebufferTexture2D(GL.FRAMEBUFFER, GL2.COLOR_ATTACHMENT0 + i, GL.TEXTURE_2D, (cast attachment.texture : Texture).texture, 0);
-					attachments.push(GL2.COLOR_ATTACHMENT0 + i);
-				}
-				gl2.drawBuffers(attachments);
-			}
-		}
+	public function new(encoder:CommandEncoder) {
+		this.encoder = encoder;
 	}
 
-	function enable(cap:Int, b:Bool) {
-		if (b) {
-			@:nullSafety(Off) if (!driver.enabled_things.exists(cap) || !driver.enabled_things.get(cap)) {
-				gl.enable(cap);
-				driver.enabled_things.set(cap, true);
-			}
-		} else {
-			if (!driver.enabled_things.exists(cap) || driver.enabled_things.get(cap)) {
-				gl.disable(cap);
-				driver.enabled_things.set(cap, false);
-			}
-		}
+	public function setPipeline(p:IRenderPipeline):Void {
+		encoder.write(SetPipeline(cast p));
+	}
+
+	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {
+		encoder.write(SetVertexBuffers(cast buffers));
+	}
+
+	public function setVertexBuffer(b:IVertexBuffer):Void {
+		encoder.write(SetVertexBuffers([cast b]));
+	}
+
+	public function setIndexBuffer(b:IIndexBuffer):Void {
+		encoder.write(SetIndexBuffer(cast b));
+	}
+
+	// public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void {
+	// 	var unit:TextureUnit = cast t;
+	// 	var texture:Texture = cast tex;
+	// 	if (unit.index == -1) {
+	// 		return;
+	// 	}
+	// 	gl.uniform1i(unit.uniform, unit.index);
+	// 	gl.activeTexture(GL.TEXTURE0 + unit.index);
+	// 	gl.bindTexture(GL.TEXTURE_2D, texture.texture);
+	// }
+	// public function setConstantLocation(l:IConstantLocation, a:Float32Array):Void {
+	// 	var loc:ConstantLocation = cast l;
+	// 	var l = loc.uniform;
+	// 	if (loc.type == -1) {
+	// 		return;
+	// 	}
+	// 	var a:JsFloat32Array = cast a;
+	// 	switch loc.type {
+	// 		case GL.FLOAT_VEC2:
+	// 			gl.uniform2fv(l, a);
+	// 		case GL.FLOAT_VEC3:
+	// 			gl.uniform3fv(l, a);
+	// 		case GL.FLOAT_VEC4:
+	// 			gl.uniform4fv(l, a);
+	// 		case GL.FLOAT_MAT4:
+	// 			gl.uniformMatrix4fv(l, false, a);
+	// 		case GL.FLOAT_MAT3:
+	// 			gl.uniformMatrix3fv(l, false, a);
+	// 		default:
+	// 			gl.uniform1fv(l, a);
+	// 	}
+	// }
+
+	public function draw(start:Int, count:Int):Void {
+		encoder.write(Draw(start, count));
+	}
+
+	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {
+		encoder.write(DrawInstanced(instanceCount, start, count));
+	}
+
+	public function setBindGroup(index:Int, group:IBindGroup) {
+		encoder.write(SetBindGroup(index, cast group));
+	}
+
+	public function end() {
+		encoder.write(EndRenderPass);
+	}
+}
+
+private class BindGroupLayout implements IBindGroupLayout {
+	public function new(driver, desc) {}
+}
+
+private class BindGroup implements IBindGroup {
+	public function new(driver, desc) {}
+}
+
+private class CommandEncoder implements ICommandEncoder {
+	public final commands:Array<Command>;
+
+	public function new() {
+		commands = [];
+	}
+
+	public inline function write(command:Command) {
+		commands.push(command);
+	}
+
+	public function beginRenderPass(desc:RenderPassDescriptor):IRenderPass {
+		write(BeginRenderPass(desc));
+		return new RenderPass(this);
+	}
+
+	public function finish():ICommandBuffer {
+		return new CommandBuffer(commands);
+	}
+
+	public function beginComputePass(desc:ComputePassDescriptor):IComputePass {
+		throw "Compute Shaders are not available on WebGL";
+	}
+}
+
+private class CommandBuffer implements ICommandBuffer {
+	public final commands:ReadOnlyArray<Command>;
+
+	public function new(commands:Array<Command>) {
+		this.commands = commands;
 	}
 
 	static function convertBlend(b:Blend):Int {
@@ -521,167 +662,142 @@ private class RenderPass implements IRenderPass {
 		}
 	}
 
-	public function setPipeline(p:IPipeline):Void {
-		var state:Pipeline = cast p;
-		assert(state.driver == driver, "driver mismatch");
-		gl.useProgram(state.program);
-		curPipeline = state;
-		var desc = p.desc;
-		switch desc.culling {
-			case None, null:
-				enable(GL.CULL_FACE, false);
-			case Back:
-				enable(GL.CULL_FACE, true);
-				gl.cullFace(GL.BACK);
-			case Front:
-				enable(GL.CULL_FACE, true);
-				gl.cullFace(GL.FRONT);
-			case Both:
-				enable(GL.CULL_FACE, true);
-				gl.cullFace(GL.FRONT_AND_BACK);
-		};
-		if (desc.blend != null) {
-			enable(GL.BLEND, true);
-			gl.blendFuncSeparate(convertBlend(desc.blend.src), convertBlend(desc.blend.dst), convertBlend(desc.blend.alphaSrc),
-				convertBlend(desc.blend.alphaDst));
-			gl.blendEquationSeparate(convertOperation(desc.blend.op), convertOperation(desc.blend.alphaOp));
-		} else {
-			enable(GL.BLEND, false);
-		}
-		if (desc.stencil != null) {
-			enable(GL.STENCIL_TEST, true);
-			gl.stencilFuncSeparate(GL.FRONT, convertCompare(desc.stencil.frontTest), desc.stencil.reference, desc.stencil.readMask);
-			gl.stencilMaskSeparate(GL.FRONT, desc.stencil.writeMask);
-			gl.stencilOpSeparate(GL.FRONT, convertStencil(desc.stencil.frontSTfail), convertStencil(desc.stencil.frontDPfail),
-				convertStencil(desc.stencil.frontPass));
+	@:access(arcane.internal)
+	public function execute(driver:WebGLDriver):Void {
+		final gl = driver.gl;
+		final gl2 = driver.gl2;
+		final hasGL2 = driver.hasGL2;
+		var curIndexBuffer:Null<IndexBuffer> = null;
+		var curPipeline:Null<RenderPipeline> = null;
 
-			gl.stencilFuncSeparate(GL.BACK, convertCompare(desc.stencil.backTest), desc.stencil.reference, desc.stencil.readMask);
-			gl.stencilMaskSeparate(GL.BACK, desc.stencil.writeMask);
-			gl.stencilOpSeparate(GL.BACK, convertStencil(desc.stencil.backSTfail), convertStencil(desc.stencil.backDPfail),
-				convertStencil(desc.stencil.backPass));
-		} else {
-			enable(GL.STENCIL_TEST, false);
-		}
-		if (desc.depthWrite) {
-			enable(GL.DEPTH_TEST, true);
-			gl.depthMask(true);
-			gl.depthFunc(convertCompare(desc.depthTest));
-		} else {
-			enable(GL.DEPTH_TEST, false);
-		}
-	}
-
-	private var enabledVertexAttribs = 0;
-
-	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {
-		var vb:Array<VertexBuffer> = cast buffers;
-		// assert(vb.driver == driver, "driver mismatch");
-		// curVertexBuffer = vb;
-		for (i in 0...enabledVertexAttribs)
-			gl.disableVertexAttribArray(i);
-		enabledVertexAttribs = 0;
-		for (buffer in vb) {
-			gl.bindBuffer(GL.ARRAY_BUFFER, buffer.buf);
-			var offset = 0;
-			for (i in buffer.layout) {
-				gl.enableVertexAttribArray(enabledVertexAttribs + i.index);
-				gl.vertexAttribPointer(enabledVertexAttribs + i.index, i.size, GL.FLOAT, false, buffer.stride() * 4, i.pos * 4);
-				if (driver.instancedRendering) {
-					gl2.vertexAttribDivisor(enabledVertexAttribs + i.index, buffer.desc.instanceDataStepRate);
+		function enable(cap:Int, b:Bool) {
+			if (b) {
+				@:nullSafety(Off) if (!driver.enabled_things.exists(cap) || !driver.enabled_things.get(cap)) {
+					gl.enable(cap);
+					driver.enabled_things.set(cap, true);
 				}
-				++offset;
+			} else {
+				if (!driver.enabled_things.exists(cap) || driver.enabled_things.get(cap)) {
+					gl.disable(cap);
+					driver.enabled_things.set(cap, false);
+				}
 			}
-			enabledVertexAttribs += offset;
 		}
-	}
+		for (command in commands) {
+			switch command {
+				case BeginRenderPass(desc):
+					final t = desc.colorAttachments[0].texture;
+					if (t == WebGLDriver.dummyTexture) {
+						@:nullSafety(Off) gl.bindFramebuffer(GL.FRAMEBUFFER, null);
+						gl.viewport(0, 0, driver.canvas.width, driver.canvas.height);
+					} else {
+						var tex:Texture = cast t;
+						assert(tex.driver == driver, "driver mismatch");
+						gl.bindFramebuffer(GL.FRAMEBUFFER, tex.frameBuffer);
+						gl.viewport(0, 0, tex.desc.width, tex.desc.height);
+						if (desc.colorAttachments.length > 1 && driver.features.multipleColorAttachments) {
+							final attachments = [];
+							for (i => attachment in desc.colorAttachments) {
+								gl.framebufferTexture2D(GL.FRAMEBUFFER, GL2.COLOR_ATTACHMENT0 + i, GL.TEXTURE_2D, (cast attachment.texture : Texture)
+									.texture, 0);
+								attachments.push(GL2.COLOR_ATTACHMENT0 + i);
+							}
+							gl2.drawBuffers(attachments);
+						}
+					}
+				case EndRenderPass:
+				case SetVertexBuffers(buffers):
+					var enabledVertexAttribs = driver.enabledVertexAttribs;
+					for (i in 0...enabledVertexAttribs)
+						gl.disableVertexAttribArray(i);
+					enabledVertexAttribs = 0;
+					for (buffer in buffers) {
+						gl.bindBuffer(GL.ARRAY_BUFFER, buffer.buf);
+						var offset = 0;
+						for (i in buffer.layout) {
+							gl.enableVertexAttribArray(enabledVertexAttribs + i.index);
+							gl.vertexAttribPointer(enabledVertexAttribs + i.index, i.size, GL.FLOAT, false, buffer.stride() * 4, i.pos * 4);
+							if (driver.features.instancedRendering) {
+								gl2.vertexAttribDivisor(enabledVertexAttribs + i.index, buffer.desc.instanceDataStepRate);
+							}
+							++offset;
+						}
+						enabledVertexAttribs += offset;
+					}
+					driver.enabledVertexAttribs = enabledVertexAttribs;
+				case SetIndexBuffer(buffer):
+					curIndexBuffer = buffer;
+				case SetPipeline(state):
+					gl.useProgram(state.program);
+					curPipeline = state;
+					var desc = state.desc;
+					switch desc.culling {
+						case None, null:
+							enable(GL.CULL_FACE, false);
+						case Back:
+							enable(GL.CULL_FACE, true);
+							gl.cullFace(GL.BACK);
+						case Front:
+							enable(GL.CULL_FACE, true);
+							gl.cullFace(GL.FRONT);
+						case Both:
+							enable(GL.CULL_FACE, true);
+							gl.cullFace(GL.FRONT_AND_BACK);
+					};
+					if (desc.blend != null) {
+						enable(GL.BLEND, true);
+						gl.blendFuncSeparate(convertBlend(desc.blend.src), convertBlend(desc.blend.dst), convertBlend(desc.blend.alphaSrc),
+							convertBlend(desc.blend.alphaDst));
+						gl.blendEquationSeparate(convertOperation(desc.blend.op), convertOperation(desc.blend.alphaOp));
+					} else {
+						enable(GL.BLEND, false);
+					}
+					if (desc.stencil != null) {
+						enable(GL.STENCIL_TEST, true);
+						gl.stencilFuncSeparate(GL.FRONT, convertCompare(desc.stencil.frontTest), desc.stencil.reference, desc.stencil.readMask);
+						gl.stencilMaskSeparate(GL.FRONT, desc.stencil.writeMask);
+						gl.stencilOpSeparate(GL.FRONT, convertStencil(desc.stencil.frontSTfail), convertStencil(desc.stencil.frontDPfail),
+							convertStencil(desc.stencil.frontPass));
 
-	public function setVertexBuffer(b:IVertexBuffer):Void {
-		var vb:VertexBuffer = cast b;
-		assert(vb.driver == driver, "driver mismatch");
-		// curVertexBuffer = vb;
-		for (i in 0...enabledVertexAttribs)
-			gl.disableVertexAttribArray(i);
-		gl.bindBuffer(GL.ARRAY_BUFFER, vb.buf);
-		enabledVertexAttribs = 0;
-		for (i in vb.layout) {
-			gl.enableVertexAttribArray(i.index);
-			gl.vertexAttribPointer(i.index, i.size, GL.FLOAT, false, vb.stride() * 4, i.pos * 4);
-			if (driver.instancedRendering) {
-				driver.gl2.vertexAttribDivisor(i.index, 0);
+						gl.stencilFuncSeparate(GL.BACK, convertCompare(desc.stencil.backTest), desc.stencil.reference, desc.stencil.readMask);
+						gl.stencilMaskSeparate(GL.BACK, desc.stencil.writeMask);
+						gl.stencilOpSeparate(GL.BACK, convertStencil(desc.stencil.backSTfail), convertStencil(desc.stencil.backDPfail),
+							convertStencil(desc.stencil.backPass));
+					} else {
+						enable(GL.STENCIL_TEST, false);
+					}
+					if (desc.depthWrite) {
+						enable(GL.DEPTH_TEST, true);
+						gl.depthMask(true);
+						gl.depthFunc(convertCompare(desc.depthTest));
+					} else {
+						enable(GL.DEPTH_TEST, false);
+					}
+				case SetBindGroup(index, b):
+				case Draw(start, count):
+					if (curIndexBuffer == null)
+						throw "Someone forgot to call setIndexBuffer";
+					var b:IndexBuffer = curIndexBuffer;
+					gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, b.buf);
+					gl.drawElements(GL.TRIANGLES, count == -1 ? b.desc.size : count, b.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start);
+				case DrawInstanced(instanceCount, start, count):
+					if (driver.features.instancedRendering) {
+						if (curIndexBuffer == null)
+							throw "Someone forgot to call setIndexBuffer";
+						gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, curIndexBuffer.buf);
+						gl2.drawElementsInstanced(GL.TRIANGLES, count == -1 ? curIndexBuffer.desc.size : count, curIndexBuffer.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start, instanceCount);
+					}
 			}
-			++enabledVertexAttribs;
 		}
 	}
-
-	public function setIndexBuffer(b:IIndexBuffer):Void {
-		var ib:IndexBuffer = cast b;
-		assert(ib.driver == driver, "driver mismatch");
-		curIndexBuffer = ib;
-	}
-
-	public function setTextureUnit(t:ITextureUnit, tex:ITexture):Void {
-		var unit:TextureUnit = cast t;
-		var texture:Texture = cast tex;
-		if (unit.index == -1) {
-			return;
-		}
-		gl.uniform1i(unit.uniform, unit.index);
-		gl.activeTexture(GL.TEXTURE0 + unit.index);
-		gl.bindTexture(GL.TEXTURE_2D, texture.texture);
-	}
-
-	public function setConstantLocation(l:IConstantLocation, a:Float32Array):Void {
-		var loc:ConstantLocation = cast l;
-		var l = loc.uniform;
-		if (loc.type == -1) {
-			return;
-		}
-		var a:JsFloat32Array = cast a;
-		switch loc.type {
-			case GL.FLOAT_VEC2:
-				gl.uniform2fv(l, a);
-			case GL.FLOAT_VEC3:
-				gl.uniform3fv(l, a);
-			case GL.FLOAT_VEC4:
-				gl.uniform4fv(l, a);
-			case GL.FLOAT_MAT4:
-				gl.uniformMatrix4fv(l, false, a);
-			case GL.FLOAT_MAT3:
-				gl.uniformMatrix3fv(l, false, a);
-			default:
-				gl.uniform1fv(l, a);
-		}
-	}
-
-	public function draw(start:Int, count:Int):Void {
-		if (curIndexBuffer == null)
-			throw "Someone forgot to call setIndexBuffer";
-		var b:IndexBuffer = cast curIndexBuffer;
-		gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, b.buf);
-		gl.drawElements(GL.TRIANGLES, count == -1 ? b.desc.size : count, b.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start);
-	}
-
-	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {
-		if (driver.instancedRendering) {
-			if (curIndexBuffer == null)
-				throw "Someone forgot to call setIndexBuffer";
-			var b:IndexBuffer = cast curIndexBuffer;
-			gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, b.buf);
-			gl2.drawElementsInstanced(GL.TRIANGLES, count == -1 ? b.desc.size : count, b.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start, instanceCount);
-		}
-	}
-
-	public function end() {}
 }
 
 @:nullSafety(Strict)
 @:allow(arcane.internal.html5)
 @:access(arcane.internal.html5)
 class WebGLDriver implements IGraphicsDriver {
-	public final renderTargetFlipY:Bool = true;
-	public final instancedRendering:Bool;
-	public final uintIndexBuffers:Bool;
-	public final multipleColorAttachments:Bool;
+	public final features:DriverFeatures;
+	public final limits:DriverLimits = {};
 
 	var canvas:CanvasElement;
 	var gl:GL;
@@ -691,50 +807,51 @@ class WebGLDriver implements IGraphicsDriver {
 
 	inline function get_gl2():GL2 return cast gl;
 
+	var enabledVertexAttribs = 0;
+
 	public function new(gl:GL, canvas:CanvasElement, hasGL2:Bool) {
 		this.canvas = canvas;
 		this.gl = gl;
 		this.hasGL2 = hasGL2;
 
+		var instancedRendering;
+		var uintIndexBuffers;
+		var multipleColorAttachments;
+
 		if (hasGL2) {
-			this.instancedRendering = true;
-			this.uintIndexBuffers = true;
-			this.multipleColorAttachments = true;
+			instancedRendering = true;
+			uintIndexBuffers = true;
+			multipleColorAttachments = true;
 		} else {
-			this.uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
+			uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
 			var ext = gl.getExtension(ANGLE_instanced_arrays);
 			if (ext != null) {
-				this.instancedRendering = true;
+				instancedRendering = true;
 				Reflect.setField(gl, "drawElementsInstanced", ext.drawElementsInstancedANGLE);
 				Reflect.setField(gl, "drawArraysInstanced", ext.drawArraysInstancedANGLE);
 				Reflect.setField(gl, "vertexAtribDivisor", ext.vertexAttribDivisorANGLE);
 			} else {
-				this.instancedRendering = false;
+				instancedRendering = false;
 			}
 			var ext = gl.getExtension(WEBGL_draw_buffers);
 			if (ext != null) {
-				this.multipleColorAttachments = true;
+				multipleColorAttachments = true;
 				Reflect.setField(gl, "drawBuffers", ext.drawBuffersWEBGL);
 			} else {
-				this.multipleColorAttachments = false;
+				multipleColorAttachments = false;
 			}
 		}
-	}
 
-	public function hasFeature(f:Feature):Bool {
-		return switch f {
-			case ComputeShaders: false;
-			case UintIndexBuffers: uintIndexBuffers;
-			case MultiRenderTargets: multipleColorAttachments;
-			case FlippedRenderTarget: true;
-		}
+		this.features = {
+			compute: false,
+			uintIndexBuffers: uintIndexBuffers,
+			multipleColorAttachments: multipleColorAttachments,
+			flippedRenderTargets: true,
+			instancedRendering: instancedRendering
+		};
 	}
 
 	public function getName(details:Bool = false):String {
-		// Log.info(gl.getParameter(GL.RENDERER));
-		// Log.info(gl.getParameter(GL.VENDOR));
-		// Log.info(gl.getParameter(GL.VERSION));
-		// Log.info(gl.getParameter(GL.SHADING_LANGUAGE_VERSION));
 		return if (hasGL2) "WebGL2" else "WebGL";
 	}
 
@@ -746,38 +863,33 @@ class WebGLDriver implements IGraphicsDriver {
 		@:nullSafety(Off) gl = null;
 	}
 
-	public function begin():ITexture {
-		gl.enable(GL.BLEND);
-		gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-		return cast null;
-	}
-
-	public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
-		var bits:arcane.common.IntFlags = 0;
-		if (col == null)
-			col = 0x000000;
-		gl.colorMask(true, true, true, true);
-		gl.clearColor(col.r, col.g, col.b, 0xff);
-		bits.add(GL.COLOR_BUFFER_BIT);
-		if (depth != null) {
-			gl.depthMask(true);
-			gl.clearDepth(depth);
-			bits.add(GL.DEPTH_BUFFER_BIT);
-		}
-		if (stencil != null) {
-			gl.clearStencil(stencil);
-			bits.add(GL.STENCIL_BUFFER_BIT);
-		}
-		gl.clear(bits);
-	}
-
+	// public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
+	// 	var bits:arcane.common.IntFlags = 0;
+	// 	if (col == null)
+	// 		col = 0x000000;
+	// 	gl.colorMask(true, true, true, true);
+	// 	gl.clearColor(col.r, col.g, col.b, 0xff);
+	// 	bits.add(GL.COLOR_BUFFER_BIT);
+	// 	if (depth != null) {
+	// 		gl.depthMask(true);
+	// 		gl.clearDepth(depth);
+	// 		bits.add(GL.DEPTH_BUFFER_BIT);
+	// 	}
+	// 	if (stencil != null) {
+	// 		gl.clearStencil(stencil);
+	// 		bits.add(GL.STENCIL_BUFFER_BIT);
+	// 	}
+	// 	gl.clear(bits);
+	// }
 	@:noCompletion var enabled_things:Map<Int, Bool> = new Map();
 
-	public function end():Void {}
-
-	public function flush():Void {}
-
 	public function present():Void {}
+
+	public static var dummyTexture:ITexture = cast {};
+
+	public function getCurrentTexture():ITexture {
+		return dummyTexture;
+	}
 
 	public function createVertexBuffer(desc):IVertexBuffer {
 		return new VertexBuffer(this, desc);
@@ -787,27 +899,41 @@ class WebGLDriver implements IGraphicsDriver {
 		return new IndexBuffer(this, desc);
 	}
 
-	public function createTexture(desc:TextureDesc):ITexture {
+	public function createUniformBuffer(desc:UniformBufferDescriptor):IUniformBuffer {
+		return new UniformBuffer(this, desc);
+	}
+
+	public function createTexture(desc:TextureDescriptor):ITexture {
 		return new Texture(this, desc);
 	}
 
-	public function createShader(desc:ShaderDesc):IShader {
+	public function createShader(desc:ShaderDescriptor):IShaderModule {
 		return new Shader(this, desc);
 	}
 
-	public function createPipeline(desc:PipelineDesc):IPipeline {
-		return new Pipeline(this, desc);
+	public function createRenderPipeline(desc:RenderPipelineDescriptor):IRenderPipeline {
+		return new RenderPipeline(this, desc);
 	}
 
-	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
-		return new RenderPass(this, desc);
+	public function createBindGroupLayout(desc:BindGroupLayoutDescriptor):IBindGroupLayout {
+		return new BindGroupLayout(this, desc);
 	}
 
-	public function beginComputePass(desc:ComputePassDesc):IComputePass {
+	public function createBindGroup(desc:BindGroupDescriptor):IBindGroup {
+		return new BindGroup(this, desc);
+	}
+
+	public function createCommandEncoder():ICommandEncoder {
+		return new CommandEncoder();
+	}
+
+	public function submit(buffers:Array<ICommandBuffer>) {
+		for (buffer in buffers) {
+			(cast buffer : CommandBuffer).execute(this);
+		}
+	}
+
+	public function createComputePipeline(desc:ComputePipelineDescriptor):IComputePipeline {
 		throw "Compute Shaders are not available on WebGL";
-	}
-
-	public function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline {
-		throw new haxe.exceptions.NotImplementedException();
 	}
 }

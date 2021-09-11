@@ -2,14 +2,14 @@ package arcane.util;
 
 @:using(arcane.util.Result.ResultUtil)
 enum Result<O, E> {
-	Ok(s:O);
-	Err(f:E);
+	Ok(value:O);
+	Err(error:E);
 }
 
-class ResultUtil {
+private class ResultUtil {
 	public static function expect<O, E>(r:Result<O, E>, message = "expected success"):O {
 		return switch r {
-			case Ok(s): s;
+			case Ok(value): value;
 			case Err(_): throw message;
 		}
 	}
@@ -17,7 +17,7 @@ class ResultUtil {
 	public static function fail<O, E>(r:Result<O, E>, message = "expected failure"):E {
 		return switch r {
 			case Ok(_): throw message;
-			case Err(f): f;
+			case Err(error): error;
 		}
 	}
 }

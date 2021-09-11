@@ -1,6 +1,6 @@
 package arcane.common.arrays;
 
-abstract Int32Array(ArrayBuffer) {
+abstract Int32Array(ArrayBuffer) to ArrayBuffer {
 	public var length(get, never):Int;
 
 	inline function get_length():Int {

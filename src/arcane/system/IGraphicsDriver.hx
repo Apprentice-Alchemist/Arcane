@@ -1,20 +1,29 @@
 package arcane.system;
 
+import arcane.common.arrays.ArrayBuffer;
 import arcane.common.Color;
 import arcane.common.arrays.Float32Array;
 import arcane.common.arrays.Int32Array;
 
-enum Feature {
-	ComputeShaders;
-	UintIndexBuffers;
-	MultiRenderTargets;
-	FlippedRenderTarget;
-}
+typedef DriverFeatures = {
+	/**
+	 * Compute is supported on every platform, except webgl.
+	 */
+	final compute:Bool;
+	final uintIndexBuffers:Bool;
+	final multipleColorAttachments:Bool;
+	final flippedRenderTargets:Bool;
+	final instancedRendering:Bool;
+};
 
-enum ShaderKind {
-	Vertex;
-	Fragment;
-	Compute;
+typedef DriverLimits = {};
+
+enum abstract ShaderStage(Int) {
+	var Vertex = 0x1;
+	var Fragment = 0x2;
+	var Compute = 0x4;
+
+	@:op(A | B) static function and(a:ShaderStage, b:ShaderStage):ShaderStage;
 }
 
 enum VertexData {
@@ -102,7 +111,7 @@ typedef InputLayout = Array<{
 	final attributes:Array<VertexAttribute>;
 }>;
 
-@:structInit class BlendDesc {
+@:structInit class BlendDescriptor {
 	public final src:Blend = One;
 	public final dst:Blend = Zero;
 	public final alphaSrc:Blend = One;
@@ -111,7 +120,7 @@ typedef InputLayout = Array<{
 	public final alphaOp:Operation = Add;
 }
 
-@:structInit class StencilDesc {
+@:structInit class StencilDescriptor {
 	public final readMask:Int = 0xff;
 	public final writeMask:Int = 0xff;
 	public final reference:Int = 0;
@@ -127,30 +136,34 @@ typedef InputLayout = Array<{
 	public final backDPfail:StencilOp = Keep;
 }
 
-@:structInit class PipelineDesc {
-	public final blend:BlendDesc = {};
-	public final stencil:StencilDesc = {};
+@:structInit class RenderPipelineDescriptor {
+	public final blend:BlendDescriptor = {};
+	public final stencil:StencilDescriptor = {};
 	public final culling:Face = None;
 	public final depthWrite:Bool = false;
 	public final depthTest:Compare = Always;
 	public final inputLayout:InputLayout;
-	public final vertexShader:IShader;
-	public final fragmentShader:IShader;
+	public final vertexShader:IShaderModule;
+	public final fragmentShader:IShaderModule;
 }
 
-@:structInit class VertexBufferDesc {
+@:structInit class VertexBufferDescriptor {
 	public final attributes:Array<VertexAttribute>;
 	public final instanceDataStepRate:Int = 0;
 	public final size:Int;
 	public final dyn:Bool = true;
 }
 
-@:structInit class IndexBufferDesc {
+@:structInit class IndexBufferDescriptor {
 	public final size:Int;
 	public final is32:Bool = true;
 }
 
-@:structInit class TextureDesc {
+@:structInit class UniformBufferDescriptor {
+	public final size:Int;
+}
+
+@:structInit class TextureDescriptor {
 	public final width:Int;
 	public final height:Int;
 	public final format:arcane.Image.PixelFormat;
@@ -158,15 +171,47 @@ typedef InputLayout = Array<{
 	public final isRenderTarget:Bool = false;
 }
 
-@:structInit class ShaderDesc {
+@:structInit class ShaderDescriptor {
 	public final id:String;
 
 	/**
 	 * The kind of shader.
 	 */
-	public final kind:ShaderKind;
+	public final kind:ShaderStage;
+}
 
-	// @:optional public final fromGlslSrc:Bool = false;
+private enum BindingResource {
+	Buffer(buffer:Any);
+	Texture(texture:ITexture);
+	Sampler(sampler:ISampler);
+}
+
+private enum SamplerBindingType {
+	Filtering;
+	NonFiltering;
+	Comparison;
+}
+
+private enum BindingKind {
+	Buffer(hasDynamicOffset:Bool, minBindingSize:Int);
+	Sampler(type:SamplerBindingType);
+	Texture();
+}
+
+@:structInit class BindGroupLayoutDescriptor {
+	public final entries:Array<{
+		var visibility:ShaderStage;
+		var binding:Int;
+		var kind:BindingKind;
+	}>;
+}
+
+@:structInit class BindGroupDescriptor {
+	public final layout:IBindGroupLayout;
+	public final entries:Array<{
+		var binding:Int;
+		var resource:BindingResource;
+	}>;
 }
 
 enum LoadOp {
@@ -180,7 +225,7 @@ enum StoreOp {
 }
 
 @:structInit class ColorAttachment {
-	@:optional public final texture:Null<ITexture>;
+	public final texture:ITexture;
 
 	public final load:LoadOp;
 	public final store:StoreOp;
@@ -188,16 +233,16 @@ enum StoreOp {
 	@:optional public final loadValue:Null<Color>;
 }
 
-@:structInit class RenderPassDesc {
+@:structInit class RenderPassDescriptor {
 	public final colorAttachments:Array<ColorAttachment>;
 	// public final stencilAttachment:StencilAttachment;
 	// public final depthAttachment:DepthAttachment;
 }
 
-@:structInit class ComputePassDesc {}
+@:structInit class ComputePassDescriptor {}
 
-@:structInit class ComputePipelineDesc {
-	public final shader:IShader;
+@:structInit class ComputePipelineDescriptor {
+	public final shader:IShaderModule;
 }
 
 private interface IDisposable {
@@ -210,35 +255,17 @@ private interface IDisposable {
 private interface IDescribed<T> {
 	/**
 	 * The descriptor associated with this object.
-	 * Editing the descriptor's fields after object creation will not have any effect on the object.
+	 * Changing the descriptor's fields after object creation will not have any effect on the object.
 	 */
 	var desc(default, null):T;
 }
 
 interface ITextureUnit {}
 interface IConstantLocation {}
+interface IRenderPipeline extends IDisposable extends IDescribed<RenderPipelineDescriptor> {}
+interface IShaderModule extends IDisposable extends IDescribed<ShaderDescriptor> {}
 
-interface IPipeline extends IDisposable extends IDescribed<PipelineDesc> {
-	/**
-	 * Get a constant location. (Uniform in opengl.)
-	 * If there is no constant location with the given name, return an invalid constant location.
-	 * @param name 
-	 * @return IConstantLocation
-	 */
-	function getConstantLocation(name:String):IConstantLocation;
-
-	/**
-	 * Get a texture unit. (Sampler in opengl.)
-	 * If there is no texture unit with the given name, return an invalid texture unit.
-	 * @param name 
-	 * @return ITextureUnit
-	 */
-	function getTextureUnit(name:String):ITextureUnit;
-}
-
-interface IShader extends IDisposable extends IDescribed<ShaderDesc> {}
-
-interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDesc> {
+interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDescriptor> {
 	/**
 	 * Upload vertex data to the gpu
 	 * @param start
@@ -252,7 +279,7 @@ interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDesc>
 	function stride():Int;
 }
 
-interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
+interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDescriptor> {
 	/**
 	 * Upload index data to the gpu
 	 * @param start
@@ -264,17 +291,28 @@ interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDesc> {
 	function unmap():Void;
 }
 
-interface ITexture extends IDisposable extends IDescribed<TextureDesc> {
+interface IUniformBuffer extends IDisposable extends IDescribed<UniformBufferDescriptor> {
+	/**
+	 * Upload uniform data to the gpu
+	 * @param start
+	 * @param arr
+	 */
+	function upload(start:Int, arr:ArrayBuffer):Void;
+
+	function map(start:Int, range:Int):ArrayBuffer;
+	function unmap():Void;
+}
+
+interface ITexture extends IDisposable extends IDescribed<TextureDescriptor> {
 	function upload(bytes:haxe.io.Bytes):Void;
 }
 
 interface IRenderPass {
-	function setPipeline(p:IPipeline):Void;
+	function setPipeline(p:IRenderPipeline):Void;
 	function setVertexBuffer(b:IVertexBuffer):Void;
 	function setVertexBuffers(buffers:Array<IVertexBuffer>):Void;
 	function setIndexBuffer(b:IIndexBuffer):Void;
-	function setTextureUnit(t:ITextureUnit, tex:ITexture):Void;
-	function setConstantLocation(l:IConstantLocation, f:Float32Array):Void;
+	function setBindGroup(index:Int, group:IBindGroup):Void;
 
 	function draw(start:Int, count:Int):Void;
 	function drawInstanced(instanceCount:Int, start:Int, count:Int):Void;
@@ -282,34 +320,52 @@ interface IRenderPass {
 	function end():Void;
 }
 
-interface IComputePipeline extends IDisposable extends IDescribed<ComputePipelineDesc> {}
+interface IComputePipeline extends IDisposable extends IDescribed<ComputePipelineDescriptor> {}
 
 interface IComputePass {
+	function setBindGroup(index:Int, group:IBindGroup):Void;
 	function setPipeline(p:IComputePipeline):Void;
 	function compute(x:Int, y:Int, z:Int):Void;
 }
 
+interface ICommandEncoder {
+	function beginComputePass(desc:ComputePassDescriptor):IComputePass;
+	function beginRenderPass(desc:RenderPassDescriptor):IRenderPass;
+	function finish():ICommandBuffer;
+}
+
+interface ICommandBuffer {}
+interface IBindGroupLayout {}
+interface IBindGroup {}
+interface ISampler {}
+
 interface IGraphicsDriver extends IDisposable {
-	function hasFeature(f:Feature):Bool;
+	final features:DriverFeatures;
+	final limits:DriverLimits;
 
 	function getName(details:Bool = false):String;
 
 	/**
 	 * @return The current swapchain image
 	 */
-	function begin():ITexture;
-	function end():Void;
-	function flush():Void;
+	function getCurrentTexture():ITexture;
+
+	function createVertexBuffer(desc:VertexBufferDescriptor):IVertexBuffer;
+	function createIndexBuffer(desc:IndexBufferDescriptor):IIndexBuffer;
+	function createUniformBuffer(desc:UniformBufferDescriptor):IUniformBuffer;
+
+	function createTexture(desc:TextureDescriptor):ITexture;
+	function createShader(desc:ShaderDescriptor):IShaderModule;
+
+	function createRenderPipeline(desc:RenderPipelineDescriptor):IRenderPipeline;
+	function createComputePipeline(desc:ComputePipelineDescriptor):IComputePipeline;
+
+	function createBindGroupLayout(desc:BindGroupLayoutDescriptor):IBindGroupLayout;
+	function createBindGroup(desc:BindGroupDescriptor):IBindGroup;
+
+	function createCommandEncoder():ICommandEncoder;
+
+	function submit(buffers:Array<ICommandBuffer>):Void;
+
 	function present():Void;
-
-	function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer;
-	function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer;
-	function createTexture(desc:TextureDesc):ITexture;
-	function createShader(desc:ShaderDesc):IShader;
-	function createPipeline(desc:PipelineDesc):IPipeline;
-
-	function beginRenderPass(desc:RenderPassDesc):IRenderPass;
-	
-	function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline;
-	function beginComputePass(desc:ComputePassDesc):IComputePass;
 }

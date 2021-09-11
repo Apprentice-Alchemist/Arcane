@@ -16,7 +16,7 @@ class Lib {
 	public static var version(default, never):Version = arcane.internal.Macros.getVersion();
 	public static var fps(default, null):Float = 0.0;
 
-	public static var system(default, null):Null<ISystem>;
+	public static var system(default, null):ISystem = new arcane.internal.System();
 	public static var gdriver(default, null):Null<IGraphicsDriver>;
 	public static var adriver(default, null):Null<IAudioDriver>;
 
@@ -34,9 +34,7 @@ class Lib {
 		#if target.threaded
 		mainThread = sys.thread.Thread.current();
 		#end
-		var backend = new arcane.internal.System();
-
-		backend.init({
+		system.init({
 			windowOptions: {
 				x: -1,
 				y: -1,
@@ -47,9 +45,8 @@ class Lib {
 				mode: Windowed
 			}
 		}, () -> {
-			gdriver = backend.getGraphicsDriver();
-			adriver = backend.getAudioDriver();
-			arcane.Lib.system = backend;
+			gdriver = system.getGraphicsDriver();
+			adriver = system.getAudioDriver();
 			cb();
 		});
 	}

@@ -13,7 +13,7 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 	public function new() {}
 
 	public function compile(id:String, source:Bytes, vertex:Bool):Void {
-		#if (macro)
+		#if (macro&&!display)
 		if (Context.defined("display"))
 			return;
 		var temp = Macros.getTempDir();
@@ -58,12 +58,14 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 			Sys.println(webgpu.stderr);
 			Sys.exit(1);
 		}
-		// trace(Macros.cmd("spirv-dis", ["--comment", '$temp/$id.${vertex ? "vert" : "frag"}.spv']));
-		// trace(Macros.cmd("spirv-reflect", ["-v", "1", '$temp/$id.${vertex ? "vert" : "frag"}.spv']).stdout.toString());
+		Macros.cmd("naga", [
+			'$temp/$id.${vertex ? "vert" : "frag"}.spv',
+			'$temp/$id.${vertex ? "vert" : "frag"}.wgsl',"--validate"]);
+
 		var _id = '$id-${vertex ? "vert" : "frag"}';
 		Context.addResource('$_id-default', webgl1.stdout);
 		Context.addResource('$_id-webgl2', webgl2.stdout);
-		Context.addResource('$_id-webgpu', File.getBytes('$temp/$id.${vertex ? "vert" : "frag"}.spv'));
+		Context.addResource('$_id-webgpu', File.getBytes('$temp/$id.${vertex ? "vert" : "frag"}.wgsl'));
 		#end
 	}
 }

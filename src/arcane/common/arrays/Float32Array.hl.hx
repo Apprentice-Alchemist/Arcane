@@ -2,7 +2,7 @@ package arcane.common.arrays;
 
 import hl.BytesAccess;
 
-abstract Float32Array(ArrayBuffer) {
+abstract Float32Array(ArrayBuffer) to ArrayBuffer {
 	public var length(get, never):Int;
 
 	inline function get_length():Int {

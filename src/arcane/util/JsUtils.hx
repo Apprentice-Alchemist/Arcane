@@ -8,17 +8,12 @@ using haxe.macro.Tools;
 
 class JsUtils {
 	#if js
-	public extern static inline function await<T>(p:js.lib.Promise<T>):T {
-		return js.Syntax.code("await {0}", p);
+	public extern static inline function await<T>(promise:js.lib.Promise<T>):T {
+		return js.Syntax.code("await {0}", promise);
 	}
 	#end
 
 	@:noUsing public static macro function async(e:haxe.macro.Expr):haxe.macro.Expr {
-		// function map(e:Expr) return e.map(e -> switch e {
-		// 	case macro($e): map(e);
-		// 	case macro $e: map(e);
-		// });
-		// e = map(e);
 		switch e.expr {
 			case EFunction(_, {
 				args: args,

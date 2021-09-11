@@ -1,7 +1,7 @@
 package arcane.common.arrays;
 
 @:forward(length)
-abstract Float32Array(js.lib.Float32Array) {
+abstract Float32Array(js.lib.Float32Array) from js.lib.Float32Array to js.lib.Float32Array {
 	public inline function new(length:Int) {
 		this = new js.lib.Float32Array(length);
 	}
@@ -25,4 +25,6 @@ abstract Float32Array(js.lib.Float32Array) {
 			arr[i] = element;
 		return arr;
 	}
+
+	@:to inline function toArrayBuffer() return this.buffer;
 }

@@ -64,8 +64,8 @@ class ThreadPool {
 	 */
 	public function addTask<R>(execute:() -> R, complete:R->Void, ?err:haxe.Exception->Void):Void {
 		final error:haxe.Exception->Void = err == null ? e -> Log.error("Unhandled exception in threadpool : " + e.message) : err;
-		final t = threads[_ct >= threads.length ? _ct = 0 : _ct++];
-		t.tasks.push(() -> {
+		final thread = threads[_ct >= threads.length ? _ct = 0 : _ct++];
+		thread.tasks.push(() -> {
 			var r = try execute() catch (e) return () -> error(e);
 			return () -> complete(r);
 		});

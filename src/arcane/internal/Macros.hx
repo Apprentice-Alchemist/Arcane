@@ -83,9 +83,6 @@ class Macros {
 	static function get_hasSpirV():Bool {
 		if (__hasSpirV != null)
 			return __hasSpirV;
-		var p = new sys.io.Process("spirv-cross", ["--help"]);
-		p.stdin.close();
-		var c = p.exitCode();
 		__hasSpirV = cmd("spirv-cross", ["--help"]).code == 0;
 		return __hasSpirV;
 	}
@@ -99,7 +96,7 @@ class Macros {
 			// if (hasSpirV)
 			return new arcane.internal.html5.HTML5ShaderCompiler();
 		// else
-		// 	return new arcane.internal.kinc.KrafixShaderCompiler();
+		// return new arcane.internal.kinc.KrafixShaderCompiler();
 		if (Context.defined("kinc") && Context.defined("hl"))
 			return new arcane.internal.kinc.KrafixShaderCompiler();
 		return new arcane.internal.empty.ShaderCompiler();
@@ -124,8 +121,8 @@ class Macros {
 		var p = new sys.io.Process(command, args);
 		if (stdin != null) {
 			p.stdin.write(stdin);
-			p.stdin.close();
 		}
+		p.stdin.close();
 		var stdout = p.stdout.readAll();
 		var stderr = p.stderr.readAll();
 		var code = p.exitCode();

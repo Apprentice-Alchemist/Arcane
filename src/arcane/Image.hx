@@ -1,12 +1,5 @@
 package arcane;
 
-import haxe.io.Bytes;
-import haxe.io.BytesInput;
-#if format
-import format.png.Reader as PngReader;
-import format.png.Tools as PngTools;
-#end
-
 @:nullSafety(Strict)
 class Image {
 	/**
@@ -48,6 +41,10 @@ class Image {
 		}
 	}
 
+	/**
+	 * Returns a copy of the current image.
+	 * @return Image
+	 */
 	public function clone():Image {
 		return new Image(this.width, this.height, this.format, this.data.sub(0, this.data.length));
 	}
@@ -135,10 +132,10 @@ class Image {
 	 */
 	public static function fromPngBytes(b:haxe.io.Bytes):Image {
 		#if format
-		var reader = new PngReader(new BytesInput(b));
+		var reader = new format.png.Reader(new haxe.io.BytesInput(b));
 		var data = reader.read();
-		var header = PngTools.getHeader(data);
-		var bytes = PngTools.extract32(data);
+		var header = format.png.Tools.getHeader(data);
+		var bytes = format.png.Tools.extract32(data);
 		var image = new Image(header.width, header.height, BGRA, bytes);
 		image.convert(RGBA);
 		return image;

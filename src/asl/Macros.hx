@@ -28,12 +28,12 @@ class Macros {
 		final fragment = if (cls.meta.has(":frag")) asl.Typer.makeModule(cls.meta.extract(":frag")[0].params[0], Fragment) else
 			Context.error("Wanted :frag meta with fragment data", cls.pos);
 		// trace(GlslOut.toGlsl(vertex));
-		makeShader(name, GlslOut.toGlsl(vertex #if kinc, true #end), GlslOut.toGlsl(fragment #if kinc, true #end));
-		// if (!cls.meta.has(":vertex"))
-		// 	Context.error("Shader does not have @:vertex data.", cls.pos);
-		// if (!cls.meta.has(":fragment"))
-		// 	Context.error("Shader does not have @:fragment data.", cls.pos);
-		// makeShader(name, cls.meta.extract(":vertex")[0].params[0].getValue(), cls.meta.extract(":fragment")[0].params[0].getValue());
+		// makeShader(name, GlslOut.toGlsl(vertex #if kinc, true #end), GlslOut.toGlsl(fragment #if kinc, true #end));
+		if (!cls.meta.has(":vertex"))
+			Context.error("Shader does not have @:vertex data.", cls.pos);
+		if (!cls.meta.has(":fragment"))
+			Context.error("Shader does not have @:fragment data.", cls.pos);
+		makeShader(name, cls.meta.extract(":vertex")[0].params[0].getValue(), cls.meta.extract(":fragment")[0].params[0].getValue());
 		fields.push({
 			name: "new",
 			kind: FFun({

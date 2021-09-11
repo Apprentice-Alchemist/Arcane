@@ -112,7 +112,7 @@ class IndexBuffer implements IIndexBuffer {
 	}
 }
 
-@:nullSafety
+@:nullSafety(Strict)
 class Texture implements ITexture {
 	public var desc(default, null):TextureDesc;
 
@@ -127,7 +127,11 @@ class Texture implements ITexture {
 		} else {
 			var tex = new kinc.g4.Texture();
 			this.tex = tex;
-			tex.init(desc.width, desc.height, FORMAT_RGBA32);
+			tex.init(desc.width, desc.height, switch desc.format {
+				case RGBA: FORMAT_RGBA32;
+				case BGRA: FORMAT_BGRA32;
+				case ARGB: throw "assert";
+			});
 			if (desc.data != null)
 				upload(desc.data);
 			// tex.generateMipmaps(9);

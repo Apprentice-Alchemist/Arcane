@@ -1,6 +1,6 @@
 -cp test
 -cp src
--m Main
+-m Triangle
 -D eval-stack
 -lib wgpu-externs
 --macro arcane.internal.Macros.initSourceMaps()
