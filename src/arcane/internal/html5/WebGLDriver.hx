@@ -669,6 +669,8 @@ private class CommandBuffer implements ICommandBuffer {
 		final hasGL2 = driver.hasGL2;
 		var curIndexBuffer:Null<IndexBuffer> = null;
 		var curPipeline:Null<RenderPipeline> = null;
+		final bindGroups:Array<BindGroup> = [];
+		var bindGroupsDirty = true;
 
 		function enable(cap:Int, b:Bool) {
 			if (b) {
@@ -774,7 +776,12 @@ private class CommandBuffer implements ICommandBuffer {
 						enable(GL.DEPTH_TEST, false);
 					}
 				case SetBindGroup(index, b):
+					bindGroupsDirty = bindGroups[index] != b;
+					bindGroups[index] = b;
 				case Draw(start, count):
+					if(bindGroupsDirty) {
+						
+					}
 					if (curIndexBuffer == null)
 						throw "Someone forgot to call setIndexBuffer";
 					var b:IndexBuffer = curIndexBuffer;

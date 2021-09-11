@@ -5,9 +5,8 @@ import arcane.Assets.AssetError;
 import arcane.system.ISystem;
 import arcane.system.IAudioDriver;
 import arcane.system.IGraphicsDriver;
-import arcane.system.Event;
 
-class System implements ISystem {
+class EmptySystem implements ISystem {
 	public function new() {
 		window = new Window();
 	}
@@ -31,11 +30,11 @@ class System implements ISystem {
 	}
 
 	public function getAudioDriver():Null<IAudioDriver> {
-		return new AudioDriver();
+		return new EmptyAudioDriver();
 	}
 
 	public function getGraphicsDriver():Null<IGraphicsDriver> {
-		return new GraphicsDriver();
+		return new EmptyGraphicsDriver();
 	}
 
 	public function language():String {

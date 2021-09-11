@@ -565,7 +565,7 @@ class WGPUDriver implements IGraphicsDriver {
 
 	public function getName(details:Bool = false):String {
 		if (details) {
-			return "WebGPU : " + adapter.name;
+			return "WebGPU " + adapter.name;
 		} else {
 			return "WebGPU";
 		}

@@ -16,13 +16,13 @@ arcane.Assets
 -m Main
 --interp
 
---next
--lib kinc:git:https://github.com/Apprentice-Alchemist/KincHL
--lib format:3.5.0
-arcane.util.ThreadPool
-arcane.internal.kinc
--hl out.hl
---no-output
+# --next
+# -lib kinc:git:https://github.com/Apprentice-Alchemist/KincHL
+# -lib format:3.5.0
+# arcane.util.ThreadPool
+# arcane.internal.kinc
+# -hl out.hl
+# --no-output
 
 --next
 arcane.internal.html5
