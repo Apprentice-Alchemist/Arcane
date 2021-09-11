@@ -1,8 +1,6 @@
 package arcane.util;
 
-#if !target.threaded
-#error "arcane.util.ThreadPool is only available on multithreaded targets"
-#end
+#if target.threaded
 import sys.thread.Deque;
 import sys.thread.Thread;
 
@@ -95,3 +93,4 @@ class ThreadPool {
 		#end
 	}
 }
+#end

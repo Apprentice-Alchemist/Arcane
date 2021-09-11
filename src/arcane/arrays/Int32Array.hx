@@ -1,4 +1,4 @@
-package arcane.common.arrays;
+package arcane.arrays;
 
 abstract Int32Array(ArrayBuffer) to ArrayBuffer {
 	public var length(get, never):Int;
@@ -12,11 +12,12 @@ abstract Int32Array(ArrayBuffer) to ArrayBuffer {
 	}
 
 	@:op([]) public inline function get(i:Int):Int {
-		return (this.b : hl.BytesAccess<Int>)[i];
+		return (cast this : haxe.io.Bytes).getInt32(i * 4);
 	}
 
 	@:op([]) public inline function set(i:Int, v:Int):Int {
-		return (this.b : hl.BytesAccess<Int>)[i] = v;
+		(cast this : haxe.io.Bytes).setInt32(i * 4, v);
+		return v;
 	}
 
 	/**

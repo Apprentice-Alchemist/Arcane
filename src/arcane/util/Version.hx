@@ -1,4 +1,4 @@
-package arcane.common;
+package arcane.util;
 
 // TODO : should other and build fields be checked in == and > < <= >=?
 

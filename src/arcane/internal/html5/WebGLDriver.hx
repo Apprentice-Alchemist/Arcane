@@ -18,7 +18,7 @@ import js.lib.Uint16Array as JsUint16Array;
 import js.lib.Uint32Array as JsUint32Array;
 import js.lib.Int32Array as JsInt32Array;
 import js.lib.ArrayBuffer as JsArrayBuffer;
-import arcane.common.arrays.*;
+import arcane.arrays.*;
 
 private enum Command {
 	BeginRenderPass(desc:RenderPassDescriptor);
@@ -89,7 +89,7 @@ private class VertexBuffer implements IVertexBuffer {
 	var last_start = 0;
 	var last_end = 0;
 
-	public function map(start:Int, range:Int):arcane.common.arrays.Float32Array {
+	public function map(start:Int, range:Int):arcane.arrays.Float32Array {
 		last_start = start;
 		last_end = range == -1 ? data.length : start + range;
 		return cast data.subarray(last_start, last_end);
@@ -154,7 +154,7 @@ private class IndexBuffer implements IIndexBuffer {
 	var last_start = 0;
 	var last_end = 0;
 
-	public function map(start:Int, range:Int):arcane.common.arrays.Int32Array {
+	public function map(start:Int, range:Int):arcane.arrays.Int32Array {
 		last_start = start;
 		last_end = range == -1 ? data.length : start + range;
 		return cast data.subarray(last_start, last_end);
@@ -780,7 +780,7 @@ private class CommandBuffer implements ICommandBuffer {
 					bindGroups[index] = b;
 				case Draw(start, count):
 					if(bindGroupsDirty) {
-						
+
 					}
 					if (curIndexBuffer == null)
 						throw "Someone forgot to call setIndexBuffer";
@@ -870,8 +870,8 @@ class WebGLDriver implements IGraphicsDriver {
 		@:nullSafety(Off) gl = null;
 	}
 
-	// public function clear(?col:arcane.common.Color, ?depth:Float, ?stencil:Int):Void {
-	// 	var bits:arcane.common.IntFlags = 0;
+	// public function clear(?col:arcane.util.Color, ?depth:Float, ?stencil:Int):Void {
+	// 	var bits:arcane.util.IntFlags = 0;
 	// 	if (col == null)
 	// 		col = 0x000000;
 	// 	gl.colorMask(true, true, true, true);

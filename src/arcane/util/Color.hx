@@ -1,4 +1,4 @@
-package arcane.common;
+package arcane.util;
 
 /**
  * ARGB Color

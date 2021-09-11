@@ -2,7 +2,7 @@ package arcane.internal.html5;
 
 #if wgpu_externs
 import js.lib.ArrayBuffer as JsArrayBuffer;
-import arcane.common.arrays.*;
+import arcane.arrays.*;
 import arcane.system.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.lib.Uint32Array;

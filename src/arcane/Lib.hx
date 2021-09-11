@@ -1,11 +1,11 @@
 package arcane;
 
 import arcane.system.IAudioDriver;
-import arcane.common.Version;
+import arcane.util.Version;
 import arcane.internal.System;
 import arcane.system.ISystem;
 import arcane.system.IGraphicsDriver;
-import arcane.common.Event;
+import arcane.util.Event;
 
 @:nullSafety(Strict)
 @:allow(arcane.internal)
@@ -101,8 +101,8 @@ class Lib {
 		return system == null ? 0 : system.time();
 	}
 
-	public static final update = new arcane.common.Event<(dt:Float) -> Void>();
-	public static final onEvent = new arcane.common.Event<arcane.system.Event>();
+	public static final update = new arcane.util.Event<(dt:Float) -> Void>();
+	public static final onEvent = new arcane.util.Event<arcane.system.Event>();
 
 	/**
 	 * Execute the appropriate shutdown procedures, and exit the application.

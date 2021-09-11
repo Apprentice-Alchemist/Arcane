@@ -1,4 +1,4 @@
-package arcane.common;
+package arcane.util;
 
 abstract IntFlags(Int) from Int to Int {
 	public inline function new()

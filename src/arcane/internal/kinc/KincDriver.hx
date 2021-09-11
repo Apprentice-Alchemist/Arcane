@@ -1,13 +1,13 @@
 package arcane.internal.kinc;
 
 import kinc.compute.ComputeShader;
-import arcane.common.arrays.ArrayBuffer;
+import arcane.arrays.ArrayBuffer;
 import arcane.system.IGraphicsDriver;
 import kinc.g4.Graphics4;
 import kinc.g4.Pipeline.StencilAction;
 import kinc.g4.RenderTarget;
-import arcane.common.arrays.Float32Array;
-import arcane.common.arrays.Int32Array;
+import arcane.arrays.Float32Array;
+import arcane.arrays.Int32Array;
 import arcane.Utils.assert;
 import arcane.util.Log;
 

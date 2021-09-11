@@ -3,7 +3,7 @@
 --macro nullSafety("asl",Strict)
 # Include classes in compilation for a basic "does it compile check".
 arcane.Lib
-arcane.common
+arcane.util
 arcane.util.Log
 arcane.util.Result
 arcane.Image

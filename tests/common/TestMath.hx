@@ -1,6 +1,6 @@
 package common;
 
-import arcane.common.Math;
+import arcane.util.Math;
 
 class TestMath extends utest.Test {
 	// TODO : Vector and Matrix3 stuff. (Maybe.)

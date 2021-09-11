@@ -1,9 +1,9 @@
 package arcane.system;
 
-import arcane.common.arrays.ArrayBuffer;
-import arcane.common.Color;
-import arcane.common.arrays.Float32Array;
-import arcane.common.arrays.Int32Array;
+import arcane.arrays.ArrayBuffer;
+import arcane.util.Color;
+import arcane.arrays.Float32Array;
+import arcane.arrays.Int32Array;
 
 typedef DriverFeatures = {
 	/**

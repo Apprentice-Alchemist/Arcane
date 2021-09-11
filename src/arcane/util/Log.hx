@@ -1,6 +1,6 @@
 package arcane.util;
 
-enum abstract Color(Int) {
+enum abstract LogColor(Int) {
 	var None = 0;
 	var Black = 30;
 	var Red = 31;
@@ -12,7 +12,7 @@ enum abstract Color(Int) {
 	var White = 37;
 }
 
-enum abstract Style(Int) {
+enum abstract LogStyle(Int) {
 	var Normal = 0;
 	var Bold = 1;
 	var Underline = 4;
@@ -28,7 +28,7 @@ class Log {
 		return #if log_position haxe.Log.formatOutput(message, pos) #else Std.string(message) #end;
 	}
 
-	public static inline function setColor(color:Color, style:Style = Style.Normal):String {
+	public static inline function setColor(color:LogColor, style:LogStyle = LogStyle.Normal):String {
 		#if arcane_log_color
 		var id = (color == Color.None) ? "" : ';$color';
 		return "\033[" + 0 + id + "m";

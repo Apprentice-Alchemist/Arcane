@@ -1,4 +1,4 @@
-package arcane.common;
+package arcane.util;
 
 // causes a `copy(fpu,cpu)` error on hashlink
 // @:eager private typedef Float = arcane.FastFloat;

@@ -1,4 +1,4 @@
-package arcane.common.arrays;
+package arcane.arrays;
 
 @:forward(length)
 abstract Float32Array(js.lib.Float32Array) from js.lib.Float32Array to js.lib.Float32Array {

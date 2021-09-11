@@ -1,4 +1,4 @@
-package arcane.common.arrays;
+package arcane.arrays;
 
 @:forward(byteLength, slice)
 abstract ArrayBuffer(js.lib.ArrayBuffer) from js.lib.ArrayBuffer to js.lib.ArrayBuffer {

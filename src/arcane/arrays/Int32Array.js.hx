@@ -1,4 +1,4 @@
-package arcane.common.arrays;
+package arcane.arrays;
 
 @:forward(length)
 abstract Int32Array(js.lib.Int32Array) from js.lib.Int32Array {

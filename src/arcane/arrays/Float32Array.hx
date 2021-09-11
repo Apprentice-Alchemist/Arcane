@@ -1,4 +1,4 @@
-package arcane.common.arrays;
+package arcane.arrays;
 
 abstract Float32Array(ArrayBuffer) to ArrayBuffer {
 	public var length(get, never):Int;

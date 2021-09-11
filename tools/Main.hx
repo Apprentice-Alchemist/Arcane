@@ -1,6 +1,6 @@
 package tools;
 
-import arcane.common.Version;
+import arcane.util.Version;
 import haxe.Json;
 import haxe.io.Path;
 import arcane.util.Log.*;

@@ -1,6 +1,6 @@
 package arcane.internal;
 
-import arcane.common.Version;
+import arcane.util.Version;
 #if macro
 import sys.FileSystem;
 import haxe.io.Bytes;
@@ -32,7 +32,7 @@ class Macros {
 		return macro $v{files};
 	}
 
-	public static macro function getVersion(full_hash:Bool = false):ExprOf<arcane.common.Version> {
+	public static macro function getVersion(full_hash:Bool = false):ExprOf<arcane.util.Version> {
 		#if display
 		return macro("0.0.0" : Version);
 		#end
@@ -58,7 +58,7 @@ class Macros {
 		}
 
 		haxelib_ver.build = git;
-		return macro($v{haxelib_ver.toString()} : arcane.common.Version);
+		return macro($v{haxelib_ver.toString()} : arcane.util.Version);
 	}
 
 	#if macro

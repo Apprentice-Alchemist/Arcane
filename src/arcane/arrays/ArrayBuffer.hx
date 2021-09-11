@@ -1,4 +1,4 @@
-package arcane.common.arrays;
+package arcane.arrays;
 
 abstract ArrayBuffer(haxe.io.Bytes) {
 	public var byteLength(get, never):Int;

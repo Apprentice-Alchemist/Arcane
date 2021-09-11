@@ -1,6 +1,6 @@
 package common;
 
-import arcane.common.Version;
+import arcane.util.Version;
 
 class TestVersion extends utest.Test {
 	function testVersion() {

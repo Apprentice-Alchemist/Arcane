@@ -1,8 +1,8 @@
 package arcane.internal.empty;
 
-import arcane.common.arrays.ArrayBuffer;
-import arcane.common.arrays.Int32Array;
-import arcane.common.arrays.Float32Array;
+import arcane.arrays.ArrayBuffer;
+import arcane.arrays.Int32Array;
+import arcane.arrays.Float32Array;
 import arcane.system.IGraphicsDriver;
 
 private class BindGroupLayout implements IBindGroupLayout {

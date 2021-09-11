@@ -1,6 +1,6 @@
 package common;
 
-import arcane.common.Event;
+import arcane.util.Event;
 
 class TestEvent extends utest.Test {
 	function testEvent() {

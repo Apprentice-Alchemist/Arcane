@@ -1,4 +1,4 @@
-package arcane.common.arrays;
+package arcane.arrays;
 
 @:allow(arcane)
 class ArrayBuffer {
