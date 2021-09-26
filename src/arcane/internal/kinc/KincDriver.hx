@@ -1,5 +1,6 @@
 package arcane.internal.kinc;
 
+import haxe.ds.ReadOnlyArray;
 import kinc.compute.ComputeShader;
 import arcane.arrays.ArrayBuffer;
 import arcane.system.IGraphicsDriver;
@@ -11,13 +12,29 @@ import arcane.arrays.Int32Array;
 import arcane.Utils.assert;
 import arcane.util.Log;
 
+private enum Command {
+	BeginRenderPass(desc:RenderPassDescriptor);
+	EndRenderPass;
+	SetVertexBuffers(b:Array<VertexBuffer>);
+	SetIndexBuffer(b:IndexBuffer);
+	SetPipeline(p:RenderPipeline);
+	SetBindGroup(index:Int, b:BindGroup);
+	Draw(start:Int, count:Int);
+	DrawInstanced(instanceCount:Int, start:Int, count:Int);
+
+	BeginComputePass(desc:ComputePassDescriptor);
+	SetComputePipeline(p:ComputePipeline);
+	Compute(x:Int, y:Int, z:Int);
+	EndComputePass;
+}
+
 class VertexBuffer implements IVertexBuffer {
-	public var desc(default, null):VertexBufferDesc;
+	public var desc(default, null):VertexBufferDescriptor;
 
 	public var buf:kinc.g4.VertexBuffer;
 	public var struc:kinc.g4.VertexStructure;
 
-	public function new(desc:VertexBufferDesc) {
+	public function new(desc:VertexBufferDescriptor) {
 		this.desc = desc;
 		var struc = new kinc.g4.VertexStructure();
 		for (attribute in desc.attributes) {
@@ -75,11 +92,11 @@ class VertexBuffer implements IVertexBuffer {
 }
 
 class IndexBuffer implements IIndexBuffer {
-	public var desc(default, null):IndexBufferDesc;
+	public var desc(default, null):IndexBufferDescriptor;
 
 	public final buf:kinc.g4.IndexBuffer;
 
-	public function new(desc:IndexBufferDesc) {
+	public function new(desc:IndexBufferDescriptor) {
 		this.desc = desc;
 		// 16 bit buffers are broken in kinc
 		this.buf = new kinc.g4.IndexBuffer(desc.size, IbFormat32BIT /*desc.is32 ? IbFormat32BIT : IbFormat16BIT*/);
@@ -112,14 +129,45 @@ class IndexBuffer implements IIndexBuffer {
 	}
 }
 
+private class UniformBuffer implements IUniformBuffer {
+	public var desc(default, null):UniformBufferDescriptor;
+
+	final data:ArrayBuffer;
+
+	public function new(descriptor) {
+		this.desc = descriptor;
+		this.data = new ArrayBuffer(desc.size);
+	}
+
+	public function dispose() {}
+
+	public function upload(start:Int, arr:ArrayBuffer) {
+		this.data.blit(start, arr, 0, arr.byteLength);
+	}
+
+	var last_data:Null<ArrayBuffer> = null;
+	var last_start:Null<Int> = null;
+
+	public function map(start:Int, range:Int):ArrayBuffer {
+		last_start = start;
+		return last_data = new ArrayBuffer(range);
+	}
+
+	public function unmap() {
+		if (last_data != null) {
+			this.data.blit(cast last_start, cast last_data, 0, (cast last_data).byteLength);
+		}
+	}
+}
+
 @:nullSafety(Strict)
 class Texture implements ITexture {
-	public var desc(default, null):TextureDesc;
+	public var desc(default, null):TextureDescriptor;
 
 	public final tex:Null<kinc.g4.Texture>;
 	public final renderTarget:Null<kinc.g4.RenderTarget>;
 
-	public function new(desc:TextureDesc) {
+	public function new(desc:TextureDescriptor) {
 		this.desc = desc;
 
 		if (desc.isRenderTarget) {
@@ -164,12 +212,13 @@ class Texture implements ITexture {
 	}
 }
 
-class Shader implements IShader {
-	public var desc(default, null):ShaderDesc;
+class Shader implements IShaderModule {
+	public var desc(default, null):ShaderDescriptor;
 
-	public final shader:kinc.g4.Shader;
+	public final shader:Null<kinc.g4.Shader>;
+	public final compute:Null<kinc.compute.ComputeShader>;
 
-	public function new(desc:ShaderDesc) {
+	public function new(desc:ShaderDescriptor) {
 		this.desc = desc;
 		var bytes = haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-default');
 		// #if krafix
@@ -194,15 +243,22 @@ class Shader implements IShader {
 		// 		bytes = out.toBytes(len);
 		// 	}
 		// #end
-		shader = kinc.g4.Shader.create(bytes, switch desc.kind {
-			case Fragment: FragmentShader;
-			case Vertex: VertexShader;
-			case _: throw "unsupported";
-		});
+		if (desc.kind == Compute) {
+			compute = new ComputeShader(bytes);
+			shader = null;
+		} else {
+			compute = null;
+			shader = kinc.g4.Shader.create(bytes, switch desc.kind {
+				case Fragment: FragmentShader;
+				case Vertex: VertexShader;
+				case _: throw "unsupported";
+			});
+		}
 	}
 
 	public function dispose():Void {
-		shader.destroy();
+		if(shader != null) shader.destroy();
+		if(compute != null) compute.destroy();
 	}
 
 	// #if krafix
@@ -211,32 +267,36 @@ class Shader implements IShader {
 	// #end
 }
 
-class TextureUnit implements ITextureUnit {
-	public final tu:kinc.g4.TextureUnit;
+class BindGroupLayout implements IBindGroupLayout {
+	final desc:BindGroupLayoutDescriptor;
 
-	public function new(tu) this.tu = tu;
+	public function new(desc:BindGroupLayoutDescriptor) {
+		this.desc = desc;
+	}
 }
 
-class ConstantLocation implements IConstantLocation {
-	public final cl:kinc.g4.ConstantLocation;
+class BindGroup implements IBindGroup {
+	final desc:BindGroupDescriptor;
 
-	public function new(cl) this.cl = cl;
+	public function new(desc:BindGroupDescriptor) {
+		this.desc = desc;
+	}
 }
 
-class Pipeline implements IPipeline {
-	public var desc(default, null):PipelineDesc;
+class RenderPipeline implements IRenderPipeline {
+	public var desc(default, null):RenderPipelineDescriptor;
 
 	public final state:kinc.g4.Pipeline;
 
-	public function new(desc:PipelineDesc) {
+	public function new(desc:RenderPipelineDescriptor) {
 		this.desc = desc;
 		state = new kinc.g4.Pipeline();
 
-		assert(desc.vertexShader.desc.kind.match(Vertex));
-		assert(desc.fragmentShader.desc.kind.match(Fragment));
+		assert(desc.vertexShader.desc.kind == Vertex);
+		assert(desc.fragmentShader.desc.kind == Fragment);
 
-		state.vertex_shader = cast(desc.vertexShader, Shader).shader;
-		state.fragment_shader = cast(desc.fragmentShader, Shader).shader;
+		state.vertex_shader = cast cast(desc.vertexShader, Shader).shader;
+		state.fragment_shader = cast cast(desc.fragmentShader, Shader).shader;
 
 		for (idx => el in desc.inputLayout) {
 			var struc = new kinc.g4.VertexStructure();
@@ -319,139 +379,191 @@ class Pipeline implements IPipeline {
 		}
 	}
 
-	public function getConstantLocation(name:String)
-		return new ConstantLocation(if (state != null) state.getConstantLocation(name) else throw "Pipeline was disposed.");
-
-	public function getTextureUnit(name:String)
-		return new TextureUnit(if (state != null) state.getTextureUnit(name) else throw "Pipeline was disposed.");
-
 	public function dispose():Void {
 		state.destroy();
 	}
 }
 
 private class ComputePipeline implements IComputePipeline {
-	public var desc(default, null):ComputePipelineDesc;
+	public var desc(default, null):ComputePipelineDescriptor;
 
 	public final shader:ComputeShader;
 
-	public function new(desc:ComputePipelineDesc) {
-		shader = cast null;
+	public function new(desc:ComputePipelineDescriptor) {
 		this.desc = desc;
-		// shader = new ComputeShader()
+		this.shader = cast(cast desc.shader : Shader).compute;
 	}
 
 	public function dispose() {}
 }
 
 private class ComputePass implements IComputePass {
-	public function new(desc:ComputePassDesc) {}
+	final encoder:CommandEncoder;
 
-	public function setPipeline(p:IComputePipeline) {}
+	public function new(encoder:CommandEncoder, desc:ComputePassDescriptor) {
+		this.encoder = encoder;
+	}
+
+	public function setPipeline(p:IComputePipeline) {
+		encoder.write(SetComputePipeline(cast p));
+	}
 
 	public function compute(x:Int, y:Int, z:Int) {
-		kinc.compute.Compute.compute(x, y, z);
+		encoder.write(Command.Compute(x, y, z));
+	}
+
+	public function setBindGroup(index:Int, group:IBindGroup) {
+		encoder.write(SetBindGroup(index, cast group));
 	}
 }
 
 private class RenderPass implements IRenderPass {
-	public function new(desc:RenderPassDesc) {
-		if (desc.colorAttachments[0].texture == KincDriver.dummyTex) {
-			assert(desc.colorAttachments.length == 1, "Rendering to swapchain image and extra targets at the same time is not supported right now.");
-			Graphics4.restoreRenderTarget();
-		} else {
-			var targets = new hl.NativeArray<kinc.g4.RenderTarget>(desc.colorAttachments.length);
-			for (i => a in desc.colorAttachments) {
-				final rt = (cast a.texture : Texture).renderTarget;
-				assert(rt != null);
-				targets[i] = rt;
-			}
-			Graphics4.setRenderTargets(targets);
-		}
-		// var flags = 0;
-		// if (col != null)
-		// 	flags |= 1;
-		// if (depth != null)
-		// 	flags |= 2;
-		// if (stencil != null)
-		// 	flags |= 3;
-		// var col:Int = col == null ? 0 : col;
-		// var depth:hl.F32 = depth == null ? 0 : (depth : Float);
-		// var stencil:hl.F32 = stencil == null ? 0 : (stencil : Float);
-		Graphics4.clear(1, 0xFF000000, 0, 0);
-		// Graphics4.clear(flags, col, depth, stencil);
+	final encoder:CommandEncoder;
+
+	public function new(encoder:CommandEncoder, desc:RenderPassDescriptor) {
+		this.encoder = encoder;
+		encoder.write(BeginRenderPass(desc));
 	}
 
-	public function setPipeline(p:IPipeline):Void {
-		var p:Pipeline = cast p;
-		if (p.state != null)
-			Graphics4.setPipeline(p.state);
-		else
-			Log.warn("Trying to use disposed pipeline");
+	public function setPipeline(p:IRenderPipeline):Void {
+		encoder.write(SetPipeline(cast p));
 	}
 
 	public function setIndexBuffer(b:IIndexBuffer):Void {
-		var b:IndexBuffer = cast b;
-		if (b.buf != null)
-			Graphics4.setIndexBuffer(b.buf);
-		else
-			Log.warn("Trying to use disposed index buffer");
+		encoder.write(SetIndexBuffer(cast b));
 	}
 
 	public function setVertexBuffers(buffers:Array<IVertexBuffer>):Void {
-		var buffers:Array<VertexBuffer> = cast buffers;
-		var vertexBuffers = new hl.NativeArray(buffers.length);
-		for (i => buf in buffers)
-			vertexBuffers[i] = if (buf.buf != null) buf.buf else return Log.error("Trying to set a disposed vertex buffer.");
-		Graphics4.setVertexBuffers(vertexBuffers);
+		encoder.write(SetVertexBuffers(cast buffers));
 	}
 
 	public function setVertexBuffer(b:IVertexBuffer):Void {
-		var b:VertexBuffer = cast b;
-		if (b.buf != null)
-			Graphics4.setVertexBuffer(b.buf);
-		else
-			Log.warn("Trying to use disposed vertex buffer.");
-	}
-
-	public function setTextureUnit(u:ITextureUnit, t:ITexture):Void {
-		var tex:Texture = cast t;
-		var unit:TextureUnit = cast u;
-		@:nullSafety(Off) if (tex.desc.isRenderTarget) {
-			tex.renderTarget.useColorAsTexture(unit.tu);
-		} else {
-			Graphics4.setTexture(unit.tu, tex.tex);
-			// Graphics4.setTextureMagnificationFilter(unit.tu, POINT);
-			// Graphics4.setTextureMinificationFilter(unit.tu, POINT);
-			// Graphics4.setTextureMipmapFilter(unit.tu, POINT);
-		}
-	}
-
-	public function setConstantLocation(cl:IConstantLocation, floats:Float32Array):Void {
-		@:privateAccess Graphics4.__setFloats(cast(cl, ConstantLocation).cl, (cast floats).b, floats.length);
+		encoder.write(SetVertexBuffers([cast b]));
 	}
 
 	public function draw(start:Int, count:Int):Void {
-		if (count < 0)
-			Graphics4.drawIndexedVertices();
-		else
-			Graphics4.drawIndexedVerticesFromTo(start, count);
+		encoder.write(Draw(start, count));
 	}
 
 	public function drawInstanced(instanceCount:Int, start:Int, count:Int):Void {
-		if (count < 0)
-			Graphics4.drawIndexedVerticesInstanced(instanceCount);
-		else
-			Graphics4.drawIndexedVerticesInstancedFromTo(instanceCount, start, count);
+		encoder.write(DrawInstanced(instanceCount, start, count));
 	}
 
-	public function end() {}
+	public function end() {
+		encoder.write(EndRenderPass);
+	}
+
+	public function setBindGroup(index:Int, group:IBindGroup) {
+		encoder.write(SetBindGroup(index, cast group));
+	}
+}
+
+private class CommandEncoder implements ICommandEncoder {
+	final commands:Array<Command> = [];
+
+	public function new() {}
+
+	public function write(c:Command) {
+		commands.push(c);
+	}
+
+	public function beginComputePass(desc:ComputePassDescriptor):IComputePass {
+		return new ComputePass(this, desc);
+	}
+
+	public function beginRenderPass(desc:RenderPassDescriptor):IRenderPass {
+		return new RenderPass(this, desc);
+	}
+
+	public function finish():ICommandBuffer {
+		return new CommandBuffer(commands);
+	}
+}
+
+private class CommandBuffer implements ICommandBuffer {
+	final commands:ReadOnlyArray<Command> = [];
+
+	public function new(commands) {
+		this.commands = commands;
+	}
+
+	public function execute() {
+		for (command in commands) {
+			switch command {
+				case BeginRenderPass(desc):
+					if (desc.colorAttachments[0].texture == KincDriver.dummyTex) {
+						assert(desc.colorAttachments.length == 1, "Rendering to swapchain image and extra targets at the same time is not supported right now.");
+						Graphics4.restoreRenderTarget();
+					} else {
+						var targets = new hl.NativeArray<kinc.g4.RenderTarget>(desc.colorAttachments.length);
+						for (i => a in desc.colorAttachments) {
+							final rt = (cast a.texture : Texture).renderTarget;
+							assert(rt != null);
+							targets[i] = rt;
+						}
+						Graphics4.setRenderTargets(targets);
+					}
+					// var flags = 0;
+					// if (col != null)
+					// 	flags |= 1;
+					// if (depth != null)
+					// 	flags |= 2;
+					// if (stencil != null)
+					// 	flags |= 3;
+					// var col:Int = col == null ? 0 : col;
+					// var depth:hl.F32 = depth == null ? 0 : (depth : Float);
+					// var stencil:hl.F32 = stencil == null ? 0 : (stencil : Float);
+					Graphics4.clear(1, 0xFF000000, 0, 0);
+				// Graphics4.clear(flags, col, depth, stencil);
+				case EndRenderPass:
+				case SetVertexBuffers(b):
+					var buffers:Array<VertexBuffer> = cast b;
+					var vertexBuffers = new hl.NativeArray(buffers.length);
+					for (i => buf in buffers)
+						vertexBuffers[i] = if (buf.buf != null) buf.buf else return Log.error("Trying to set a disposed vertex buffer.");
+					Graphics4.setVertexBuffers(vertexBuffers);
+				case SetIndexBuffer(b):
+					var b:IndexBuffer = cast b;
+					if (b.buf != null)
+						Graphics4.setIndexBuffer(b.buf);
+					else
+						Log.warn("Trying to use disposed index buffer");
+				case SetPipeline(p):
+					var p:RenderPipeline = cast p;
+					if (p.state != null)
+						Graphics4.setPipeline(p.state);
+					else
+						Log.warn("Trying to use disposed pipeline");
+				case SetBindGroup(index, b):
+				case Draw(start, count):
+					if (count < 0)
+						Graphics4.drawIndexedVertices();
+					else
+						Graphics4.drawIndexedVerticesFromTo(start, count);
+				case DrawInstanced(instanceCount, start, count):
+					if (count < 0)
+						Graphics4.drawIndexedVerticesInstanced(instanceCount);
+					else
+						Graphics4.drawIndexedVerticesInstancedFromTo(instanceCount, start, count);
+				case BeginComputePass(desc):
+				case SetComputePipeline(p):
+				case Compute(x, y, z):
+				// kinc.compute.Compute.compute(x, y, z);
+				case EndComputePass:
+			}
+		}
+	}
 }
 
 class KincDriver implements IGraphicsDriver {
-	public final renderTargetFlipY:Bool;
-	public final instancedRendering = true;
-	public final uintIndexBuffers = true;
+	public final limits:DriverLimits = {};
+	public final features:DriverFeatures = {
+		compute: false,
+		instancedRendering: true,
+		flippedRenderTargets: kinc.g4.Graphics4.renderTargetsInvertedY(),
+		multipleColorAttachments: true,
+		uintIndexBuffers: true
+	};
 
 	var window:Int;
 
@@ -459,16 +571,6 @@ class KincDriver implements IGraphicsDriver {
 
 	public function new(window:Int) {
 		this.window = window;
-		renderTargetFlipY = Graphics4.renderTargetsInvertedY();
-	}
-
-	public function hasFeature(f:Feature):Bool {
-		return switch f {
-			case ComputeShaders: true;
-			case UintIndexBuffers: true;
-			case MultiRenderTargets: true;
-			case FlippedRenderTarget: Graphics4.renderTargetsInvertedY();
-		}
 	}
 
 	public function getName(details = false) {
@@ -497,35 +599,53 @@ class KincDriver implements IGraphicsDriver {
 		Graphics4.swapBuffers();
 	}
 
-	public function createVertexBuffer(desc:VertexBufferDesc):IVertexBuffer {
+	public function createVertexBuffer(desc:VertexBufferDescriptor):IVertexBuffer {
 		return new VertexBuffer(desc);
 	}
 
-	public function createIndexBuffer(desc:IndexBufferDesc):IIndexBuffer {
+	public function createIndexBuffer(desc:IndexBufferDescriptor):IIndexBuffer {
 		return new IndexBuffer(desc);
 	}
 
-	public function createTexture(desc:TextureDesc):ITexture {
+	public function createTexture(desc:TextureDescriptor):ITexture {
 		return new Texture(desc);
 	}
 
-	public function createShader(desc:ShaderDesc):IShader {
+	public function createShader(desc:ShaderDescriptor):IShaderModule {
 		return new Shader(desc);
 	}
 
-	public function createPipeline(desc:PipelineDesc):IPipeline {
-		return new Pipeline(desc);
-	}
-
-	public function beginRenderPass(desc:RenderPassDesc):IRenderPass {
-		return new RenderPass(desc);
-	}
-
-	public function beginComputePass(desc:ComputePassDesc):IComputePass {
-		return new ComputePass(desc);
-	}
-
-	public function createComputePipeline(desc:ComputePipelineDesc):IComputePipeline {
+	public function createComputePipeline(desc:ComputePipelineDescriptor):IComputePipeline {
 		return new ComputePipeline(desc);
+	}
+
+	public function getCurrentTexture():ITexture {
+		return dummyTex;
+	}
+
+	public function createUniformBuffer(desc:UniformBufferDescriptor):IUniformBuffer {
+		return new UniformBuffer(desc);
+	}
+
+	public function createRenderPipeline(desc:RenderPipelineDescriptor):IRenderPipeline {
+		return new RenderPipeline(desc);
+	}
+
+	public function createBindGroupLayout(desc:BindGroupLayoutDescriptor):IBindGroupLayout {
+		return new BindGroupLayout(desc);
+	}
+
+	public function createBindGroup(desc:BindGroupDescriptor):IBindGroup {
+		return new BindGroup(desc);
+	}
+
+	public function createCommandEncoder():ICommandEncoder {
+		return new CommandEncoder();
+	}
+
+	public function submit(buffers:Array<ICommandBuffer>) {
+		for (buf in buffers) {
+			(cast buf : CommandBuffer).execute();
+		}
 	}
 }

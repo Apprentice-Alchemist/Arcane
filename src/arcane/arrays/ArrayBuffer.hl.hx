@@ -18,6 +18,10 @@ class ArrayBuffer {
 		this.b = new hl.Bytes(byteLength);
 	}
 
+	public inline function blit(pos:Int, src:ArrayBuffer, srcPos:Int, byteLength:Int) {
+		this.b.blit(pos, cast src, srcPos, byteLength);
+	}
+
 	public inline function slice(start:Int, ?end:Int) {
 		if (end == null)
 			end = byteLength;

@@ -159,4 +159,7 @@ enum PixelFormat {
 	RGBA;
 	BGRA;
 	ARGB;
+	// TODO
+	// R8;
+	// S3TC(v:Int);
 }

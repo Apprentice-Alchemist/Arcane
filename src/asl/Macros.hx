@@ -23,22 +23,21 @@ class Macros {
 			a.push(cls.name);
 			name = StringTools.replace(a.join(""), ".", "_");
 		}
-		final vertex = if (cls.meta.has(":vert")) asl.Typer.makeModule(cls.meta.extract(":vert")[0].params[0], Vertex) else
-			Context.error("Wanted :vert meta with vertex data", cls.pos);
-		final fragment = if (cls.meta.has(":frag")) asl.Typer.makeModule(cls.meta.extract(":frag")[0].params[0], Fragment) else
-			Context.error("Wanted :frag meta with fragment data", cls.pos);
+		final vertex = if (cls.meta.has(":vert")) asl.Typer.makeModule(cls.meta.extract(":vert")[0].params[0], Vertex) else null;
+		final fragment = if (cls.meta.has(":frag")) asl.Typer.makeModule(cls.meta.extract(":frag")[0].params[0], Fragment) else null;
+		final compute = if (cls.meta.has(":comp")) asl.Typer.makeModule(cls.meta.extract(":comp")[0].params[0], Compute) else null;
 		// trace(GlslOut.toGlsl(vertex));
-		// makeShader(name, GlslOut.toGlsl(vertex #if kinc, true #end), GlslOut.toGlsl(fragment #if kinc, true #end));
-		if (!cls.meta.has(":vertex"))
-			Context.error("Shader does not have @:vertex data.", cls.pos);
-		if (!cls.meta.has(":fragment"))
-			Context.error("Shader does not have @:fragment data.", cls.pos);
-		makeShader(name, cls.meta.extract(":vertex")[0].params[0].getValue(), cls.meta.extract(":fragment")[0].params[0].getValue());
+		makeShader(name, GlslOut.toGlsl(vertex #if kinc, true #end), GlslOut.toGlsl(fragment #if kinc, true #end));
+		// if (!cls.meta.has(":vertex"))
+		// 	Context.error("Shader does not have @:vertex data.", cls.pos);
+		// if (!cls.meta.has(":fragment"))
+		// 	Context.error("Shader does not have @:fragment data.", cls.pos);
+		// makeShader(name, cls.meta.extract(":vertex")[0].params[0].getValue(), cls.meta.extract(":fragment")[0].params[0].getValue());
 		fields.push({
 			name: "new",
 			kind: FFun({
 				args: [],
-				expr: macro super($v{name}, $v{vertex}, $v{fragment})
+				expr: macro super($v{name}, $v{vertex}, $v{fragment}, $v{compute})
 			}),
 			pos: (macro null).pos,
 			access: [APublic]

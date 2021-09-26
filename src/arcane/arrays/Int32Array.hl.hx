@@ -1,10 +1,10 @@
 package arcane.arrays;
 
-abstract Int32Array(ArrayBuffer) to ArrayBuffer {
+abstract Int32Array(ArrayBuffer) from ArrayBuffer to ArrayBuffer {
 	public var length(get, never):Int;
 
 	inline function get_length():Int {
-		return cast this.byteLength / 4;
+		return this.byteLength >> 2;
 	}
 
 	public inline function new(length:Int) {

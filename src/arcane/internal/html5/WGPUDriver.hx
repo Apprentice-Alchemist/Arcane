@@ -1,7 +1,6 @@
 package arcane.internal.html5;
 
 #if wgpu_externs
-import js.lib.ArrayBuffer as JsArrayBuffer;
 import arcane.arrays.*;
 import arcane.system.IGraphicsDriver;
 import js.html.CanvasElement;
@@ -29,31 +28,36 @@ private class StagingBuffers {
 		this.free_chunks = [];
 	}
 
-	public function writeBuffer(device:GPUDevice, encoder:GPUCommandEncoder, target:GPUBuffer, offset:Int, size:Int):JsArrayBuffer {
+	public function writeBuffer(device:GPUDevice, encoder:GPUCommandEncoder, target:GPUBuffer, offset:Int, size:Int):ArrayBuffer {
 		var chunk:Null<BufferChunk> = null;
-		inline function swap_remove(arr:Array<BufferChunk>, i:Int):Void @:nullSafety(Off) {
+
+		inline function swap_remove<T>(arr:Array<T>, i:Int):T @:nullSafety(Off) {
+			final item = arr[i];
 			if (arr.length == 1) {
 				arr.pop();
 			} else {
 				arr[i] = arr.pop();
 			}
+			return item;
 		}
+
 		for (i => c in active_chunks) {
 			if (c.offset + size <= c.size) {
-				chunk = active_chunks[i];
-				swap_remove(active_chunks, i);
+				trace(c.offset + size, c.size);
+				chunk = swap_remove(active_chunks, i);
 				break;
 			}
 		}
+
 		if (chunk == null) {
 			for (i => c in free_chunks) {
 				if (size <= c.size) {
-					chunk = free_chunks[i];
-					swap_remove(free_chunks, i);
+					chunk = swap_remove(free_chunks, i);
 					break;
 				}
 			}
 		}
+
 		final chunk:BufferChunk = if (chunk == null) {
 			buffer: device.createBuffer({
 				label: "staging",
@@ -61,17 +65,15 @@ private class StagingBuffers {
 				usage: MAP_WRITE | COPY_SRC,
 				mappedAtCreation: true
 			}),
-			size: size,
+			size: size > chunk_size ? size : chunk_size,
 			offset: 0
 		} else chunk;
-		// arcane.Utils.assert(chunk.size >= chunk.offset + size);
-		// arcane.Utils.assert()
 		encoder.copyBufferToBuffer(chunk.buffer, chunk.offset, target, offset, size);
 		final old_offset = chunk.offset;
 		chunk.offset += size;
 		final remainder = chunk.offset % 8;
 		if (remainder != 0)
-			chunk.offset += 8 - remainder;
+			chunk.offset += (8 - remainder);
 		active_chunks.push(chunk);
 		return chunk.buffer.getMappedRange(old_offset, size);
 	}
@@ -87,6 +89,7 @@ private class StagingBuffers {
 	public function recall() {
 		while (closed_chunks.length > 0) {
 			final chunk:BufferChunk = cast closed_chunks.pop();
+			chunk.offset = 0;
 			chunk.buffer.mapAsync(WRITE).then(_ -> free_chunks.push(chunk)).catchError(e -> (untyped console).error(e));
 		}
 	}
@@ -116,8 +119,7 @@ private class RenderPipeline implements IRenderPipeline {
 
 	public final pipeline:GPURenderPipeline;
 
-	public final layout:GPUBindGroupLayout;
-
+	// public final layout:GPUBindGroupLayout;
 	final driver:WGPUDriver;
 
 	public function new(driver:WGPUDriver, desc:RenderPipelineDescriptor) {
@@ -166,7 +168,9 @@ private class RenderPipeline implements IRenderPipeline {
 				attributes: attributes
 			});
 		}
-
+		final pipeline_layout = driver.device.createPipelineLayout({
+			bindGroupLayouts: desc.layout.map(b -> (cast b : BindGroupLayout).layout)
+		});
 		pipeline = driver.device.createRenderPipeline({
 			vertex: {
 				buffers: buffers,
@@ -182,9 +186,10 @@ private class RenderPipeline implements IRenderPipeline {
 				],
 				module: (cast desc.fragmentShader : Shader).module,
 				entryPoint: "main"
-			}
+			},
+			layout: pipeline_layout
 		});
-		layout = pipeline.getBindGroupLayout(0);
+		// layout = pipeline.getBindGroupLayout(0);
 	}
 
 	// public function getConstantLocation(name:String):ConstantLocation {
@@ -257,8 +262,7 @@ private class VertexBuffer implements IVertexBuffer {
 	}
 
 	public function map(start:Int, range:Int):Float32Array {
-		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * buf_stride, range * buf_stride);
-		return new js.lib.Float32Array(result);
+		return driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * buf_stride, range * buf_stride);
 	}
 
 	public function unmap():Void {}
@@ -323,7 +327,7 @@ private class UniformBuffer implements IUniformBuffer {
 	}
 
 	public function map(start:Int, range:Int):ArrayBuffer {
-		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * 4, range * 4);
+		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start, range);
 		return result;
 	}
 
@@ -474,7 +478,7 @@ private class ComputePipeline implements IComputePipeline {
 	public function new(driver:WGPUDriver, desc:ComputePipelineDescriptor) {
 		this.desc = desc;
 		this.pipeline = driver.device.createComputePipeline({
-			compute: cast null
+			compute: {module: (cast desc.shader : Shader).module, entryPoint: "main"}
 		});
 	}
 
@@ -557,6 +561,11 @@ class WGPUDriver implements IGraphicsDriver {
 		}
 		if (device.lost != null)
 			device.lost.then(error -> (untyped console).error("WebGPU device lost", error.message, error.reason));
+
+		device.onuncapturederror = (e) -> {
+			trace(e);
+		}
+
 		// todo : let the user set the chunk_size
 		this.stagingBuffers = new StagingBuffers(1024);
 
@@ -627,7 +636,7 @@ class WGPUDriver implements IGraphicsDriver {
 
 	public function createBindGroup(desc:BindGroupDescriptor):IBindGroup {
 		return new BindGroup(device.createBindGroup({
-			layout: cast desc.layout,
+			layout: (cast desc.layout : BindGroupLayout).layout,
 			entries: [
 				for (entry in desc.entries)
 					{

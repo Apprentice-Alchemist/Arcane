@@ -10,6 +10,7 @@ typedef DriverFeatures = {
 	 * Compute is supported on every platform, except webgl.
 	 */
 	final compute:Bool;
+
 	final uintIndexBuffers:Bool;
 	final multipleColorAttachments:Bool;
 	final flippedRenderTargets:Bool;
@@ -87,10 +88,10 @@ enum Filter {
 	Linear;
 }
 
-enum Wrap {
+enum AddressMode {
 	Clamp;
 	Repeat;
-	// Mirrored;
+	Mirrored;
 }
 
 enum Operation {
@@ -145,6 +146,7 @@ typedef InputLayout = Array<{
 	public final inputLayout:InputLayout;
 	public final vertexShader:IShaderModule;
 	public final fragmentShader:IShaderModule;
+	public final layout:Array<IBindGroupLayout>;
 }
 
 @:structInit class VertexBufferDescriptor {
@@ -161,6 +163,22 @@ typedef InputLayout = Array<{
 
 @:structInit class UniformBufferDescriptor {
 	public final size:Int;
+}
+
+@:structInit class SamplerDescriptor {
+	public final uAddressing:AddressMode;
+	public final vAddressing:AddressMode;
+	public final wAddressing:AddressMode;
+
+	public final magFilter:Filter;
+	public final minFilter:Filter;
+	public final mipFilter:Filter;
+
+	public final lodMinClamp:Float;
+	public final lodMaxClamp:Float;
+
+	public final compare:Null<Compare>;
+	public final maxAnisotropy:Null<Int>;
 }
 
 @:structInit class TextureDescriptor {
@@ -181,7 +199,7 @@ typedef InputLayout = Array<{
 }
 
 private enum BindingResource {
-	Buffer(buffer:Any);
+	Buffer(buffer:IUniformBuffer);
 	Texture(texture:ITexture);
 	Sampler(sampler:ISampler);
 }
@@ -247,7 +265,7 @@ enum StoreOp {
 
 private interface IDisposable {
 	/**
-	 * Dispose native resources. The object should not be used after this function has been called.
+	 * Disposes the object, which should not be used anymore after this function has been called.
 	 */
 	function dispose():Void;
 }
@@ -260,8 +278,6 @@ private interface IDescribed<T> {
 	var desc(default, null):T;
 }
 
-interface ITextureUnit {}
-interface IConstantLocation {}
 interface IRenderPipeline extends IDisposable extends IDescribed<RenderPipelineDescriptor> {}
 interface IShaderModule extends IDisposable extends IDescribed<ShaderDescriptor> {}
 
@@ -353,19 +369,14 @@ interface IGraphicsDriver extends IDisposable {
 	function createVertexBuffer(desc:VertexBufferDescriptor):IVertexBuffer;
 	function createIndexBuffer(desc:IndexBufferDescriptor):IIndexBuffer;
 	function createUniformBuffer(desc:UniformBufferDescriptor):IUniformBuffer;
-
 	function createTexture(desc:TextureDescriptor):ITexture;
+	function createSampler(desc:SamplerDescriptor):ISampler;
 	function createShader(desc:ShaderDescriptor):IShaderModule;
-
 	function createRenderPipeline(desc:RenderPipelineDescriptor):IRenderPipeline;
 	function createComputePipeline(desc:ComputePipelineDescriptor):IComputePipeline;
-
 	function createBindGroupLayout(desc:BindGroupLayoutDescriptor):IBindGroupLayout;
 	function createBindGroup(desc:BindGroupDescriptor):IBindGroup;
-
 	function createCommandEncoder():ICommandEncoder;
-
 	function submit(buffers:Array<ICommandBuffer>):Void;
-
 	function present():Void;
 }

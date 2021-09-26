@@ -368,6 +368,7 @@ private class RenderPipeline implements IRenderPipeline {
 			var info = driver.gl.getActiveUniform(program, i);
 			var uniform = driver.gl.getUniformLocation(program, info.name);
 			var name = info.name.charAt(info.name.length - 1) == "]" ? info.name.substr(0, info.name.length - 3) : info.name;
+			trace(info.name,info.size,info.type);
 			var n = name.split(".");
 			n.shift();
 			name = n.join("");
@@ -564,11 +565,30 @@ private class RenderPass implements IRenderPass {
 }
 
 private class BindGroupLayout implements IBindGroupLayout {
-	public function new(driver, desc) {}
+	public final desc:BindGroupLayoutDescriptor;
+
+	public function new(driver, desc) {
+		this.desc = desc;
+	}
 }
 
 private class BindGroup implements IBindGroup {
-	public function new(driver, desc) {}
+	public final desc:BindGroupDescriptor;
+
+	public function new(driver, desc) {
+		this.desc = desc;
+		for (index => e in (cast desc.layout : BindGroupLayout).desc.entries) {
+			desc.entries[index].binding == e.binding;
+			switch desc.entries[index].resource {
+				case Buffer(buffer):
+					e.kind.match(Buffer(_, _));
+				case Texture(texture):
+					e.kind.match(Texture);
+				case Sampler(sampler):
+					e.kind.match(Sampler(_));
+			}
+		}
+	}
 }
 
 private class CommandEncoder implements ICommandEncoder {
@@ -779,8 +799,21 @@ private class CommandBuffer implements ICommandBuffer {
 					bindGroupsDirty = bindGroups[index] != b;
 					bindGroups[index] = b;
 				case Draw(start, count):
-					if(bindGroupsDirty) {
-
+					if (bindGroupsDirty) {
+						for (b in bindGroups) {
+							for (entry in b.desc.entries) {
+								switch entry.resource {
+									case Buffer(buffer):
+										// if ((cast buffer : UniformBuffer).buf != null)
+										// 	gl2.bindBufferBase(GL2.UNIFORM_BUFFER, entry.binding, (cast buffer : UniformBuffer).buf); else {}
+									case Texture(texture):
+										gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);
+										gl.activeTexture(entry.binding);
+									case Sampler(sampler):
+								}
+							}
+							// gl2.bindBuffer(GL2.UNIFORM_BUFFER,)
+						}
 					}
 					if (curIndexBuffer == null)
 						throw "Someone forgot to call setIndexBuffer";

@@ -1,6 +1,6 @@
 -cp test
 -cp src
--main Triangle
+-main Main
 -lib kinc
 -lib format
 

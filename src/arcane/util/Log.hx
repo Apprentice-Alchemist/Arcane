@@ -30,7 +30,7 @@ class Log {
 
 	public static inline function setColor(color:LogColor, style:LogStyle = LogStyle.Normal):String {
 		#if arcane_log_color
-		var id = (color == Color.None) ? "" : ';$color';
+		var id = (color == LogColor.None) ? "" : ';$color';
 		return "\033[" + 0 + id + "m";
 		#else
 		return "";

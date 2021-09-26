@@ -11,6 +11,10 @@ abstract ArrayBuffer(haxe.io.Bytes) {
 		this = haxe.io.Bytes.alloc(byteLength);
 	}
 
+	public inline function blit(pos:Int, src:ArrayBuffer, srcPos:Int, byteLength:Int) {
+		this.blit(pos, cast src, srcPos, byteLength);
+	}
+
 	public inline function slice(begin:Int, end:Null<Int> = null) {
 		if (end == null)
 			end = this.length;

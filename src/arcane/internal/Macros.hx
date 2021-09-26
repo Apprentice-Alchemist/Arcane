@@ -139,6 +139,7 @@ class Macros {
 		if (Context.defined("js")) {
 			Context.onAfterGenerate(() -> {
 				var o = Compiler.getOutput() + ".map";
+				if(!sys.FileSystem.exists(o)) return;
 				var json:{
 					var version:Int;
 					var file:String;

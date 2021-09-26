@@ -13,19 +13,22 @@ import asl.Ast;
 #end
 class Shader {
 	public final id:String;
-	public final vertex:ShaderModule;
-	public final fragment:ShaderModule;
+	public final vertex:Null<ShaderModule>;
+	public final fragment:Null<ShaderModule>;
+	public final compute:Null<ShaderModule>;
 
-	public function new(id:String, vertex:ShaderModule, fragment:ShaderModule) {
+	public function new(id:String, vertex:Null<ShaderModule>, fragment:Null<ShaderModule>, compute:Null<ShaderModule>) {
 		this.id = id;
 		this.vertex = vertex;
 		this.fragment = fragment;
+		this.compute = compute;
 	}
 
 	public function make(d:IGraphicsDriver) {
 		return {
-			vertex: d.createShader({id: id, kind: Vertex}),
-			fragment: d.createShader({id: id, kind: Fragment})
+			vertex: vertex == null ? null : d.createShader({id: id, kind: Vertex}),
+			fragment: fragment == null ? null : d.createShader({id: id, kind: Fragment}),
+			compute: compute == null ? null : d.createShader({id: id, kind: Compute})
 		}
 	}
 }

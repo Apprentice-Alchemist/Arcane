@@ -60,7 +60,7 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 		}
 		Macros.cmd("naga", [
 			'$temp/$id.${vertex ? "vert" : "frag"}.spv',
-			'$temp/$id.${vertex ? "vert" : "frag"}.wgsl',"--validate"]);
+			'$temp/$id.${vertex ? "vert" : "frag"}.wgsl',"--validate","31"]);
 
 		var _id = '$id-${vertex ? "vert" : "frag"}';
 		Context.addResource('$_id-default', webgl1.stdout);
