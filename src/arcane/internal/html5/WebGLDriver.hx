@@ -231,9 +231,9 @@ private class UniformBuffer implements IUniformBuffer {
 
 	public function unmap():Void {
 		if (driver.hasGL2) {
-			this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, cast buf);
-			@:nullSafety(Off) this.driver.gl.bufferSubData(GL.ELEMENT_ARRAY_BUFFER, last_start, map_data);
-			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+			this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, cast buf);
+			@:nullSafety(Off) this.driver.gl.bufferSubData(GL2.UNIFORM_BUFFER, last_start, map_data);
+			@:nullSafety(Off) this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, null);
 		} else {
 			@:nullSafety(Off) var src = new js.lib.Uint8Array(map_data);
 			var dst = new js.lib.Uint8Array(this.data);
@@ -293,7 +293,7 @@ private class Shader implements IShaderModule {
 }
 
 @:nullSafety(Strict)
-private class ConstantLocation implements IConstantLocation {
+private class ConstantLocation {
 	public var type:Int;
 	public var name:String;
 	public var uniform:UniformLocation;
@@ -310,7 +310,7 @@ private class ConstantLocation implements IConstantLocation {
 }
 
 @:nullSafety(Strict)
-private class TextureUnit implements ITextureUnit {
+private class TextureUnit {
 	public var index:Int;
 	public var name:String;
 	public var uniform:UniformLocation;
@@ -368,32 +368,31 @@ private class RenderPipeline implements IRenderPipeline {
 			var info = driver.gl.getActiveUniform(program, i);
 			var uniform = driver.gl.getUniformLocation(program, info.name);
 			var name = info.name.charAt(info.name.length - 1) == "]" ? info.name.substr(0, info.name.length - 3) : info.name;
-			trace(info.name,info.size,info.type);
+			trace(info.name, info.size, info.type);
 			var n = name.split(".");
 			n.shift();
 			name = n.join("");
-			if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE)
-				tus.push(new TextureUnit(name, tus.length, uniform));
-			else
-				locs.push(new ConstantLocation(name, info.type, uniform));
+			// if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE)
+			// 	tus.push(new TextureUnit(name, tus.length, uniform));
+			// else
+			// 	locs.push(new ConstantLocation(name, info.type, uniform));
 		}
 	}
 
-	public function getConstantLocation(name:String):IConstantLocation {
-		for (i in locs)
-			if (i.name == name)
-				return i;
-		Log.warn("Uniform " + name + " not found.");
-		@:nullSafety(Off) return new ConstantLocation("invalid", -1, null);
-	}
-
-	public function getTextureUnit(name:String):ITextureUnit {
-		for (i in tus)
-			if (i.name == name)
-				return i;
-		Log.warn("Sampler " + name + " not found.");
-		@:nullSafety(Off) return new TextureUnit("invalid", -1, null);
-	}
+	// public function getConstantLocation(name:String):IConstantLocation {
+	// 	for (i in locs)
+	// 		if (i.name == name)
+	// 			return i;
+	// 	Log.warn("Uniform " + name + " not found.");
+	// 	@:nullSafety(Off) return new ConstantLocation("invalid", -1, null);
+	// }
+	// public function getTextureUnit(name:String):ITextureUnit {
+	// 	for (i in tus)
+	// 		if (i.name == name)
+	// 			return i;
+	// 	Log.warn("Sampler " + name + " not found.");
+	// 	@:nullSafety(Off) return new TextureUnit("invalid", -1, null);
+	// }
 
 	public function dispose():Void {
 		if (!driver.check())
@@ -491,6 +490,11 @@ private class Texture implements ITexture {
 }
 
 @:nullSafety(Strict)
+private class Sampler implements ISampler {
+	public function new(driver:WebGLDriver,desc:SamplerDescriptor) {}
+}
+
+@:nullSafety(Strict)
 private class RenderPass implements IRenderPass {
 	final encoder:CommandEncoder;
 
@@ -578,15 +582,15 @@ private class BindGroup implements IBindGroup {
 	public function new(driver, desc) {
 		this.desc = desc;
 		for (index => e in (cast desc.layout : BindGroupLayout).desc.entries) {
-			desc.entries[index].binding == e.binding;
-			switch desc.entries[index].resource {
+			arcane.Utils.assert(desc.entries[index].binding == e.binding);
+			arcane.Utils.assert(switch desc.entries[index].resource {
 				case Buffer(buffer):
 					e.kind.match(Buffer(_, _));
 				case Texture(texture):
 					e.kind.match(Texture);
 				case Sampler(sampler):
 					e.kind.match(Sampler(_));
-			}
+			});
 		}
 	}
 }
@@ -691,7 +695,25 @@ private class CommandBuffer implements ICommandBuffer {
 		var curPipeline:Null<RenderPipeline> = null;
 		final bindGroups:Array<BindGroup> = [];
 		var bindGroupsDirty = true;
-
+		function updateBindGroups() {
+			if (bindGroupsDirty) {
+				for (b in bindGroups) {
+					for (entry in b.desc.entries) {
+						switch entry.resource {
+							case Buffer(buffer):
+								if ((cast buffer : UniformBuffer).buf != null)
+									gl2.bindBufferBase(GL2.UNIFORM_BUFFER, entry.binding, cast(cast buffer : UniformBuffer).buf);
+								else {}
+							case Texture(texture):
+								gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);
+								gl.activeTexture(entry.binding);
+							case Sampler(sampler):
+						}
+					}
+					// gl2.bindBuffer(GL2.UNIFORM_BUFFER,)
+				}
+			}
+		}
 		function enable(cap:Int, b:Bool) {
 			if (b) {
 				@:nullSafety(Off) if (!driver.enabled_things.exists(cap) || !driver.enabled_things.get(cap)) {
@@ -799,28 +821,15 @@ private class CommandBuffer implements ICommandBuffer {
 					bindGroupsDirty = bindGroups[index] != b;
 					bindGroups[index] = b;
 				case Draw(start, count):
-					if (bindGroupsDirty) {
-						for (b in bindGroups) {
-							for (entry in b.desc.entries) {
-								switch entry.resource {
-									case Buffer(buffer):
-										// if ((cast buffer : UniformBuffer).buf != null)
-										// 	gl2.bindBufferBase(GL2.UNIFORM_BUFFER, entry.binding, (cast buffer : UniformBuffer).buf); else {}
-									case Texture(texture):
-										gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);
-										gl.activeTexture(entry.binding);
-									case Sampler(sampler):
-								}
-							}
-							// gl2.bindBuffer(GL2.UNIFORM_BUFFER,)
-						}
-					}
+					updateBindGroups();
+					
 					if (curIndexBuffer == null)
 						throw "Someone forgot to call setIndexBuffer";
 					var b:IndexBuffer = curIndexBuffer;
 					gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, b.buf);
 					gl.drawElements(GL.TRIANGLES, count == -1 ? b.desc.size : count, b.desc.is32 ? GL.UNSIGNED_INT : GL.UNSIGNED_SHORT, start);
 				case DrawInstanced(instanceCount, start, count):
+					updateBindGroups();
 					if (driver.features.instancedRendering) {
 						if (curIndexBuffer == null)
 							throw "Someone forgot to call setIndexBuffer";
@@ -945,6 +954,10 @@ class WebGLDriver implements IGraphicsDriver {
 
 	public function createTexture(desc:TextureDescriptor):ITexture {
 		return new Texture(this, desc);
+	}
+
+	public function createSampler(desc:SamplerDescriptor):ISampler {
+		return new Sampler(this, desc);
 	}
 
 	public function createShader(desc:ShaderDescriptor):IShaderModule {

@@ -173,31 +173,46 @@ private class RenderPipeline implements IRenderPipeline {
 		});
 		pipeline = driver.device.createRenderPipeline({
 			vertex: {
-				buffers: buffers,
 				module: (cast desc.vertexShader : Shader).module,
 				entryPoint: "main",
+				buffers: buffers,
 				constants: {}
 			},
+			layout: pipeline_layout,
+			// primitive: {
+			// 	topology: topology,
+			// 	stripIndexFormat: stripIndexFormat,
+			// 	frontFace: frontFace,
+			// 	cullMode: cullMode,
+			// 	clampDepth: clampDepth
+			// },
+			// depthStencil: {
+			// 	format: format,
+			// 	depthWriteEnabled: depthWriteEnabled,
+			// 	depthCompare: depthCompare,
+			// 	stencilFront: stencilFront,
+			// 	stencilBack: stencilBack,
+			// 	stencilReadMask: stencilReadMask,
+			// 	stencilWriteMask: stencilWriteMask,
+			// 	depthBias: depthBias,
+			// 	depthBiasSlopeScale: depthBiasSlopeScale,
+			// 	depthBiasClamp: depthBiasClamp
+			// },
+			// multisample: {
+			// 	count: count,
+			// 	mask: mask,
+			// 	alphaToCoverageEnabled: alphaToCoverageEnabled
+			// },
 			fragment: {
-				targets: [
-					{
-						format: driver.preferredFormat
-					}
-				],
 				module: (cast desc.fragmentShader : Shader).module,
-				entryPoint: "main"
-			},
-			layout: pipeline_layout
+				targets: [{
+					format: driver.preferredFormat
+				}],
+				entryPoint: "main",
+				constants: {}
+			}
 		});
-		// layout = pipeline.getBindGroupLayout(0);
 	}
-
-	// public function getConstantLocation(name:String):ConstantLocation {
-	// 	return new ConstantLocation();
-	// }
-	// public function getTextureUnit(name:String):TextureUnit {
-	// 	return new TextureUnit();
-	// }
 
 	public function dispose() {}
 }
@@ -372,6 +387,26 @@ private class Texture implements ITexture {
 }
 
 @:nullSafety(Strict)
+private class Sampler implements ISampler {
+	public final sampler:GPUSampler;
+
+	public function new(driver:WGPUDriver, desc:SamplerDescriptor) {
+		this.sampler = driver.device.createSampler({
+			addressModeU: WGPUDriver.convertAddressMode(desc.uAddressing),
+			addressModeV: WGPUDriver.convertAddressMode(desc.uAddressing),
+			addressModeW: WGPUDriver.convertAddressMode(desc.wAddressing),
+			magFilter: WGPUDriver.convertFilter(desc.magFilter),
+			minFilter: WGPUDriver.convertFilter(desc.minFilter),
+			mipmapFilter: WGPUDriver.convertFilter(desc.mipFilter),
+			lodMinClamp: desc.lodMinClamp,
+			lodMaxClamp: desc.lodMaxClamp,
+			compare: desc.compare != null ? WGPUDriver.convertCompareMode(desc.compare) : null,
+			maxAnisotropy: desc.maxAnisotropy
+		});
+	}
+}
+
+@:nullSafety(Strict)
 private class CommandEncoder implements ICommandEncoder {
 	public final encoder:GPUCommandEncoder;
 
@@ -503,7 +538,7 @@ private class ComputePass implements IComputePass {
 		pass.setPipeline((cast p : ComputePipeline).pipeline);
 	}
 
-	public function compute(x:Int, y:Int, z:Int) {
+	public function dispatch(x:Int, y:Int, z:Int) {
 		pass.dispatch(x, y, z);
 	}
 }
@@ -618,6 +653,10 @@ class WGPUDriver implements IGraphicsDriver {
 		return new Texture(this, desc);
 	}
 
+	public function createSampler(desc:SamplerDescriptor):ISampler {
+		return new Sampler(this, desc);
+	}
+
 	public function createShader(desc:ShaderDescriptor):IShaderModule {
 		return new Shader(this, desc);
 	}
@@ -696,5 +735,33 @@ class WGPUDriver implements IGraphicsDriver {
 	}
 
 	public function present() {}
+
+	static function convertAddressMode(mode:AddressMode):GPUAddressMode {
+		return switch mode {
+			case Clamp: CLAMP_TO_EDGE;
+			case Repeat: REPEAT;
+			case Mirrored: MIRROR_REPEAT;
+		}
+	}
+
+	static function convertFilter(mode:FilterMode):GPUFilterMode {
+		return switch mode {
+			case Nearest: NEAREST;
+			case Linear: LINEAR;
+		}
+	}
+
+	static function convertCompareMode(mode:Compare):GPUCompareFunction {
+		return switch mode {
+			case Always: ALWAYS;
+			case Never: NEVER;
+			case Equal: EQUAL;
+			case NotEqual: NOT_EQUAL;
+			case Greater: GREATER;
+			case GreaterEqual: GREATER_EQUAL;
+			case Less: LESS;
+			case LessEqual: LESS_EQUAL;
+		}
+	}
 }
 #end

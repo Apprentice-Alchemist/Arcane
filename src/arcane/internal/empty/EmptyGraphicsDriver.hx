@@ -123,6 +123,10 @@ private class Texture implements ITexture {
 	public function upload(bytes:haxe.io.Bytes):Void {}
 }
 
+private class Sampler implements ISampler {
+	public function new(desc:SamplerDescriptor) {}
+}
+
 private class RenderPass implements IRenderPass {
 	public function new(desc:RenderPassDescriptor) {}
 
@@ -150,7 +154,7 @@ private class ComputePass implements IComputePass {
 
 	public function setBindGroup(index:Int, b:IBindGroup) {}
 
-	public function compute(x:Int, y:Int, z:Int) {}
+	public function dispatch(x:Int, y:Int, z:Int) {}
 }
 
 private class CommandEncoder implements ICommandEncoder {
@@ -204,6 +208,10 @@ class EmptyGraphicsDriver implements IGraphicsDriver {
 
 	public function createTexture(desc:TextureDescriptor):ITexture {
 		return new Texture(desc);
+	}
+
+	public function createSampler(desc:SamplerDescriptor):ISampler {
+		return new Sampler(desc);
 	}
 
 	public function createShader(desc:ShaderDescriptor):IShaderModule {

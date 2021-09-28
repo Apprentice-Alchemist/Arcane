@@ -257,8 +257,10 @@ class Shader implements IShaderModule {
 	}
 
 	public function dispose():Void {
-		if(shader != null) shader.destroy();
-		if(compute != null) compute.destroy();
+		if (shader != null)
+			shader.destroy();
+		if (compute != null)
+			compute.destroy();
 	}
 
 	// #if krafix
@@ -408,7 +410,7 @@ private class ComputePass implements IComputePass {
 		encoder.write(SetComputePipeline(cast p));
 	}
 
-	public function compute(x:Int, y:Int, z:Int) {
+	public function dispatch(x:Int, y:Int, z:Int) {
 		encoder.write(Command.Compute(x, y, z));
 	}
 
@@ -609,6 +611,10 @@ class KincDriver implements IGraphicsDriver {
 
 	public function createTexture(desc:TextureDescriptor):ITexture {
 		return new Texture(desc);
+	}
+
+	public function createSampler(desc:SamplerDescriptor):ISampler {
+		return cast null;
 	}
 
 	public function createShader(desc:ShaderDescriptor):IShaderModule {

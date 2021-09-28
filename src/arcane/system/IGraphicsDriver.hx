@@ -77,13 +77,7 @@ enum StencilOp {
 	Invert;
 }
 
-enum MipMap {
-	None;
-	Nearest;
-	Linear;
-}
-
-enum Filter {
+enum FilterMode {
 	Nearest;
 	Linear;
 }
@@ -170,9 +164,9 @@ typedef InputLayout = Array<{
 	public final vAddressing:AddressMode;
 	public final wAddressing:AddressMode;
 
-	public final magFilter:Filter;
-	public final minFilter:Filter;
-	public final mipFilter:Filter;
+	public final magFilter:FilterMode;
+	public final minFilter:FilterMode;
+	public final mipFilter:FilterMode;
 
 	public final lodMinClamp:Float;
 	public final lodMaxClamp:Float;
@@ -341,7 +335,7 @@ interface IComputePipeline extends IDisposable extends IDescribed<ComputePipelin
 interface IComputePass {
 	function setBindGroup(index:Int, group:IBindGroup):Void;
 	function setPipeline(p:IComputePipeline):Void;
-	function compute(x:Int, y:Int, z:Int):Void;
+	function dispatch(x:Int, y:Int, z:Int):Void;
 }
 
 interface ICommandEncoder {
