@@ -50,8 +50,6 @@ abstract Vector4(Vec4Internal) {
 @:pure
 @:forward
 abstract Matrix3(Mat3Internal) {
-	public static inline var SIZE = 4 * 9;
-
 	public static inline function rotationX(alpha:Float):Matrix3 {
 		var ca:Float = Math.cos(alpha);
 		var sa:Float = Math.sin(alpha);
@@ -196,8 +194,6 @@ abstract Matrix3(Mat3Internal) {
 @:pure
 @:forward
 abstract Matrix4(Mat4Internal) {
-	public static inline var SIZE = 4 * 16;
-
 	public static inline function scale(x:Float, y:Float, z:Float):Matrix4 {
 		return new Matrix4(
 			x, 0, 0, 0,

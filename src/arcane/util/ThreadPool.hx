@@ -44,7 +44,7 @@ class ThreadPool {
 	public function new(count:Int = 4) {
 		threads = [while (count-- > 0) new Worker()];
 		owner_thread = Thread.current();
-		#if (haxe >= "4.2.0" && target.threaded)
+		#if haxe >= "4.2.0"
 		ml_ev = owner_thread.events.repeat(process, 5);
 		#else
 		ml_ev = haxe.MainLoop.add(process);

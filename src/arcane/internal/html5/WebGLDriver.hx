@@ -8,8 +8,7 @@ import arcane.system.IGraphicsDriver;
 import js.html.CanvasElement;
 import js.html.webgl.Buffer;
 import js.html.webgl.Framebuffer;
-import js.html.webgl.GL2;
-import js.html.webgl.GL;
+import js.html.webgl.WebGL2RenderingContext as GL;
 import js.html.webgl.Program;
 import js.html.webgl.Renderbuffer;
 import js.html.webgl.UniformLocation;
@@ -203,17 +202,17 @@ private class UniformBuffer implements IUniformBuffer {
 		this.data = new JsArrayBuffer(desc.size);
 		if (driver.hasGL2) {
 			this.buf = driver.gl.createBuffer();
-			this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, buf);
-			this.driver.gl.bufferData(GL2.UNIFORM_BUFFER, desc.size, GL2.DYNAMIC_DRAW);
-			@:nullSafety(Off) this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, null);
+			this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, buf);
+			this.driver.gl.bufferData(GL.UNIFORM_BUFFER, desc.size, GL.DYNAMIC_DRAW);
+			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
 		}
 	}
 
 	public function upload(start:Int, arr:ArrayBuffer):Void {
 		if (driver.hasGL2) {
-			this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, cast buf);
-			this.driver.gl.bufferSubData(GL2.UNIFORM_BUFFER, start, arr);
-			@:nullSafety(Off) this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, null);
+			this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, cast buf);
+			this.driver.gl.bufferSubData(GL.UNIFORM_BUFFER, start, arr);
+			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
 		} else {
 			var src = new js.lib.Uint8Array(arr);
 			var dst = new js.lib.Uint8Array(this.data);
@@ -231,9 +230,9 @@ private class UniformBuffer implements IUniformBuffer {
 
 	public function unmap():Void {
 		if (driver.hasGL2) {
-			this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, cast buf);
-			@:nullSafety(Off) this.driver.gl.bufferSubData(GL2.UNIFORM_BUFFER, last_start, map_data);
-			@:nullSafety(Off) this.driver.gl.bindBuffer(GL2.UNIFORM_BUFFER, null);
+			this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, cast buf);
+			@:nullSafety(Off) this.driver.gl.bufferSubData(GL.UNIFORM_BUFFER, last_start, map_data);
+			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
 		} else {
 			@:nullSafety(Off) var src = new js.lib.Uint8Array(map_data);
 			var dst = new js.lib.Uint8Array(this.data);
@@ -491,7 +490,7 @@ private class Texture implements ITexture {
 
 @:nullSafety(Strict)
 private class Sampler implements ISampler {
-	public function new(driver:WebGLDriver,desc:SamplerDescriptor) {}
+	public function new(driver:WebGLDriver, desc:SamplerDescriptor) {}
 }
 
 @:nullSafety(Strict)
@@ -700,9 +699,9 @@ private class CommandBuffer implements ICommandBuffer {
 				for (b in bindGroups) {
 					for (entry in b.desc.entries) {
 						switch entry.resource {
-							case Buffer(buffer):
-								if ((cast buffer : UniformBuffer).buf != null)
-									gl2.bindBufferBase(GL2.UNIFORM_BUFFER, entry.binding, cast(cast buffer : UniformBuffer).buf);
+							case Buffer((cast _ : UniformBuffer) => buffer):
+								if (buffer.buf != null)
+									gl2.bindBufferBase(GL.UNIFORM_BUFFER, entry.binding, cast buffer.buf);
 								else {}
 							case Texture(texture):
 								gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);
@@ -710,18 +709,17 @@ private class CommandBuffer implements ICommandBuffer {
 							case Sampler(sampler):
 						}
 					}
-					// gl2.bindBuffer(GL2.UNIFORM_BUFFER,)
 				}
 			}
 		}
 		function enable(cap:Int, b:Bool) {
 			if (b) {
-				@:nullSafety(Off) if (!driver.enabled_things.exists(cap) || !driver.enabled_things.get(cap)) {
+				if (driver.enabled_things.get(cap) != true) {
 					gl.enable(cap);
 					driver.enabled_things.set(cap, true);
 				}
 			} else {
-				if (!driver.enabled_things.exists(cap) || driver.enabled_things.get(cap)) {
+				if (driver.enabled_things.get(cap) != false) {
 					gl.disable(cap);
 					driver.enabled_things.set(cap, false);
 				}
@@ -742,9 +740,9 @@ private class CommandBuffer implements ICommandBuffer {
 						if (desc.colorAttachments.length > 1 && driver.features.multipleColorAttachments) {
 							final attachments = [];
 							for (i => attachment in desc.colorAttachments) {
-								gl.framebufferTexture2D(GL.FRAMEBUFFER, GL2.COLOR_ATTACHMENT0 + i, GL.TEXTURE_2D, (cast attachment.texture : Texture)
+								gl.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0 + i, GL.TEXTURE_2D, (cast attachment.texture : Texture)
 									.texture, 0);
-								attachments.push(GL2.COLOR_ATTACHMENT0 + i);
+								attachments.push(GL.COLOR_ATTACHMENT0 + i);
 							}
 							gl2.drawBuffers(attachments);
 						}
@@ -822,7 +820,7 @@ private class CommandBuffer implements ICommandBuffer {
 					bindGroups[index] = b;
 				case Draw(start, count):
 					updateBindGroups();
-					
+
 					if (curIndexBuffer == null)
 						throw "Someone forgot to call setIndexBuffer";
 					var b:IndexBuffer = curIndexBuffer;
@@ -851,10 +849,10 @@ class WebGLDriver implements IGraphicsDriver {
 	var canvas:CanvasElement;
 	var gl:GL;
 
-	var gl2(get, never):GL2;
+	var gl2(get, never):GL;
 	var hasGL2:Bool;
 
-	inline function get_gl2():GL2 return cast gl;
+	inline function get_gl2():GL return cast gl;
 
 	var enabledVertexAttribs = 0;
 

@@ -1,10 +1,11 @@
 package arcane.internal.html5;
 
+#if js
+import js.html.CanvasElement;
+#end
 #if wgpu_externs
 import arcane.arrays.*;
 import arcane.system.IGraphicsDriver;
-import js.html.CanvasElement;
-import js.lib.Uint32Array;
 import wgpu.*;
 
 using arcane.Utils;
@@ -205,9 +206,11 @@ private class RenderPipeline implements IRenderPipeline {
 			// },
 			fragment: {
 				module: (cast desc.fragmentShader : Shader).module,
-				targets: [{
-					format: driver.preferredFormat
-				}],
+				targets: [
+					{
+						format: driver.preferredFormat
+					}
+				],
 				entryPoint: "main",
 				constants: {}
 			}
@@ -549,7 +552,9 @@ class WGPUDriver implements IGraphicsDriver {
 	public final features:DriverFeatures;
 	public final limits:DriverLimits;
 
+	#if js
 	final canvas:CanvasElement;
+	#end
 	final context:GPUCanvasContext;
 	final adapter:GPUAdapter;
 	final device:GPUDevice;
@@ -566,7 +571,7 @@ class WGPUDriver implements IGraphicsDriver {
 
 	final stagingBuffers:StagingBuffers;
 
-	public function new(canvas:CanvasElement, context:GPUCanvasContext, adapter:GPUAdapter, device:GPUDevice) {
+	public function new(#if js canvas:CanvasElement, #end context:GPUCanvasContext, adapter:GPUAdapter, device:GPUDevice) {
 		features = {
 			compute: true,
 			uintIndexBuffers: true,
@@ -575,12 +580,12 @@ class WGPUDriver implements IGraphicsDriver {
 			instancedRendering: true
 		};
 		limits = {};
-
+		#if js
 		this.canvas = canvas;
+		#end
 		this.context = context;
 		this.adapter = adapter;
 		this.device = device;
-
 		this.preferredFormat = try context.getPreferredFormat(adapter) catch (_) untyped context.getSwapChainPreferredFormat(adapter);
 		final presentationConfiguration:GPUCanvasConfiguration = {
 			device: device,
@@ -596,14 +601,11 @@ class WGPUDriver implements IGraphicsDriver {
 		}
 		if (device.lost != null)
 			device.lost.then(error -> (untyped console).error("WebGPU device lost", error.message, error.reason));
-
 		device.onuncapturederror = (e) -> {
 			trace(e);
 		}
-
 		// todo : let the user set the chunk_size
 		this.stagingBuffers = new StagingBuffers(1024);
-
 		this.encoder = device.createCommandEncoder();
 	}
 

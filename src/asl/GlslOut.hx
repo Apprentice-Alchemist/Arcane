@@ -1,5 +1,6 @@
 package asl;
 
+import asl.Typer.Pos;
 import asl.Ast.TypedExpr;
 import asl.Ast.Type;
 import asl.Ast.ShaderModule;
@@ -7,6 +8,11 @@ import asl.Ast.ShaderModule;
 class GlslOut {
 	static function typeToGlsl(t:Type) {
 		return switch t {
+			case TMonomorph(r):
+				switch r.value {
+					case null: Typer.error("Unresolved monomorph",(macro null).pos);
+					case var t: typeToGlsl(t);
+				}
 			case TVoid:
 				"void";
 			case TBool:
@@ -108,6 +114,12 @@ class GlslOut {
 			case TParenthesis(e): '(${convExpr(e)})';
 			case TObjectDecl(fields): throw "TODO";
 			case TArrayDecl(el): throw "TODO";
+			case TCallBuiltin(b, el):
+				(switch b {
+					case BuiltinVec4(t): "vec4";
+					case BuiltinVec3(t): "vec3";
+					case BuiltinVec2(t): "vec2";
+				}) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";
 			case TCall(e, el):
 				convExpr(e) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";
 			case TUnop(op, postFix, e):

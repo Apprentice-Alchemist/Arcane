@@ -20,7 +20,13 @@ typedef Position = {
 	var max:Int;
 }
 
+typedef Ref<T> = {
+	var value:T;
+}
+
 enum Type {
+	TMonomorph(r:Ref<Null<Type>>);
+
 	TVoid;
 	TBool;
 	TInt;
@@ -35,7 +41,7 @@ enum Type {
 	TSamplerCube;
 }
 
-// Geometry, tesselation and co aren't supported on webgpu/webgl, compute isn't supported on webgl.
+// Geometry, tesselation and co aren't supported on webgpu/webgl/metal, compute isn't supported on webgl.
 enum ShaderStage {
 	Vertex;
 	Fragment;
@@ -60,6 +66,12 @@ enum abstract Builtin(String) from String {
 			case instanceIndex: Input;
 		}
 	}
+}
+
+enum BuiltinFunction {
+	BuiltinVec4(t:Type);
+	BuiltinVec3(t:Type);
+	BuiltinVec2(t:Type);
 }
 
 typedef ShaderModule = {
@@ -182,6 +194,7 @@ typedef TFunc = {
  */
 enum FieldAccess {
 	FMat(x:Int, ?y:Int);
+	FStruct(name:String);
 }
 
 enum TypedExprDef {
@@ -234,6 +247,11 @@ enum TypedExprDef {
 		A call `e(el)`.
 	**/
 	TCall(e:TypedExpr, el:Array<TypedExpr>);
+
+	/**
+		A call to a builtin `e(el)`.
+	**/
+	TCallBuiltin(b:BuiltinFunction, el:Array<TypedExpr>);
 
 	/**
 		An unary operator `op` on `e`:

@@ -139,23 +139,24 @@ class Macros {
 		if (Context.defined("js")) {
 			Context.onAfterGenerate(() -> {
 				var o = Compiler.getOutput() + ".map";
-				if(!sys.FileSystem.exists(o)) return;
-				var json:{
-					var version:Int;
-					var file:String;
-					var sourceRoot:String;
-					var sources:Array<String>;
-					var names:Array<Dynamic>;
-					var mappings:String;
-				} = haxe.Json.parse(File.getContent(o));
-				File.saveContent(o, Json.stringify({
-					version: json.version,
-					file: json.file,
-					sourceRoot: "",
-					sources: json.sources.map(s -> json.sourceRoot + s),
-					names: json.names,
-					mappings: json.mappings,
-				}));
+				if (sys.FileSystem.exists(o)) {
+					var json:{
+						var version:Int;
+						var file:String;
+						var sourceRoot:String;
+						var sources:Array<String>;
+						var names:Array<Dynamic>;
+						var mappings:String;
+					} = haxe.Json.parse(File.getContent(o));
+					File.saveContent(o, Json.stringify({
+						version: json.version,
+						file: json.file,
+						sourceRoot: "",
+						sources: json.sources.map(s -> json.sourceRoot + s),
+						names: json.names,
+						mappings: json.mappings,
+					}));
+				}
 			});
 		}
 	}
@@ -163,7 +164,7 @@ class Macros {
 	public static function findArcane():String {
 		var file = switch Context.getType("arcane.Utils") {
 			case TInst(t, _): t.get().pos.getInfos().file;
-			case _: throw "wtf";
+			case _: Context.fatalError("Could not find arcane.Utils, something is very very wrong.", Context.currentPos());
 		}
 		var p = Path.normalize(Path.join([Path.directory(file), "..", ".."]));
 		return p;

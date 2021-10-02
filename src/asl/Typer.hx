@@ -18,9 +18,7 @@ abstract Pos(asl.Ast.Position) from asl.Ast.Position to asl.Ast.Position {
 
 @:nullSafety(Strict)
 class Typer {
-	static var std = macro {
-		function vec4<T:Float>(x:T, y:T, z:T, w:T):Vec4 {}
-	}
+	static var builtins:Map<String, Array<{}>> = [];
 	@:noCompletion static var __id:Int = 0;
 
 	static function allocID():Int {
@@ -28,6 +26,7 @@ class Typer {
 	}
 
 	var vars:Map<String, TVar> = [];
+	var ret_type:Type = TVoid;
 
 	public function new() {}
 
@@ -97,24 +96,36 @@ class Typer {
 						}).push(tvar);
 					vars.set(name, tvar);
 				case _.expr => EFunction(_ => FNamed(name, _), f):
-					functions.push({
-						name: name,
-						args: [
-							for (arg in f.args)
-								{
-									id: allocID(),
-									name: arg.name,
-									t: toType(arg.type, e.pos),
-									kind: Local
+					functions.push(scope(() -> {
+						{
+							name: name,
+							args: [
+								for (arg in f.args) {
+									final v:TVar = {
+										id: allocID(),
+										name: arg.name,
+										t: toType(arg.type, e.pos),
+										kind: Local
+									};
+									vars.set(v.name, v);
+									v;
 								}
-						],
-						ret: f.ret == null ? TVoid : toType(f.ret, e.pos),
-						expr: typeExpr(f.expr)
-					});
+							],
+							ret: ret_type = (f.ret == null ? TMonomorph({value: null}) : toType(f.ret, e.pos)),
+							expr: typeExpr(f.expr)
+						}
+					}));
 
 				case _:
 			}
 		}
+		for (f in functions)
+			switch f.ret {
+				case TMonomorph(r):
+					if (r.value == null)
+						r.value = TVoid;
+				case _:
+			}
 		return {
 			uniforms: uniforms,
 			stage: stage,
@@ -125,6 +136,13 @@ class Typer {
 		}
 	}
 
+	function follow(t:Type) {
+		return switch t {
+			case TMonomorph(r): r.value == null ? follow(t) : r.value;
+			case _: t;
+		}
+	}
+
 	function tryUnify(a:Type, b:Type):Bool {
 		if (a == b)
 			return true;
@@ -132,6 +150,12 @@ class Typer {
 			case [TVec(a, s1), TVec(b, s2)] if (a == b && s1 == s2): true;
 			case [TMat(a, s1), TMat(b, s2)] if (a == b && s1 == s2): true;
 			case [TArray(t1, size1), TArray(t2, size2)] if (t1 == t2 && size1 == size2): true;
+			case [TMonomorph(r), t] if (r.value != null):
+				r.value = t;
+				true;
+			case [t, TMonomorph(r)] if (r.value != null):
+				r.value = t;
+				true;
 			case [_, _]: false;
 		}
 	}
@@ -141,7 +165,7 @@ class Typer {
 			error(a + " should be " + b, pos);
 	}
 
-	function error(message:String, pos:Pos):Dynamic {
+	public static function error(message:String, pos:Pos):Dynamic {
 		#if macro
 		return haxe.macro.Context.error(message, pos);
 		#else
@@ -164,7 +188,7 @@ class Typer {
 
 	function unifyExpr(e:TypedExpr, t:Type) {
 		if (!tryUnify(e.t, t)) {
-			if (e.t == TInt && t == TFloat) {
+			if (follow(e.t) == TInt && follow(t) == TFloat) {
 				toFloat(e);
 				return;
 			}
@@ -321,29 +345,72 @@ class Typer {
 					default:
 						type = typeBinop(op, e1, e2, e.pos);
 				}
-				// type = typeBinop(op, e1, e2, e.pos);
 				TBinop(op, e1, e2);
-			// case EField(e, field):
+			case EField(typeExpr(_) => e, name):
+				var fa:Null<FieldAccess> = null;
+				switch follow(e.t) {
+					case TMonomorph(r): error("This expression does not have a concrete type.", e.pos);
+					case TVec(t, size):
+					case TMat(t, size):
+					case TStruct(fields):
+						for (field in fields)
+							if (field.name == name) {
+								type = field.type;
+								fa = FStruct(name);
+								break;
+							}
+					case _:
+				}
+				if (fa == null) {
+					error('${typeToString(e.t)} has no field $name', e.pos);
+				}
+				TField(e, fa);
 
 			case EParenthesis(typeExpr(_) => e):
 				type = e.t;
 				TParenthesis(e);
-			case ECall(_.expr => EConst(CIdent("vec4")), params):
-				type = TVec(TFloat, 4);
-				TCall({
-					expr: TLocal({
-						id: allocID(),
-						name: "vec4",
-						t: TVec(TFloat, 4),
-						kind: Local
-					}),
-					pos: (e.pos : Pos),
-					t: TVec(TFloat, 4)
-				}, [for (p in params) typeExpr(p)]);
+			case ECall(e = _.expr => EConst(CIdent(vec = "vec4" | "vec3" | "vec2")), _.map(typeExpr) => params):
+				final vec_size = switch vec {
+					case "vec4": 4;
+					case "vec3": 3;
+					case "vec2": 2;
+					default: error("Should be vec4 | vec3 | vec2.", e.pos);
+				}
+				final vec_type = switch params[0].t {
+					case TBool: TBool;
+					case TInt: TInt;
+					case TFloat: TFloat;
+					case TVec(t, size): t;
+					case var t: error("Expected Float, Int or Bool, not " + typeToString(t), params[0].pos);
+				};
+				var param_size:Int = 0;
+				for (param in params) {
+					param_size += switch param.t {
+						case TBool, TInt, TFloat:
+							unify(param.t, vec_type, param.pos);
+							1;
+						case TVec(t, size):
+							unify(t, vec_type, param.pos);
+							size;
+						case var t: error("Expected Float, Int or Bool, not " + typeToString(t), param.pos);
+					}
+				}
+				if (vec_size != param_size) {
+					error('Got $param_size components in arguments, expected $vec_size', e.pos);
+				}
+				type = TVec(vec_type, vec_size);
+				TCallBuiltin(switch vec_size {
+					case 4: BuiltinVec4(vec_type);
+					case 3: BuiltinVec3(vec_type);
+					case 2: BuiltinVec2(vec_type);
+					default: throw "assert";
+				}, [for (p in params) p]);
 			// case EObjectDecl(fields):
 			// case EArrayDecl(values):
 			// case ECall(e, params):
-			// case EUnop(op, postFix, e):
+			case EUnop(op, postFix, typeExpr(_) => e):
+				type = e.t;
+				TUnop(op, postFix, e);
 			case EVars(_vars):
 				if (_vars.length != 1)
 					error("Multi variable declarations not yet supported", e.pos);
@@ -361,19 +428,25 @@ class Typer {
 				TVar(v, expr);
 			case EBlock(exprs):
 				type = TVoid;
-				TBlock([for (e in exprs) typeExpr(e)]);
+				scope(() -> TBlock([for (e in exprs) typeExpr(e)]));
 			case EFor(it, expr):
 				error("TODO", e.pos);
 			case EIf(typeExpr(_) => econd, typeExpr(_) => eif, typeExpr(_) => eelse):
-				unify(econd.t, TBool, econd.pos);
+				unifyExpr(econd, TBool);
 				TIf(econd, eif, eelse);
 			case EWhile(typeExpr(_) => econd, typeExpr(_) => e, normalWhile):
 				unifyExpr(econd, TBool);
 				type = e.t;
 				TWhile(econd, e, normalWhile);
 			case EReturn(e):
-				type = TVoid;
-				TReturn(if (e == null) null else typeExpr(e));
+				final ret_expr = if (e == null) null else typeExpr(e);
+				if (ret_expr == null) {
+					type = TVoid;
+				} else {
+					unifyExpr(ret_expr, ret_type);
+					type = follow(ret_type);
+				}
+				TReturn(ret_expr);
 			case EBreak:
 				type = TVoid;
 				TBreak;
@@ -393,6 +466,13 @@ class Typer {
 			t: type,
 			pos: (e.pos : Pos)
 		}
+	}
+
+	function scope<T>(f:() -> T) {
+		final old = vars.copy();
+		final ret = f();
+		vars = old;
+		return ret;
 	}
 
 	function toType(c:ComplexType, pos:Pos) {
@@ -435,6 +515,26 @@ class Typer {
 							}, pos)
 						}]);
 			default: error("Unsupported type", pos);
+		}
+	}
+
+	static function typeToString(t:Type) {
+		return switch t {
+			case TVoid: "Void";
+			case TBool: "Bool";
+			case TInt: "Int";
+			case TFloat: "Float";
+			case TVec(t, size): 'Vec<${typeToString(t)}, $size>';
+			case TMat(t, size): 'Vec<${typeToString(t)}, $size>';
+			case TArray(t, size): 'Array<${typeToString(t)}, $size>';
+			case TStruct(fields): '{\n${fields.map(f -> 'var ${f.name}:${typeToString(f.type)};\n')}}';
+			case TSampler2D: 'Sampler2D';
+			case TSampler2DArray: 'Sampler2DArray';
+			case TSamplerCube: 'SamplerCube';
+			case TMonomorph(r): switch r.value {
+					case null: 'Unknown';
+					case var t: typeToString(t);
+				}
 		}
 	}
 }

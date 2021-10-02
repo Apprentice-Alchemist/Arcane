@@ -110,13 +110,13 @@ class HTML5System implements ISystem {
 				.catchError(e -> untyped console.error(e));
 		} else {
 		#end
-			var gl:GL = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
+			var gl = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 			if (gl != null) {
 				gdriver = new WebGLDriver(gl, canvas, true);
 			} else {
 				var gl = @:nullSafety(Off) canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
 				if (gl != null) {
-					gdriver = new WebGLDriver(gl, canvas, false);
+					gdriver = new WebGLDriver(cast gl, canvas, false);
 				} else {
 					js.Browser.console.error("Could not aquire WebGL context.");
 				}

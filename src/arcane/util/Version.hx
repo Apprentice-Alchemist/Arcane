@@ -1,7 +1,5 @@
 package arcane.util;
 
-// TODO : should other and build fields be checked in == and > < <= >=?
-
 @:forward
 @:nullSafety(StrictThreaded)
 abstract Version(Ver) {

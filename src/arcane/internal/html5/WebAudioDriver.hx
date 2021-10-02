@@ -17,9 +17,7 @@ class AudioBuffer implements IAudioBuffer {
 
 	public var channels:Int;
 
-	public function dispose() {
-		// this.buffer = null;
-	}
+	public function dispose() {}
 }
 
 class AudioSource implements IAudioSource {
