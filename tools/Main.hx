@@ -1,5 +1,6 @@
 package tools;
 
+import sys.FileSystem;
 import arcane.util.Version;
 import haxe.Json;
 import haxe.io.Path;
@@ -56,19 +57,19 @@ class Main {
 		{
 			doc: "Turn on verbose mode",
 			aliases: ["-v", "--verbose"],
-			action: _ -> Log.is_verbose = true
+			action: _ -> Log.VERBOSE = true
 		},
 		{
 			doc: "Disable warning messages",
 			aliases: ["-wd", "--disable-warnings"],
-			action: _ -> Log.warning_disabled = true
+			action: _ -> Log.WARN = false
 		}
 	];
 	public static var libdir:String = Sys.getCwd();
 
 	public static function main():Void {
+		Log.LOG_POSITION = false;
 		var args = Sys.args();
-		// var libver = try Json.parse(sys.io.File.getContent(Path.normalize(libdir + "/haxelib.json"))).version catch(_) null;
 		Sys.setCwd(args.pop());
 
 		var switches:Map<String, String> = new Map();
@@ -114,13 +115,17 @@ class Main {
 					+ 'Run \'arcane help $command\' for more information on how to use this command.');
 				return;
 			}
+			final real_switches = new Map<String, String>();
 			for (s => v in switches) {
-				for (ds in doc.switches)
-					if (ds.aliases.contains(s))
+				for (dname => ds in doc.switches) {
+					if (ds.aliases.contains(s)) {
+						real_switches.set(dname, v);
 						continue;
-				Log.warn("Unknown switch '" + s + "'");
+					}
+					Log.warn("Unknown switch '" + s + "'");
+				}
 			}
-			cmd.run(cargs, switches);
+			cmd.run(cargs, real_switches);
 		}
 	}
 
@@ -240,22 +245,42 @@ class CreateCommand implements ICommand {
 	};
 
 	public function run(args:Array<String>, switches:Map<String, Null<String>>) {
-		println("Not implemented yet.");
+		if (switches.exists("list")) {
+			final templates_path = Path.normalize(Path.join([Main.libdir, "templates"]));
+			if (FileSystem.exists(templates_path)) {
+				final templates = FileSystem.readDirectory(templates_path);
+				println("Available templates :");
+				for (template in templates) {
+					println('	$template');
+				}
+			} else {
+				println("No templates found.");
+			}
+		} else {
+			final template = args.length > 0 ? args.pop() : "default";
+			final path = args.length > 0 ? {
+				final p = args.pop();
+				if (Path.isAbsolute(p))
+					p
+				else
+					Path.normalize(Path.join([Sys.getCwd(), p]));
+			} : Sys.getCwd();
+
+			final template_path = Path.normalize(Path.join([Main.libdir, "templates", template]));
+			if (FileSystem.exists(template_path)) {
+				FileSystemUtils.copyDirectory(template_path, path);
+			} else {
+				Log.error('No template found with id \'$template\'.');
+				Log.error('Run \'arcane create --list\' to list available templates.');
+			}
+		}
 	}
 }
 
 class ServerCommand implements ICommand {
 	public var doc:Doc = null;
 
-	public function run(args:Array<String>, switches:Map<String, Null<String>>) {
-		// var s = new sys.net.Socket();
-		// s.listen(100);
-		// s.accept();
-		// var t = new hl.uv.Tcp();
-		// t.listen(100,() -> {
-		// 	t.
-		// });
-	}
+	public function run(args:Array<String>, switches:Map<String, Null<String>>) {}
 
 	public function new() {}
 }

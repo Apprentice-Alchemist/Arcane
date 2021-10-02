@@ -1,7 +1,5 @@
 package arcane.internal.html5;
 
-import haxe.MainLoop;
-import haxe.EntryPoint;
 import arcane.system.IAudioDriver;
 import haxe.crypto.Base64;
 import haxe.io.Bytes;
@@ -13,7 +11,6 @@ import js.html.MouseEvent;
 import js.html.CanvasElement;
 import arcane.system.IGraphicsDriver;
 import arcane.system.ISystem;
-import js.html.webgl.GL;
 
 @:access(arcane)
 @:nullSafety(StrictThreaded)
@@ -103,17 +100,16 @@ class HTML5System implements ISystem {
 				})
 				.then(_ -> {
 					cb();
-					// MainLoop.add(() -> update(0));
 					js.Browser.window.requestAnimationFrame(update);
 					return;
 				})
 				.catchError(e -> untyped console.error(e));
 		} else {
 		#end
-			var gl = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
+			#if !force_webgl1 var gl = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 			if (gl != null) {
 				gdriver = new WebGLDriver(gl, canvas, true);
-			} else {
+			} else #end {
 				var gl = @:nullSafety(Off) canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
 				if (gl != null) {
 					gdriver = new WebGLDriver(cast gl, canvas, false);
@@ -313,35 +309,35 @@ class HTML5System implements ISystem {
 				err(Other(path, response.statusText));
 			}
 		}).catchError(e -> err(Other(path, Std.string(e))));
-		// var xhr = js.Browser.createXMLHttpRequest();
-		// xhr.open('GET', path, true);
-		// xhr.responseType = ARRAYBUFFER;
-		// xhr.onload = e -> {
-		// 	if (xhr.status != 200) {
-		// 		err(xhr.status == 404 ? NotFound(path) : Other(path, xhr.statusText));
-		// 		return;
-		// 	}
-		// 	final data = haxe.io.Bytes.ofData(xhr.response);
-		// 	cb(data);
-		// }
-		// xhr.send();
 	}
 
-	public function readSavefile(name:String, cb:Bytes->Void, err:() -> Void) {
+	public function readSavefile(name:String, cb:Bytes->Void, err:(e:AssetError) -> Void) {
 		var storage = js.Browser.getLocalStorage();
-		if (storage != null) {
-			cb(Base64.decode(storage.getItem(name)));
-		} else
-			err();
+		if (storage != null)
+			try {
+				final item = storage.getItem(name);
+				if (item == null)
+					err(NotFound(name));
+				else
+					cb(Base64.decode(item));
+			} catch (e)
+				err(NotFound(name));
+		else
+			err(Other("localStorage is unsupported or disabled."));
 	}
 
 	public function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void) {
 		var storage = js.Browser.getLocalStorage();
-		if (storage != null) {
-			storage.setItem(name, Base64.encode(bytes));
-			if (complete != null)
-				complete(true);
-		} else if (complete != null)
+		if (storage != null)
+			try {
+				storage.setItem(name, Base64.encode(bytes));
+				if (complete != null)
+					complete(true);
+			} catch (e) {
+				if (complete != null)
+					complete(false);
+			}
+		else if (complete != null)
 			complete(false);
 	}
 }

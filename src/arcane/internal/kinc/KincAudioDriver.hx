@@ -1,5 +1,6 @@
 package arcane.internal.kinc;
 
+import arcane.Assets.AssetError;
 import arcane.util.Result;
 import hl.BytesAccess;
 import haxe.io.Bytes;
@@ -96,7 +97,6 @@ class KincAudioDriver implements IAudioDriver {
 		Audio.init();
 		Audio.setCallback(mix);
 		sample_rate = Audio.getSamplesPerSecond();
-		// trace(sample_rate);
 		mutex.acquire();
 		sources.resize(0);
 		mutex.release();
@@ -119,11 +119,11 @@ class KincAudioDriver implements IAudioDriver {
 	}
 	#end
 
-	public function fromFile(s:String, cb:Result<IAudioBuffer, Any>->Void):Void {
+	public function fromFile(file:String, cb:Result<IAudioBuffer, AssetError>->Void):Void {
 		(cast Lib.system : KincSystem).thread_pool.addTask(() -> {
-			if (StringTools.endsWith(s, "ogg")) {
+			if (StringTools.endsWith(file, "ogg")) {
 				#if arcane_audio_use_fmt
-				var bytes = KincSystem.readFileInternal(s).sure();
+				var bytes = KincSystem.readFileInternal(file).sure();
 				var file = ogg_open(bytes, bytes.length);
 				var bitrate = 0, frequency = 0, samples = 0, channels = 0;
 				ogg_info(file, bitrate, frequency, samples, channels);
@@ -147,47 +147,66 @@ class KincAudioDriver implements IAudioDriver {
 					channels: channels
 				} : AudioBuffer);
 				#else
-				var s = kinc.audio1.Sound.create(s);
-				var frequency = s.format.samples_per_second;
-				var channels = s.format.channels;
-				var samples = Std.int(s.size);
-				// var output = Bytes.alloc(s.size * 4);
-				// var out:hl.BytesAccess<hl.UI16> = output;
-				// for (i in 0...s.size) {
-				// 	out[i * 2] = s.left[i];
-				// 	out[i * 2 + 1] = s.right[i];
-				// }
-				var left = Bytes.alloc(s.size * 2);
-				var right = Bytes.alloc(s.size * 2);
-				(left : hl.Bytes).blit(0, s.left, 0, left.length);
-				(right : hl.Bytes).blit(0, s.right, 0, right.length);
-				s.destroy();
-				({
-					// data: output,
+				final sound = kinc.audio1.Sound.create(file);
+				final frequency = sound.format.samples_per_second;
+				final channels = sound.format.channels;
+				final samples = sound.size;
+				final left = Bytes.alloc(sound.size * 2);
+				final right = Bytes.alloc(sound.size * 2);
+				(left : hl.Bytes).blit(0, sound.left, 0, left.length);
+				(right : hl.Bytes).blit(0, sound.right, 0, right.length);
+				sound.destroy();
+				Ok((({
 					left: left,
 					right: right,
 					samples: samples,
 					sampleRate: frequency,
 					channels: channels
-				} : AudioBuffer);
+				} : AudioBuffer) : IAudioBuffer));
 				#end
-			} else if (StringTools.endsWith(s, "wav")) {
-				var bytes = KincSystem.readFileInternal(s);
+			} else if (StringTools.endsWith(file, "wav")) {
+				var bytes = KincSystem.readFileInternal(file);
 				if (bytes == null)
-					cb(Err("not found"));
-				final data = new format.wav.Reader(new haxe.io.BytesInput(cast bytes)).read();
-				final header = data.header;
-				final samples = Std.int(data.data.length / (header.channels * header.bitsPerSample / 8));
-				// ({
-				// 	data: data.data,
-				// 	samples: samples,
-				// 	sampleRate: header.samplingRate,
-				// 	channels: header.channels
-				// } : AudioBuffer);
-				cast null;
-			} else
-				throw "";
-		}, (b:AudioBuffer) -> cb(Ok(b)), e -> throw e);
+					Err(NotFound(file))
+				else {
+					final data = new format.wav.Reader(new haxe.io.BytesInput(cast bytes)).read();
+					final header = data.header;
+					final samples = Std.int(data.data.length / (header.channels * header.bitsPerSample / 8));
+					final left = Bytes.alloc(samples * 2);
+					final right = Bytes.alloc(samples * 2);
+					if (header.channels == 1) {
+						for (s in 0...samples) {
+							if (header.bitsPerSample == 8) {
+								left.setUInt16(s << 1, (data.data.get(s) - 127) >> 8);
+								right.setUInt16(s << 1, (data.data.get(s) - 127) >> 8);
+							} else if (header.bitsPerSample == 16) {
+								left.setUInt16(s * 2, data.data.getUInt16(s * 2));
+								right.setUInt16(s * 2, data.data.getUInt16(s * 2));
+							}
+						}
+					} else if (header.channels == 2) {
+						for (s in 0...samples) {
+							if (header.bitsPerSample == 8) {
+								left.setUInt16(s * 2, (data.data.get(s) - 127) >> 8);
+								right.setUInt16(s * 2, (data.data.get(s + 1) - 127) >> 8);
+							} else if (header.bitsPerSample == 16) {
+								left.setUInt16(s * 2, data.data.getUInt16(s * 4));
+								right.setUInt16(s * 2, data.data.getUInt16(s * 4));
+							}
+						}
+					}
+					Ok((({
+						left: left,
+						right: right,
+						samples: samples,
+						sampleRate: header.samplingRate,
+						channels: header.channels
+					} : AudioBuffer) : IAudioBuffer));
+				}
+			} else {
+				Err(InvalidFormat(file));
+			}
+		}, (result:Result<IAudioBuffer, AssetError>) -> cb(result), e -> cb(Err(Other(e.message))));
 	}
 
 	public function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {
@@ -213,11 +232,17 @@ class KincAudioDriver implements IAudioDriver {
 
 	public function getVolume(i:IAudioSource) return 1.0;
 
-	public function setVolume(i, v) {}
+	public function setVolume(i:IAudioSource, v:Float) {}
 
 	public function stop(s:IAudioSource):Void {
 		mutex.acquire();
-		sources.remove(cast s);
+		final s:AudioSource = cast s;
+		for (i => source in sources) {
+			if (source == s) {
+				sources[i] = null;
+				break;
+			}
+		}
 		mutex.release();
 	}
 }

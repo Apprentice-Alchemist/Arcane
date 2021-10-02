@@ -27,5 +27,6 @@ abstract Float32Array(js.lib.Float32Array) from js.lib.Float32Array to js.lib.Fl
 	}
 
 	@:to inline function toArrayBuffer() return this.buffer;
+
 	@:from static inline function fromArrayBuffer(buffer:ArrayBuffer):Float32Array return new js.lib.Float32Array(buffer);
 }

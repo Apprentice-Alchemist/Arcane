@@ -1,5 +1,7 @@
 package arcane;
 
+import arcane.util.Result;
+
 @:nullSafety(Strict)
 class Image {
 	/**
@@ -130,17 +132,21 @@ class Image {
 	 * Requires the `format` haxelib.
 	 * @param b raw png bytes
 	 */
-	public static function fromPngBytes(b:haxe.io.Bytes):Image {
+	public static function fromPngBytes(b:haxe.io.Bytes):Result<Image, String> {
 		#if format
-		var reader = new format.png.Reader(new haxe.io.BytesInput(b));
-		var data = reader.read();
-		var header = format.png.Tools.getHeader(data);
-		var bytes = format.png.Tools.extract32(data);
-		var image = new Image(header.width, header.height, BGRA, bytes);
-		image.convert(RGBA);
-		return image;
+		try {
+			var reader = new format.png.Reader(new haxe.io.BytesInput(b));
+			var data = reader.read();
+			var header = format.png.Tools.getHeader(data);
+			var bytes = format.png.Tools.extract32(data);
+			var image = new Image(header.width, header.height, BGRA, bytes);
+			image.convert(RGBA);
+			return Ok(image);
+		} catch (e:haxe.Exception) {
+			return Err(e.message);
+		}
 		#else
-		throw "please install the format haxelib";
+		return Err("Png decoding not supported without the format haxelib.");
 		#end
 	}
 

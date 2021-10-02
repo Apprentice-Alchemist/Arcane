@@ -1,5 +1,9 @@
 package arcane.internal.kinc;
 
+import kinc.compute.Compute.ComputeConstantLocation;
+import kinc.compute.Compute.ComputeTextureUnit;
+import kinc.g4.TextureUnit;
+import kinc.g4.ConstantLocation;
 import haxe.ds.ReadOnlyArray;
 import kinc.compute.ComputeShader;
 import arcane.arrays.ArrayBuffer;
@@ -28,7 +32,7 @@ private enum Command {
 	EndComputePass;
 }
 
-class VertexBuffer implements IVertexBuffer {
+private class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDescriptor;
 
 	public var buf:kinc.g4.VertexBuffer;
@@ -91,7 +95,7 @@ class VertexBuffer implements IVertexBuffer {
 	}
 }
 
-class IndexBuffer implements IIndexBuffer {
+private class IndexBuffer implements IIndexBuffer {
 	public var desc(default, null):IndexBufferDescriptor;
 
 	public final buf:kinc.g4.IndexBuffer;
@@ -161,7 +165,7 @@ private class UniformBuffer implements IUniformBuffer {
 }
 
 @:nullSafety(Strict)
-class Texture implements ITexture {
+private class Texture implements ITexture {
 	public var desc(default, null):TextureDescriptor;
 
 	public final tex:Null<kinc.g4.Texture>;
@@ -212,7 +216,15 @@ class Texture implements ITexture {
 	}
 }
 
-class Shader implements IShaderModule {
+private class Sampler implements ISampler {
+	public var desc:SamplerDescriptor;
+
+	public function new(desc:SamplerDescriptor) {
+		this.desc = desc;
+	}
+}
+
+private class Shader implements IShaderModule {
 	public var desc(default, null):ShaderDescriptor;
 
 	public final shader:Null<kinc.g4.Shader>;
@@ -220,7 +232,12 @@ class Shader implements IShaderModule {
 
 	public function new(desc:ShaderDescriptor) {
 		this.desc = desc;
-		var bytes = haxe.Resource.getBytes('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-default');
+		final ext = switch desc.module.stage {
+			case Vertex: "vert";
+			case Fragment: "frag";
+			case Compute: "comp";
+		}
+		var bytes = haxe.Resource.getBytes('${desc.module.id}-$ext-default');
 		// #if krafix
 		// 	if (desc.fromGlslSrc) {
 		// 		var len , out = new hl.Bytes(1024 * 1024);
@@ -243,15 +260,15 @@ class Shader implements IShaderModule {
 		// 		bytes = out.toBytes(len);
 		// 	}
 		// #end
-		if (desc.kind == Compute) {
+		if (desc.module.stage == Compute) {
 			compute = new ComputeShader(bytes);
 			shader = null;
 		} else {
 			compute = null;
-			shader = kinc.g4.Shader.create(bytes, switch desc.kind {
+			shader = kinc.g4.Shader.create(bytes, switch desc.module.stage {
 				case Fragment: FragmentShader;
 				case Vertex: VertexShader;
-				case _: throw "unsupported";
+				case _: throw "assert";
 			});
 		}
 	}
@@ -269,23 +286,23 @@ class Shader implements IShaderModule {
 	// #end
 }
 
-class BindGroupLayout implements IBindGroupLayout {
-	final desc:BindGroupLayoutDescriptor;
+private class BindGroupLayout implements IBindGroupLayout {
+	public final desc:BindGroupLayoutDescriptor;
 
 	public function new(desc:BindGroupLayoutDescriptor) {
 		this.desc = desc;
 	}
 }
 
-class BindGroup implements IBindGroup {
-	final desc:BindGroupDescriptor;
+private class BindGroup implements IBindGroup {
+	public final desc:BindGroupDescriptor;
 
 	public function new(desc:BindGroupDescriptor) {
 		this.desc = desc;
 	}
 }
 
-class RenderPipeline implements IRenderPipeline {
+private class RenderPipeline implements IRenderPipeline {
 	public var desc(default, null):RenderPipelineDescriptor;
 
 	public final state:kinc.g4.Pipeline;
@@ -294,8 +311,8 @@ class RenderPipeline implements IRenderPipeline {
 		this.desc = desc;
 		state = new kinc.g4.Pipeline();
 
-		assert(desc.vertexShader.desc.kind == Vertex);
-		assert(desc.fragmentShader.desc.kind == Fragment);
+		assert(desc.vertexShader.desc.module.stage == Vertex);
+		assert(desc.fragmentShader.desc.module.stage == Fragment);
 
 		state.vertex_shader = cast cast(desc.vertexShader, Shader).shader;
 		state.fragment_shader = cast cast(desc.fragmentShader, Shader).shader;
@@ -338,6 +355,20 @@ class RenderPipeline implements IRenderPipeline {
 		state.alpha_blend_destination = convertBlend(desc.blend.alphaDst);
 		state.blend_destination = convertBlend(desc.blend.dst);
 		state.compile();
+
+		this.uniforms = [];
+		for (u in (cast desc.vertexShader : Shader).desc.module.uniforms) {
+			final location = state.getConstantLocation(u.name);
+			final size = asl.Typer.sizeof(u.t);
+
+			uniforms.set(0, [
+				{
+					loc: location,
+					size: size,
+					use_int: u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
+				}]);
+		}
+		this.textures = [];
 	}
 
 	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingOperation {
@@ -381,6 +412,76 @@ class RenderPipeline implements IRenderPipeline {
 		}
 	}
 
+	public final uniforms:Map<Int, Array<{
+		var loc:ConstantLocation;
+		var size:Int;
+		var use_int:Bool;
+	}>>;
+	public final textures:Map<Int, TextureUnit>;
+
+	public function setBuffer(binding:Int, buffer:UniformBuffer) {
+		if (uniforms.exists(binding)) {
+			final l:Array<{
+				var loc:ConstantLocation;
+				var size:Int;
+				var use_int:Bool;
+			}> = cast uniforms.get(binding);
+			var buf_pos = 0;
+			for (s in l) {
+				if (buf_pos + s.size > @:privateAccess buffer.data.byteLength)
+					throw "Uniform Buffer too small.";
+				if (s.use_int)
+					@:privateAccess Graphics4.__setInts(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
+				else
+					@:privateAccess Graphics4.__setFloats(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
+				buf_pos += s.size;
+			}
+		}
+	}
+
+	public static inline function convertAddressing(a:AddressMode):TextureAdressing {
+		return switch a {
+			case Clamp: CLAMP;
+			case Repeat: REPEAT;
+			case Mirrored: MIRROR;
+		}
+	}
+
+	public static inline function convertFilter(mode:FilterMode):TextureFilter {
+		return switch mode {
+			case Nearest: POINT;
+			case Linear: LINEAR;
+		}
+	}
+
+	public static inline function convertMipmapFilter(mode:FilterMode):MimapFilter {
+		return switch mode {
+			case Nearest: POINT;
+			case Linear: LINEAR;
+		}
+	}
+
+	public function setTexture(binding:Int, texture:Texture, sampler:Sampler) {
+		if (textures.exists(binding)) {
+			final unit:TextureUnit = cast textures.get(binding);
+			if (texture.desc.isRenderTarget) {
+				(cast texture.renderTarget).useColorAsTexture(unit);
+			} else {
+				Graphics4.setTexture(unit, cast texture.tex);
+			}
+			Graphics4.setTextureAddressing(unit, DirectionU, convertAddressing(sampler.desc.uAddressing));
+			Graphics4.setTextureAddressing(unit, DirectionV, convertAddressing(sampler.desc.vAddressing));
+			Graphics4.setTextureAddressing(unit, DirectionW, convertAddressing(sampler.desc.wAddressing));
+			Graphics4.setTextureMagnificationFilter(unit, convertFilter(sampler.desc.magFilter));
+			Graphics4.setTextureMinificationFilter(unit, convertFilter(sampler.desc.minFilter));
+			Graphics4.setTextureMipmapFilter(unit, convertMipmapFilter(sampler.desc.minFilter));
+
+			Graphics4.setTextureCompareMode(unit, sampler.desc.compare != null);
+
+			// todo implement compare func, lod and max anisotropy in kinc
+		}
+	}
+
 	public function dispose():Void {
 		state.destroy();
 	}
@@ -390,10 +491,51 @@ private class ComputePipeline implements IComputePipeline {
 	public var desc(default, null):ComputePipelineDescriptor;
 
 	public final shader:ComputeShader;
+	public final uniforms:Map<Int, Array<{
+		var loc:ComputeConstantLocation;
+		var size:Int;
+		var use_int:Bool;
+	}>> = [];
+	public final textures:Map<Int, ComputeTextureUnit> = [];
 
 	public function new(desc:ComputePipelineDescriptor) {
 		this.desc = desc;
 		this.shader = cast(cast desc.shader : Shader).compute;
+	}
+
+	public function setBuffer(binding:Int, buffer:UniformBuffer) {
+		if (uniforms.exists(binding)) {
+			final l:Array<{
+				var loc:ComputeConstantLocation;
+				var size:Int;
+				var use_int:Bool;
+			}> = cast uniforms.get(binding);
+			var buf_pos = 0;
+			for (s in l) {
+				if (buf_pos + s.size > @:privateAccess buffer.data.byteLength)
+					throw "Uniform Buffer too small.";
+				@:privateAccess kinc.compute.Compute.__setFloats(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
+				buf_pos += s.size;
+			}
+		}
+	}
+
+	public function setTexture(binding:Int, texture:Texture, sampler:Sampler) {
+		if (textures.exists(binding)) {
+			final unit:ComputeTextureUnit = cast textures.get(binding);
+			if (texture.desc.isRenderTarget) {
+				kinc.compute.Compute.setRenderTarget(unit, cast texture.renderTarget, READ_WRITE);
+			} else {
+				kinc.compute.Compute.setTexture(unit, cast texture.tex, READ_WRITE);
+			}
+
+			kinc.compute.Compute.setTextureAddressing(unit, DirectionU, RenderPipeline.convertAddressing(sampler.desc.uAddressing));
+			kinc.compute.Compute.setTextureAddressing(unit, DirectionV, RenderPipeline.convertAddressing(sampler.desc.vAddressing));
+			kinc.compute.Compute.setTextureAddressing(unit, DirectionW, RenderPipeline.convertAddressing(sampler.desc.wAddressing));
+			kinc.compute.Compute.setTextureMagnificationFilter(unit, RenderPipeline.convertFilter(sampler.desc.magFilter));
+			kinc.compute.Compute.setTextureMinificationFilter(unit, RenderPipeline.convertFilter(sampler.desc.minFilter));
+			kinc.compute.Compute.setTextureMipmapFilter(unit, RenderPipeline.convertMipmapFilter(sampler.desc.minFilter));
+		}
 	}
 
 	public function dispose() {}
@@ -416,6 +558,10 @@ private class ComputePass implements IComputePass {
 
 	public function setBindGroup(index:Int, group:IBindGroup) {
 		encoder.write(SetBindGroup(index, cast group));
+	}
+
+	public function end() {
+		encoder.write(EndComputePass);
 	}
 }
 
@@ -490,9 +636,64 @@ private class CommandBuffer implements ICommandBuffer {
 	}
 
 	public function execute() {
+		var in_compute = false;
+		var in_render = false;
+		final bind_groups:Array<BindGroup> = [];
+		var bindGroupsDirty = false;
+		var renderPipeline:Null<RenderPipeline> = null;
+		var computePipeline:Null<ComputePipeline> = null;
+		function updateBindGroups(pipeline:{
+			function setBuffer(binding:Int, buffer:UniformBuffer):Void;
+			function setTexture(binding:Int, texture:Texture, sampler:Sampler):Void;
+		}) {
+			if (bindGroupsDirty) {
+				var tex:Map<Int, {tex:Null<Texture>, sampler:Null<Sampler>}> = [];
+				for (group in bind_groups) {
+					for (entry in group.desc.entries) {
+						switch entry.resource {
+							case Buffer(buffer):
+								pipeline.setBuffer(entry.binding, cast buffer);
+							case Texture(texture):
+								if (tex.exists(entry.binding)) {
+									final t:{tex:Null<Texture>, sampler:Null<Sampler>} = cast tex.get(entry.binding);
+									t.tex = cast texture;
+									tex.set(entry.binding, t);
+								} else {
+									tex.set(entry.binding, {
+										tex: cast texture,
+										sampler: null
+									});
+								}
+							case Sampler(sampler):
+								if (tex.exists(entry.binding)) {
+									final t:{tex:Null<Texture>, sampler:Null<Sampler>} = cast tex.get(entry.binding);
+									t.sampler = cast sampler;
+									tex.set(entry.binding, t);
+								} else {
+									tex.set(entry.binding, {
+										tex: null,
+										sampler: cast sampler
+									});
+								}
+						}
+					}
+				}
+				for (binding => t in tex) {
+					if (t.tex != null && t.sampler != null) {
+						pipeline.setTexture(binding, cast t.tex, cast t.sampler);
+					} else {
+						throw "Incomplete binding " + binding + ", both texture and sampler needed.";
+					}
+				}
+				bindGroupsDirty = false;
+			}
+		}
 		for (command in commands) {
 			switch command {
 				case BeginRenderPass(desc):
+					if (in_compute)
+						throw "End the compute pass before beginning a render pass";
+					in_render = true;
 					if (desc.colorAttachments[0].texture == KincDriver.dummyTex) {
 						assert(desc.colorAttachments.length == 1, "Rendering to swapchain image and extra targets at the same time is not supported right now.");
 						Graphics4.restoreRenderTarget();
@@ -518,40 +719,47 @@ private class CommandBuffer implements ICommandBuffer {
 					Graphics4.clear(1, 0xFF000000, 0, 0);
 				// Graphics4.clear(flags, col, depth, stencil);
 				case EndRenderPass:
-				case SetVertexBuffers(b):
-					var buffers:Array<VertexBuffer> = cast b;
+					in_render = false;
+				case SetVertexBuffers(buffers):
 					var vertexBuffers = new hl.NativeArray(buffers.length);
 					for (i => buf in buffers)
-						vertexBuffers[i] = if (buf.buf != null) buf.buf else return Log.error("Trying to set a disposed vertex buffer.");
+						vertexBuffers[i] = buf.buf;
 					Graphics4.setVertexBuffers(vertexBuffers);
 				case SetIndexBuffer(b):
-					var b:IndexBuffer = cast b;
-					if (b.buf != null)
-						Graphics4.setIndexBuffer(b.buf);
-					else
-						Log.warn("Trying to use disposed index buffer");
+					Graphics4.setIndexBuffer(b.buf);
 				case SetPipeline(p):
-					var p:RenderPipeline = cast p;
-					if (p.state != null)
-						Graphics4.setPipeline(p.state);
-					else
-						Log.warn("Trying to use disposed pipeline");
+					renderPipeline = p;
+					Graphics4.setPipeline(p.state);
 				case SetBindGroup(index, b):
+					bind_groups[index] = b;
+					bindGroupsDirty = true;
 				case Draw(start, count):
+					if (renderPipeline != null)
+						updateBindGroups((cast renderPipeline : RenderPipeline));
 					if (count < 0)
 						Graphics4.drawIndexedVertices();
 					else
 						Graphics4.drawIndexedVerticesFromTo(start, count);
 				case DrawInstanced(instanceCount, start, count):
+					if (renderPipeline != null)
+						updateBindGroups((cast renderPipeline : RenderPipeline));
 					if (count < 0)
 						Graphics4.drawIndexedVerticesInstanced(instanceCount);
 					else
 						Graphics4.drawIndexedVerticesInstancedFromTo(instanceCount, start, count);
-				case BeginComputePass(desc):
+				case BeginComputePass(_):
+					if (in_render)
+						return Log.error("End the render pass before beginning a computer pass");
+					in_compute = false;
 				case SetComputePipeline(p):
+					computePipeline = p;
+					kinc.compute.Compute.setShader(p.shader);
 				case Compute(x, y, z):
-				// kinc.compute.Compute.compute(x, y, z);
+					if (computePipeline != null)
+						updateBindGroups((cast computePipeline : ComputePipeline));
+					kinc.compute.Compute.compute(x, y, z);
 				case EndComputePass:
+					in_compute = false;
 			}
 		}
 	}
@@ -614,7 +822,7 @@ class KincDriver implements IGraphicsDriver {
 	}
 
 	public function createSampler(desc:SamplerDescriptor):ISampler {
-		return cast null;
+		return new Sampler(desc);
 	}
 
 	public function createShader(desc:ShaderDescriptor):IShaderModule {

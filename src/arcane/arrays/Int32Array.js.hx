@@ -27,5 +27,6 @@ abstract Int32Array(js.lib.Int32Array) from js.lib.Int32Array {
 	}
 
 	@:to inline function toArrayBuffer() return this.buffer;
+
 	@:from static inline function fromArrayBuffer(buffer:ArrayBuffer):Int32Array return new js.lib.Int32Array(buffer);
 }

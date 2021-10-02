@@ -1,8 +1,4 @@
-package arcane.util;
-
-#if !js
-#error "arcane.util.JsUtil can only be used when targetting javascript"
-#end
+package arcane.internal;
 
 #if macro
 import haxe.macro.Expr;
@@ -11,9 +7,11 @@ using haxe.macro.Tools;
 #end
 
 class JsUtils {
+	#if !macro
 	public extern static inline function await<T>(promise:js.lib.Promise<T>):T {
 		return js.Syntax.code("await {0}", promise);
 	}
+	#end
 
 	@:noUsing public static macro function async(e:haxe.macro.Expr):haxe.macro.Expr {
 		switch e.expr {

@@ -16,7 +16,7 @@ abstract Pos(asl.Ast.Position) from asl.Ast.Position to asl.Ast.Position {
 	#end
 }
 
-@:nullSafety(Strict)
+@:nullSafety(Off)
 class Typer {
 	static var builtins:Map<String, Array<{}>> = [];
 	@:noCompletion static var __id:Int = 0;
@@ -30,15 +30,15 @@ class Typer {
 
 	public function new() {}
 
-	public static function makeModule(e:Expr, stage:ShaderStage):ShaderModule {
-		final typer = inline new Typer();
+	public static function makeModule(id:String, e:Expr, stage:ShaderStage):ShaderModule {
+		final typer = new Typer();
 		return switch e.expr {
-			case EBlock(exprs): typer.typeModule(exprs, stage);
+			case EBlock(exprs): typer.typeModule(id, exprs, stage);
 			case _: throw "expected block declaration";
 		}
 	}
 
-	function typeModule(exprs:Array<Expr>, stage:ShaderStage):ShaderModule {
+	function typeModule(id:String, exprs:Array<Expr>, stage:ShaderStage):ShaderModule {
 		var uniforms:Array<TVar> = [];
 		var outputs = [];
 		var inputs = [];
@@ -127,6 +127,7 @@ class Typer {
 				case _:
 			}
 		return {
+			id: id,
 			uniforms: uniforms,
 			stage: stage,
 			outputs: outputs,
@@ -283,7 +284,7 @@ class Typer {
 						return;
 					default:
 				}
-			case TSwiz(e, _):
+			case TField(e, _):
 				checkWrite(e);
 				return;
 			default:
@@ -351,6 +352,24 @@ class Typer {
 				switch follow(e.t) {
 					case TMonomorph(r): error("This expression does not have a concrete type.", e.pos);
 					case TVec(t, size):
+						final str = "xrsygtzbpwaq";
+						final comps = [X, Y, Z, W];
+						var cat = -1;
+						final out = [];
+						for (i in 0...name.length) {
+							var idx = str.indexOf(name.charAt(i));
+							if (idx < 0)
+								return null;
+							var icat = idx % 3;
+							if (cat < 0)
+								cat = icat
+							else if (icat != cat)
+								return null; // down't allow .ryz
+							var cid = Std.int(idx / 3);
+							if (cid >= size)
+								error(typeToString(e.t) + " does not have component " + name.charAt(i), e.pos);
+							out.push(comps[cid]);
+						}
 					case TMat(t, size):
 					case TStruct(fields):
 						for (field in fields)
@@ -535,6 +554,27 @@ class Typer {
 					case null: 'Unknown';
 					case var t: typeToString(t);
 				}
+		}
+	}
+
+	public static function sizeof(t:Type) {
+		return switch t {
+			case TMonomorph(r): sizeof(cast r.value);
+			case TVoid: 0;
+			case TBool: 1;
+			case TInt: 4;
+			case TFloat: 4;
+			case TVec(t, size): sizeof(t) * size;
+			case TMat(t, size): sizeof(t) * size * size;
+			case TArray(t, size): sizeof(t) * size;
+			case TStruct(fields):
+				var s = 0;
+				for (f in fields)
+					s += sizeof(f.type);
+				s;
+			case TSampler2D: throw "unsized type";
+			case TSampler2DArray: throw "unsized type";
+			case TSamplerCube: throw "unsized type";
 		}
 	}
 }

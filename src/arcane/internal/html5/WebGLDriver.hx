@@ -265,8 +265,8 @@ private class Shader implements IShaderModule {
 		this.driver = driver;
 		this.desc = desc;
 
-		this.shader = driver.gl.createShader(desc.kind == (Vertex) ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
-		var id = '${desc.id}-${desc.kind == (Vertex) ? "vert" : "frag"}-${driver.hasGL2 ? "webgl2" : "default"}';
+		this.shader = driver.gl.createShader(desc.module.stage == Vertex ? GL.VERTEX_SHADER : GL.FRAGMENT_SHADER);
+		var id = '${desc.module.id}-${desc.module.stage == Vertex ? "vert" : "frag"}-${driver.hasGL2 ? "webgl2" : "default"}';
 		var data = haxe.Resource.getString(id);
 		driver.gl.shaderSource(shader, data);
 		driver.gl.compileShader(shader);

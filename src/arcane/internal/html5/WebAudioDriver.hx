@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+import arcane.Assets.AssetError;
 import arcane.util.Result;
 import js.html.audio.GainNode;
 import js.html.audio.AudioContext;
@@ -63,7 +64,7 @@ class WebAudioDriver implements IAudioDriver {
 		});
 	}
 
-	public function fromFile(path:String, cb:Result<IAudioBuffer, Any>->Void) {
+	public function fromFile(path:String, cb:Result<IAudioBuffer, AssetError>->Void) {
 		Assets.loadBytesAsync(path, bytes -> {
 			context.decodeAudioData(bytes.getData()).then(b -> {
 				var buffer:AudioBuffer = {
@@ -73,7 +74,7 @@ class WebAudioDriver implements IAudioDriver {
 					samples: b.length
 				};
 				cb(Ok(buffer));
-			}).catchError(e -> cb(Err(e)));
+			}).catchError(e -> cb(Err(InvalidFormat(path))));
 		}, e -> cb(Err(e)));
 	}
 

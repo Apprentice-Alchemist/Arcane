@@ -1,5 +1,6 @@
 package arcane.internal.kinc;
 
+import arcane.Assets.AssetError;
 import arcane.util.Result;
 import arcane.util.ThreadPool;
 import haxe.io.Bytes;
@@ -12,13 +13,16 @@ import arcane.system.Event.KeyCode as ArcaneCode;
 
 @:access(arcane)
 class KincSystem implements ISystem {
+	/**
+	 * thread pool for I/O, audio decoding, etc...
+	 */
 	public var thread_pool:ThreadPool;
 
 	public var window(default, null):IWindow;
 
 	public function new() {
 		window = new KincWindow(0, "");
-		thread_pool = new ThreadPool();
+		thread_pool = new ThreadPool(2);
 	}
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
@@ -272,7 +276,6 @@ class KincSystem implements ISystem {
 	}
 
 	public function getGraphicsDriver():Null<IGraphicsDriver> {
-		// var window = if(options == null) 0 else options.window;
 		return new KincDriver(0);
 	}
 
@@ -320,8 +323,8 @@ class KincSystem implements ISystem {
 		thread_pool.addTask(() -> readFileInternal(path), b -> b == null ? err(NotFound(path)) : cb(b), e -> err(Other(path, e.message)));
 	}
 
-	public function readSavefile(name:String, cb:(Bytes) -> Void, err:() -> Void):Void {
-		thread_pool.addTask(() -> readFileInternal(name, SaveFile), b -> if (b == null) err() else cb(b), _ -> err());
+	public function readSavefile(name:String, cb:(Bytes) -> Void, err:(AssetError) -> Void):Void {
+		thread_pool.addTask(() -> readFileInternal(name, SaveFile), b -> if (b == null) err(NotFound(name)) else cb(b), e -> err(Other(e.message)));
 	}
 
 	public function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void):Void {

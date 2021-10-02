@@ -10,7 +10,7 @@ class GlslOut {
 		return switch t {
 			case TMonomorph(r):
 				switch r.value {
-					case null: Typer.error("Unresolved monomorph",(macro null).pos);
+					case null: Typer.error("Unresolved monomorph", (macro null).pos);
 					case var t: typeToGlsl(t);
 				}
 			case TVoid:
@@ -47,6 +47,9 @@ class GlslOut {
 	public static function toGlsl(module:ShaderModule, krafix = false) {
 		final buf = new StringBuf();
 		buf.add("#version 450\n");
+		buf.add("#ifdef vulkan\n");
+		buf.add("#define gl_InstanceID gl_InstanceIndex\n");
+		buf.add("#endif\n");
 		for (input in module.inputs)
 			if (input.builtin == null) {
 				buf.add("in ");
@@ -63,9 +66,10 @@ class GlslOut {
 				buf.add(";\n");
 			}
 		if (!krafix && module.uniforms.length > 0)
-			buf.add("uniform M {\n");
+			buf.add("layout(binding = 0) uniform M {\n");
 		for (uniform in module.uniforms) {
-			buf.add("uniform ");
+			if (krafix)
+				buf.add("uniform ");
 			var ssize = "";
 			var t = switch uniform.t {
 				case TArray(t, size):
@@ -110,6 +114,19 @@ class GlslOut {
 				} else v.name;
 			case TArray(e1, e2): convExpr(e1) + "[" + convExpr(e2) + "]";
 			case TBinop(op, e1, e2): convExpr(e1) + " " + (inline new haxe.macro.Printer()).printBinop(op) + " " + convExpr(e2);
+			case TField(e, TSwiz(components)): convExpr(e) + "." + [
+					for (comp in components)
+						switch comp {
+							case X:
+								"x";
+							case Y:
+								"y";
+							case Z:
+								"z";
+							case W:
+								"w";
+						}
+				].join("");
 			case TField(e, fa): throw "TODO";
 			case TParenthesis(e): '(${convExpr(e)})';
 			case TObjectDecl(fields): throw "TODO";
@@ -141,19 +158,6 @@ class GlslOut {
 			case TBreak: "break";
 			case TContinue: "continue";
 			case TMeta(_, e1): convExpr(e1);
-			case TSwiz(e, components): convExpr(e) + "." + [
-					for (comp in components)
-						switch comp {
-							case X:
-								"x";
-							case Y:
-								"y";
-							case Z:
-								"z";
-							case W:
-								"w";
-						}
-				].join("");
 		}
 	}
 }

@@ -1,5 +1,6 @@
 package arcane.system;
 
+import asl.Ast.ShaderModule;
 import arcane.arrays.ArrayBuffer;
 import arcane.util.Color;
 import arcane.arrays.Float32Array;
@@ -132,15 +133,15 @@ typedef InputLayout = Array<{
 }
 
 @:structInit class RenderPipelineDescriptor {
+	public final vertexShader:IShaderModule;
+	public final fragmentShader:IShaderModule;
+	public final inputLayout:InputLayout;
+	public final layout:Array<IBindGroupLayout> = [];
 	public final blend:BlendDescriptor = {};
 	public final stencil:StencilDescriptor = {};
 	public final culling:Face = None;
 	public final depthWrite:Bool = false;
 	public final depthTest:Compare = Always;
-	public final inputLayout:InputLayout;
-	public final vertexShader:IShaderModule;
-	public final fragmentShader:IShaderModule;
-	public final layout:Array<IBindGroupLayout>;
 }
 
 @:structInit class VertexBufferDescriptor {
@@ -184,12 +185,7 @@ typedef InputLayout = Array<{
 }
 
 @:structInit class ShaderDescriptor {
-	public final id:String;
-
-	/**
-	 * The kind of shader.
-	 */
-	public final kind:ShaderStage;
+	public final module:ShaderModule;
 }
 
 private enum BindingResource {
@@ -336,6 +332,8 @@ interface IComputePass {
 	function setBindGroup(index:Int, group:IBindGroup):Void;
 	function setPipeline(p:IComputePipeline):Void;
 	function dispatch(x:Int, y:Int, z:Int):Void;
+
+	function end():Void;
 }
 
 interface ICommandEncoder {

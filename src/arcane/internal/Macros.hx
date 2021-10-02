@@ -93,10 +93,7 @@ class Macros {
 		if (shaderCompiler != null)
 			return shaderCompiler;
 		if (Context.defined("js"))
-			// if (hasSpirV)
 			return new arcane.internal.html5.HTML5ShaderCompiler();
-		// else
-		// return new arcane.internal.kinc.KrafixShaderCompiler();
 		if (Context.defined("kinc") && Context.defined("hl"))
 			return new arcane.internal.kinc.KrafixShaderCompiler();
 		return new arcane.internal.empty.ShaderCompiler();

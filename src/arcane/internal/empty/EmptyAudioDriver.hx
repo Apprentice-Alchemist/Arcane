@@ -1,5 +1,6 @@
 package arcane.internal.empty;
 
+import arcane.Assets.AssetError;
 import arcane.system.IAudioDriver;
 import arcane.util.Result;
 
@@ -22,7 +23,7 @@ private class AudioSource implements IAudioSource {
 class EmptyAudioDriver implements IAudioDriver {
 	public function new() {}
 
-	public function fromFile(path:String, cb:Result<IAudioBuffer, Any>->Void):Void {}
+	public function fromFile(path:String, cb:Result<IAudioBuffer, AssetError>->Void):Void {}
 
 	public function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource {
 		return new AudioSource();

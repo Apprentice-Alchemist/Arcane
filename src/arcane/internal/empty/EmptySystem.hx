@@ -73,7 +73,7 @@ class EmptySystem implements ISystem {
 
 	public function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:AssetError) -> Void) {}
 
-	public function readSavefile(name:String, cb:Bytes->Void, err:() -> Void) {}
+	public function readSavefile(name:String, cb:Bytes->Void, err:(e:AssetError) -> Void) {}
 
 	public function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void) {}
 }

@@ -7,5 +7,5 @@ interface IShaderCompiler {
 	 * @param vertex Wether it's a vertex shader.
 	 * @return haxe.io.Bytes 
 	 */
-	public function compile(id:String, source:haxe.io.Bytes, vertex:Bool):Void;
+	public function compile(id:String, source:haxe.io.Bytes, stage:asl.Ast.ShaderStage):Void;
 }

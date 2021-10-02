@@ -29,13 +29,26 @@ enum Type {
 
 	TVoid;
 	TBool;
+
+	/**
+	 * 32 integer.
+	 */
 	TInt;
+
+	/**
+	 * 32 bit floating point number
+	 */
 	TFloat;
+
+	/**
+	 * Allowed sizes : 2, 3, 4.
+	 * Allowed types : bool, int and float.
+	 */
 	TVec(t:Type, size:Int);
+
 	TMat(t:Type, size:Int);
 	TArray(t:Type, ?size:Int);
 	TStruct(fields:Array<{name:String, type:Type}>);
-
 	TSampler2D;
 	TSampler2DArray;
 	TSamplerCube;
@@ -75,6 +88,7 @@ enum BuiltinFunction {
 }
 
 typedef ShaderModule = {
+	final id:String;
 	final stage:ShaderStage;
 	final inputs:Array<TVar>;
 	final outputs:Array<TVar>;
@@ -195,6 +209,7 @@ typedef TFunc = {
 enum FieldAccess {
 	FMat(x:Int, ?y:Int);
 	FStruct(name:String);
+	TSwiz(components:Array<Component>);
 }
 
 enum TypedExprDef {
@@ -249,7 +264,7 @@ enum TypedExprDef {
 	TCall(e:TypedExpr, el:Array<TypedExpr>);
 
 	/**
-		A call to a builtin `e(el)`.
+		A call to a builtin function `e(el)`.
 	**/
 	TCallBuiltin(b:BuiltinFunction, el:Array<TypedExpr>);
 
@@ -318,8 +333,6 @@ enum TypedExprDef {
 		A `@m e1` expression.
 	**/
 	TMeta(m:haxe.macro.Expr.MetadataEntry, e1:TypedExpr);
-
-	TSwiz(e:TypedExpr, components:Array<Component>);
 }
 
 enum Component {

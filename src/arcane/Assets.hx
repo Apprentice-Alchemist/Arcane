@@ -9,6 +9,10 @@ import haxe.io.Bytes;
 enum AssetError {
 	NotFound(path:String);
 	Other(path:String, ?msg:String);
+	/**
+	 * Ex. when using AudioDriver.fromFile with an unsupported format.
+	 */
+	InvalidFormat(path:String);
 }
 
 @:nullSafety(StrictThreaded)

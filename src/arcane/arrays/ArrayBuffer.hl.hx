@@ -19,7 +19,7 @@ class ArrayBuffer {
 	}
 
 	public inline function blit(pos:Int, src:ArrayBuffer, srcPos:Int, byteLength:Int) {
-		this.b.blit(pos, cast src, srcPos, byteLength);
+		this.b.blit(pos, src.b, srcPos, byteLength);
 	}
 
 	public inline function slice(start:Int, ?end:Int) {

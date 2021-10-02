@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+import asl.Ast.ShaderStage;
 import haxe.io.Bytes;
 #if macro
 import sys.io.File;
@@ -12,60 +13,69 @@ using StringTools;
 class HTML5ShaderCompiler implements IShaderCompiler {
 	public function new() {}
 
-	public function compile(id:String, source:Bytes, vertex:Bool):Void {
-		#if (macro&&!display)
-		if (Context.defined("display"))
+	function command(name:String, args:Array<String>) {
+		#if macro
+		if (Sys.command(name, args) != 0) {
+			Context.fatalError("Shader compilation error, command : " + name, Context.currentPos());
+		}
+		#end
+	}
+
+	public function compile(id:String, source:Bytes, stage:ShaderStage):Void {
+		#if macro
+		if (Context.defined("display") || #if display true #else false #end)
 			return;
 		var temp = Macros.getTempDir();
-		var s = Macros.cmd("glslc", [
-			'-fshader-stage=${vertex ? "vert" : "frag"}',
+		final stage = switch stage {
+			case Vertex: "vert";
+			case Fragment: "frag";
+			case Compute: "comp";
+		}
+		File.saveBytes('$temp/$id.$stage', source);
+		command("glslc", [
+			'-fshader-stage=$stage',
 			"-fauto-map-locations",
-			"-fauto-bind-uniforms",
+			// "-fauto-bind-uniforms",
 			"--target-env=opengl",
 			"-o",
-			"-",
-			"-"
-		], source);
-		if (s.code != 0 || s.stderr.trim() != "") {
-			Sys.println("Error while compiling shader " + id);
-			Sys.println(s.stderr);
-			Sys.exit(1);
-		}
-		var webgl1 = Macros.cmd("spirv-cross", ["--es", "--version", "100", "--glsl-emit-ubo-as-plain-uniforms", "-"], s.stdout);
-		var webgl2 = Macros.cmd("spirv-cross", ["--es", "--version", "300", "-"], s.stdout);
-		if (webgl1.code != 0 || webgl1.stderr.trim() != "") {
-			Sys.println("Error while compiling shader " + id);
-			Sys.println(webgl1.stderr);
-			Sys.exit(1);
-		}
-		if (webgl2.code != 0 || webgl2.stderr.trim() != "") {
-			Sys.println("Error while compiling shader " + id);
-			Sys.println(webgl2.stderr);
-			Sys.exit(1);
-		}
-		var webgpu = Macros.cmd("glslc", [
-			'-fshader-stage=${vertex ? "vert" : "frag"}',
-			"-fauto-map-locations",
-			"-fauto-bind-uniforms",
-			"--target-env=vulkan",
-			"-Dgl_InstanceID=gl_InstanceIndex",
-			"-o",
-			'$temp/$id.${vertex ? "vert" : "frag"}.spv',
-			"-"
-		], source);
-		if (webgpu.code != 0 || webgpu.stderr.trim() != "") {
-			Sys.println("Error while compiling shader " + id);
-			Sys.println(webgpu.stderr);
-			Sys.exit(1);
-		}
-		Macros.cmd("naga", [
-			'$temp/$id.${vertex ? "vert" : "frag"}.spv',
-			'$temp/$id.${vertex ? "vert" : "frag"}.wgsl',"--validate","31"]);
+			'$temp/$id.$stage.spv',
+			'$temp/$id.$stage'
+		]);
 
-		var _id = '$id-${vertex ? "vert" : "frag"}';
-		Context.addResource('$_id-default', webgl1.stdout);
-		Context.addResource('$_id-webgl2', webgl2.stdout);
-		Context.addResource('$_id-webgpu', File.getBytes('$temp/$id.${vertex ? "vert" : "frag"}.wgsl'));
+		command("spirv-cross", [
+			'$temp/$id.$stage.spv',
+			"--es",
+			"--version",
+			"100",
+			"--glsl-emit-ubo-as-plain-uniforms",
+			"--output",
+			'$temp/$id-webgl1.$stage',
+		]);
+		command("spirv-cross", [
+			'$temp/$id.$stage.spv',
+			"--es",
+			"--version",
+			"300",
+			"--output",
+			'$temp/$id-webgl2.$stage'
+		]);
+
+		var _id = '$id-$stage';
+		if (Context.defined("wgpu_externs")) {
+			command("glslc", [
+				'-fshader-stage=$stage',
+				"-fauto-map-locations",
+				// "-fauto-bind-uniforms",
+				"-Dvulkan",
+				"-o",
+				'$temp/$id.$stage-naga.spv',
+				'$temp/$id.$stage'
+			]);
+			command("naga", ['$temp/$id.$stage-naga.spv', '$temp/$id.$stage.wgsl', "--validate", "31"]);
+			Context.addResource('$_id-webgpu', File.getBytes('$temp/$id.$stage.wgsl'));
+		}
+		Context.addResource('$_id-default', File.getBytes('$temp/$id-webgl1.$stage'));
+		Context.addResource('$_id-webgl2', File.getBytes('$temp/$id-webgl2.$stage'));
 		#end
 	}
 }

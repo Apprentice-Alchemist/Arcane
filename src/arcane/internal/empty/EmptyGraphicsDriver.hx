@@ -155,6 +155,8 @@ private class ComputePass implements IComputePass {
 	public function setBindGroup(index:Int, b:IBindGroup) {}
 
 	public function dispatch(x:Int, y:Int, z:Int) {}
+
+	public function end() {}
 }
 
 private class CommandEncoder implements ICommandEncoder {

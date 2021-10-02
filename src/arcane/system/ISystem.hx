@@ -48,7 +48,7 @@ interface ISystem {
 	function hideMouse():Void;
 
 	function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:arcane.Assets.AssetError) -> Void):Void;
-	function readSavefile(name:String, cb:(Bytes) -> Void, err:() -> Void):Void;
+	function readSavefile(name:String, cb:(Bytes) -> Void, err:(e:arcane.Assets.AssetError) -> Void):Void;
 	function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void):Void;
 }
 

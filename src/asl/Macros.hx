@@ -23,16 +23,18 @@ class Macros {
 			a.push(cls.name);
 			name = StringTools.replace(a.join(""), ".", "_");
 		}
-		final vertex = if (cls.meta.has(":vert")) asl.Typer.makeModule(cls.meta.extract(":vert")[0].params[0], Vertex) else null;
-		final fragment = if (cls.meta.has(":frag")) asl.Typer.makeModule(cls.meta.extract(":frag")[0].params[0], Fragment) else null;
-		final compute = if (cls.meta.has(":comp")) asl.Typer.makeModule(cls.meta.extract(":comp")[0].params[0], Compute) else null;
-		// trace(GlslOut.toGlsl(vertex));
-		makeShader(name, GlslOut.toGlsl(vertex #if kinc, true #end), GlslOut.toGlsl(fragment #if kinc, true #end));
-		// if (!cls.meta.has(":vertex"))
-		// 	Context.error("Shader does not have @:vertex data.", cls.pos);
-		// if (!cls.meta.has(":fragment"))
-		// 	Context.error("Shader does not have @:fragment data.", cls.pos);
-		// makeShader(name, cls.meta.extract(":vertex")[0].params[0].getValue(), cls.meta.extract(":fragment")[0].params[0].getValue());
+		final vertex = if (cls.meta.has(":vert")) asl.Typer.makeModule(name,cls.meta.extract(":vert")[0].params[0], Vertex) else null;
+		final fragment = if (cls.meta.has(":frag")) asl.Typer.makeModule(name,cls.meta.extract(":frag")[0].params[0], Fragment) else null;
+		final compute = if (cls.meta.has(":comp")) asl.Typer.makeModule(name,cls.meta.extract(":comp")[0].params[0], Compute) else null;
+
+		final compiler = arcane.internal.Macros.getShaderCompiler();
+		if (vertex != null)
+			compiler.compile(name, Bytes.ofString(GlslOut.toGlsl(vertex #if kinc, true #end)), Vertex);
+		if (fragment != null)
+			compiler.compile(name, Bytes.ofString(GlslOut.toGlsl(fragment #if kinc, true #end)), Fragment);
+		if (compute != null)
+			compiler.compile(name, Bytes.ofString(GlslOut.toGlsl(fragment #if kinc, true #end)), Compute);
+
 		fields.push({
 			name: "new",
 			kind: FFun({
@@ -47,9 +49,6 @@ class Macros {
 
 	static function makeShader(name:String, vertex:String, fragment:String) {
 		// trace(vertex,fragment);
-		final compiler = arcane.internal.Macros.getShaderCompiler();
-		compiler.compile(name, Bytes.ofString(vertex), true);
-		compiler.compile(name, Bytes.ofString(fragment), false);
 	}
 	#end
 }

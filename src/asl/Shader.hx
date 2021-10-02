@@ -26,9 +26,9 @@ class Shader {
 
 	public function make(d:IGraphicsDriver) {
 		return {
-			vertex: vertex == null ? null : d.createShader({id: id, kind: Vertex}),
-			fragment: fragment == null ? null : d.createShader({id: id, kind: Fragment}),
-			compute: compute == null ? null : d.createShader({id: id, kind: Compute})
+			vertex: vertex == null ? null : d.createShader({module: vertex}),
+			fragment: fragment == null ? null : d.createShader({module: fragment}),
+			compute: compute == null ? null : d.createShader({module: compute})
 		}
 	}
 }
