@@ -33,6 +33,7 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 		}
 		File.saveBytes('$temp/$id.$stage', source);
 		command("glslc", [
+			"-Dopengl",
 			'-fshader-stage=$stage',
 			"-fauto-map-locations",
 			// "-fauto-bind-uniforms",
@@ -65,12 +66,11 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 			command("glslc", [
 				'-fshader-stage=$stage',
 				"-fauto-map-locations",
-				// "-fauto-bind-uniforms",
-				"-Dvulkan",
 				"-o",
 				'$temp/$id.$stage-naga.spv',
 				'$temp/$id.$stage'
 			]);
+			command("spirv-val", ['$temp/$id.$stage-naga.spv']);
 			command("naga", ['$temp/$id.$stage-naga.spv', '$temp/$id.$stage.wgsl', "--validate", "31"]);
 			Context.addResource('$_id-webgpu', File.getBytes('$temp/$id.$stage.wgsl'));
 		}

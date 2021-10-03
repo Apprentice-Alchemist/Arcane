@@ -1,5 +1,6 @@
 package arcane.internal.kinc;
 
+import asl.GlslOut;
 import kinc.compute.Compute.ComputeConstantLocation;
 import kinc.compute.Compute.ComputeTextureUnit;
 import kinc.g4.TextureUnit;
@@ -357,18 +358,47 @@ private class RenderPipeline implements IRenderPipeline {
 		state.compile();
 
 		this.uniforms = [];
-		for (u in (cast desc.vertexShader : Shader).desc.module.uniforms) {
-			final location = state.getConstantLocation(u.name);
-			final size = asl.Typer.sizeof(u.t);
-
-			uniforms.set(0, [
-				{
-					loc: location,
-					size: size,
-					use_int: u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
-				}]);
-		}
 		this.textures = [];
+		for (u in (cast desc.vertexShader : Shader).desc.module.uniforms) {
+			switch u.t {
+				case TMonomorph(r):
+				case TVoid, TBool, TInt, TFloat, TVec(_, _), TMat(_, _), TArray(_, _), TStruct(_):
+					final location = state.getConstantLocation(u.name);
+					final size = asl.Typer.sizeof(u.t);
+
+					uniforms.set(0, [
+						{
+							loc: location,
+							size: size,
+							use_int: u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
+						}]);
+				case TSampler2D:
+					final unit = state.getTextureUnit(GlslOut.escape(u.name));
+					textures.set(0,unit);
+				case TSampler2DArray:
+				case TSamplerCube:
+			}
+		}
+		for (u in (cast desc.fragmentShader : Shader).desc.module.uniforms) {
+			switch u.t {
+				case TMonomorph(r):
+				case TVoid, TBool, TInt, TFloat, TVec(_, _), TMat(_, _), TArray(_, _), TStruct(_):
+					final location = state.getConstantLocation(u.name);
+					final size = asl.Typer.sizeof(u.t);
+
+					uniforms.set(0, [
+						{
+							loc: location,
+							size: size,
+							use_int: u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
+						}]);
+				case TSampler2D:
+					final unit = state.getTextureUnit(GlslOut.escape(u.name));
+					textures.set(0, unit);
+				case TSampler2DArray:
+				case TSamplerCube:
+			}
+		}
 	}
 
 	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingOperation {

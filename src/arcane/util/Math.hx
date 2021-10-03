@@ -1,5 +1,7 @@
 package arcane.util;
 
+import arcane.arrays.Float32Array;
+
 // causes a `copy(fpu,cpu)` error on hashlink
 // @:eager private typedef Float = arcane.FastFloat;
 
@@ -420,6 +422,44 @@ abstract Matrix4(Mat4Internal) {
 			this._31, this._32, this._33, this._34,
 			this._41, this._42, this._43, this._44
 		];
+	}
+
+	public inline function write(f:Float32Array, transpose:Bool = false):Void {
+		if (transpose) {
+			f[0] = this._11;
+			f[1] = this._21;
+			f[2] = this._31;
+			f[3] = this._41;
+			f[4] = this._12;
+			f[5] = this._22;
+			f[6] = this._32;
+			f[7] = this._42;
+			f[8] = this._13;
+			f[9] = this._23;
+			f[10] = this._33;
+			f[11] = this._43;
+			f[12] = this._14;
+			f[13] = this._24;
+			f[14] = this._34;
+			f[15] = this._44;
+		} else {
+			f[0] = this._11;
+			f[1] = this._12;
+			f[2] = this._13;
+			f[3] = this._14;
+			f[4] = this._21;
+			f[5] = this._22;
+			f[6] = this._23;
+			f[7] = this._24;
+			f[8] = this._31;
+			f[9] = this._32;
+			f[10] = this._33;
+			f[11] = this._34;
+			f[12] = this._41;
+			f[14] = this._42;
+			f[15] = this._43;
+			f[16] = this._44;
+		}
 	}
 }
 

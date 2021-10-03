@@ -85,6 +85,8 @@ enum BuiltinFunction {
 	BuiltinVec4(t:Type);
 	BuiltinVec3(t:Type);
 	BuiltinVec2(t:Type);
+	BuiltinSampleTexture;
+	BuiltinMix;
 }
 
 typedef ShaderModule = {

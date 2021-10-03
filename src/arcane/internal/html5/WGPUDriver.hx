@@ -180,25 +180,29 @@ private class RenderPipeline implements IRenderPipeline {
 				constants: {}
 			},
 			layout: pipeline_layout,
-			// primitive: {
-			// 	topology: topology,
-			// 	stripIndexFormat: stripIndexFormat,
-			// 	frontFace: frontFace,
-			// 	cullMode: cullMode,
-			// 	clampDepth: clampDepth
-			// },
-			// depthStencil: {
-			// 	format: format,
-			// 	depthWriteEnabled: depthWriteEnabled,
-			// 	depthCompare: depthCompare,
-			// 	stencilFront: stencilFront,
-			// 	stencilBack: stencilBack,
-			// 	stencilReadMask: stencilReadMask,
-			// 	stencilWriteMask: stencilWriteMask,
-			// 	depthBias: depthBias,
-			// 	depthBiasSlopeScale: depthBiasSlopeScale,
-			// 	depthBiasClamp: depthBiasClamp
-			// },
+			primitive: {
+				topology: TRIANGLE_STRIP,
+				stripIndexFormat: UINT32,
+				frontFace: CCW,
+				cullMode: switch desc.culling {
+					case None: NONE;
+					case Back: BACK;
+					case Front: FRONT;
+					case Both: FRONT;
+				}
+			},
+			depthStencil: {
+				format: DEPTH24UNORM_STENCIL8,
+				depthWriteEnabled: desc.depthWrite,
+				// depthCompare: depthCompare,
+				// stencilFront: stencilFront,
+				// stencilBack: stencilBack,
+				// stencilReadMask: stencilReadMask,
+				// stencilWriteMask: stencilWriteMask,
+				// depthBias: depthBias,
+				// depthBiasSlopeScale: depthBiasSlopeScale,
+				// depthBiasClamp: depthBiasClamp
+			},
 			// multisample: {
 			// 	count: count,
 			// 	mask: mask,
@@ -228,9 +232,14 @@ private class Shader implements IShaderModule {
 
 	public function new(driver:WGPUDriver, desc:ShaderDescriptor) {
 		this.desc = desc;
+		final ext = switch desc.module.stage {
+			case Vertex: "vert";
+			case Fragment: "frag";
+			case Compute: "comp";
+		}
 		module = driver.device.createShaderModule({
-			code: haxe.Resource.getString('${desc.id}-${desc.kind == Vertex ? "vert" : "frag"}-webgpu'),
-			label: 'arcane-${desc.id}'
+			code: haxe.Resource.getString('${desc.module.id}-$ext-webgpu'),
+			label: 'arcane-${desc.module.id}'
 		});
 	}
 
@@ -359,6 +368,9 @@ private class Texture implements ITexture {
 	public final texture:GPUTexture;
 	public final view:GPUTextureView;
 
+	public final depth:GPUTexture;
+	public final depth_view:GPUTextureView;
+
 	final driver:WGPUDriver;
 
 	public function new(driver:WGPUDriver, desc:TextureDescriptor) {
@@ -368,7 +380,7 @@ private class Texture implements ITexture {
 			size: {
 				width: desc.width,
 				height: desc.height,
-				depthOrArrayLayers: 0
+				depthOrArrayLayers: 1
 			},
 			format: switch desc.format {
 				case RGBA: RGBA8UNORM;
@@ -378,6 +390,16 @@ private class Texture implements ITexture {
 			usage: (desc.isRenderTarget ? RENDER_ATTACHMENT : COPY_DST) | TEXTURE_BINDING
 		});
 		view = texture.createView();
+		depth = driver.device.createTexture({
+			size: {
+				width: desc.width,
+				height: desc.width,
+				depthOrArrayLayers: 1
+			},
+			format: DEPTH24UNORM_STENCIL8,
+			usage: RENDER_ATTACHMENT
+		});
+		depth_view = depth.createView();
 	}
 
 	public function dispose() {
@@ -470,7 +492,14 @@ private class RenderPass implements IRenderPass {
 							case Discard: DISCARD;
 						}
 					}
-			]});
+			],
+			depthStencilAttachment: {
+				view: (cast desc.colorAttachments[0].texture : Texture).depth_view,
+				depthLoadValue: 0,
+				depthStoreOp: DISCARD,
+				stencilLoadValue: 0,
+				stencilStoreOp: DISCARD
+			}});
 	}
 
 	public function setPipeline(p:IRenderPipeline) {
@@ -543,6 +572,10 @@ private class ComputePass implements IComputePass {
 
 	public function dispatch(x:Int, y:Int, z:Int) {
 		pass.dispatch(x, y, z);
+	}
+
+	public function end() {
+		pass.endPass();
 	}
 }
 
@@ -626,7 +659,13 @@ class WGPUDriver implements IGraphicsDriver {
 		currentTexture = _getCurrentTexture();
 		currentTextureView = @:nullSafety(Off) currentTexture.createView();
 
-		final t:{texture:GPUTexture, view:GPUTextureView, desc:TextureDescriptor} = cast Type.createEmptyInstance(Texture);
+		final t:{
+			texture:GPUTexture,
+			view:GPUTextureView,
+			desc:TextureDescriptor,
+			depth:GPUTexture,
+			depth_view:GPUTextureView
+		} = cast Type.createEmptyInstance(Texture);
 		t.texture = cast currentTexture;
 		t.view = cast currentTextureView;
 		t.desc = {
@@ -636,6 +675,12 @@ class WGPUDriver implements IGraphicsDriver {
 			format: RGBA,
 			data: null
 		}
+		t.depth = device.createTexture({
+			size: [canvas.clientWidth, canvas.clientHeight, 1],
+			format: DEPTH24PLUS_STENCIL8,
+			usage: RENDER_ATTACHMENT
+		});
+		t.depth_view = t.depth.createView();
 		return cast t;
 	}
 

@@ -1,8 +1,8 @@
 -cp test
 -cp src
 -m Main
-
-# -lib wgpu-externs
+-lib format
+-lib wgpu-externs
 --macro arcane.internal.Macros.initSourceMaps()
 --macro nullSafety("arcane",StrictThreaded)
 --macro nullSafety("asl",StrictThreaded)

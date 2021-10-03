@@ -705,7 +705,7 @@ private class CommandBuffer implements ICommandBuffer {
 								else {}
 							case Texture(texture):
 								gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);
-								gl.activeTexture(entry.binding);
+								gl.activeTexture(GL.TEXTURE0 + entry.binding);
 							case Sampler(sampler):
 						}
 					}

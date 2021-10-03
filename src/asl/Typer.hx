@@ -168,7 +168,7 @@ class Typer {
 
 	public static function error(message:String, pos:Pos):Dynamic {
 		#if macro
-		return haxe.macro.Context.error(message, pos);
+		return haxe.macro.Context.fatalError(message, pos);
 		#else
 		return throw message;
 		#end
@@ -364,12 +364,17 @@ class Typer {
 							if (cat < 0)
 								cat = icat
 							else if (icat != cat)
-								return null; // down't allow .ryz
+								break; // down't allow .ryz
 							var cid = Std.int(idx / 3);
 							if (cid >= size)
 								error(typeToString(e.t) + " does not have component " + name.charAt(i), e.pos);
 							out.push(comps[cid]);
 						}
+						type = switch out.length {
+							case 1: t;
+							case var l: TVec(t, l);
+						}
+						fa = TSwiz(out);
 					case TMat(t, size):
 					case TStruct(fields):
 						for (field in fields)
@@ -426,7 +431,17 @@ class Typer {
 				}, [for (p in params) p]);
 			// case EObjectDecl(fields):
 			// case EArrayDecl(values):
-			// case ECall(e, params):
+			case ECall(_.expr => EConst(CIdent("mix")), [typeExpr(_) => col1, typeExpr(_) => col2, typeExpr(_) => f]):
+				unifyExpr(col1, TVec(TFloat, 4));
+				unifyExpr(col2, TVec(TFloat, 4));
+				unifyExpr(f, TFloat);
+				type = TVec(TFloat, 4);
+				TCallBuiltin(BuiltinMix, [col1, col2, f]);
+			case ECall(_.expr => EField(typeExpr(_) => e, "get"), [typeExpr(_) => uv]):
+				unifyExpr(e, TSampler2D);
+				unifyExpr(uv, TVec(TFloat, 2));
+				type = TVec(TFloat, 4);
+				TCallBuiltin(BuiltinSampleTexture, [e, uv]);
 			case EUnop(op, postFix, typeExpr(_) => e):
 				type = e.t;
 				TUnop(op, postFix, e);
@@ -516,6 +531,8 @@ class Typer {
             case macro:Mat2<$t>: TMat(toType(t,pos),2);
             case macro:Mat3<$t>: TMat(toType(t,pos),3);
             case macro:Mat4<$t>: TMat(toType(t,pos),4);
+
+			case macro:Texture2D: TSampler2D;
 
 			case TPath({pack: [], name: "Array", params: [TPType(toType(_,pos) => t),TPExpr(_.expr => EConst(CInt(Std.parseInt(_) => size)))], sub: null}):
 				if(t.match(TArray(_,_))) error("Multidimensional arrays not supported",pos);

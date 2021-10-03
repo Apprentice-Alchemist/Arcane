@@ -6,6 +6,12 @@ import asl.Ast.Type;
 import asl.Ast.ShaderModule;
 
 class GlslOut {
+	public static function escape(s:String) {
+		return switch s {
+			case "texture": "_texture";
+			case var s: s;
+		}
+	}
 	static function typeToGlsl(t:Type) {
 		return switch t {
 			case TMonomorph(r):
@@ -47,8 +53,9 @@ class GlslOut {
 	public static function toGlsl(module:ShaderModule, krafix = false) {
 		final buf = new StringBuf();
 		buf.add("#version 450\n");
-		buf.add("#ifdef vulkan\n");
+		buf.add("#ifdef VULKAN\n");
 		buf.add("#define gl_InstanceID gl_InstanceIndex\n");
+		buf.add("#define texture(t,uv) texture(sampler2D(t,t##_sampler),uv)\n");
 		buf.add("#endif\n");
 		for (input in module.inputs)
 			if (input.builtin == null) {
@@ -65,9 +72,9 @@ class GlslOut {
 				buf.add(" " + output.name);
 				buf.add(";\n");
 			}
-		if (!krafix && module.uniforms.length > 0)
+		if (!krafix && module.uniforms.filter(f -> f.t != TSampler2D).length > 0)
 			buf.add("layout(binding = 0) uniform M {\n");
-		for (uniform in module.uniforms) {
+		for (uniform in module.uniforms.filter(f -> f.t != TSampler2D)) {
 			if (krafix)
 				buf.add("uniform ");
 			var ssize = "";
@@ -78,12 +85,29 @@ class GlslOut {
 				case var t: t;
 			}
 			buf.add(typeToGlsl(t));
-			buf.add(" " + uniform.name);
+			buf.add(" " + escape(uniform.name));
 			buf.add(ssize);
 			buf.add(";\n");
 		}
-		if (!krafix && module.uniforms.length > 0)
+		if (!krafix && module.uniforms.filter(f -> f.t != TSampler2D).length > 0)
 			buf.add("};\n");
+		for(uniform in module.uniforms.filter(f -> f.t == TSampler2D)) {
+			buf.add("#ifdef VULKAN\n");
+			buf.add("layout(set = 0, binding = 0) uniform ");
+			buf.add("texture2D");
+			buf.add(" " + escape(uniform.name));
+			buf.add(";\n");
+			buf.add("layout(set = 0, binding = 1) uniform ");
+			buf.add("sampler");
+			buf.add(" " + escape(uniform.name) + "_sampler");
+			buf.add(";\n");
+			buf.add("#else\n");
+			buf.add("layout(binding = 0) uniform ");
+			buf.add("sampler2D");
+			buf.add(" " + escape(uniform.name));
+			buf.add(";\n");
+			buf.add("#endif\n");
+		}
 		for (func in module.functions) {
 			buf.add(typeToGlsl(func.ret));
 			buf.add(" " + func.name + "(");
@@ -111,9 +135,10 @@ class GlslOut {
 				if (v.builtin != null) switch v.builtin {
 					case position: "gl_Position";
 					case instanceIndex: "gl_InstanceID";
-				} else v.name;
+					case null: throw "assert";
+				} else escape(v.name);
 			case TArray(e1, e2): convExpr(e1) + "[" + convExpr(e2) + "]";
-			case TBinop(op, e1, e2): convExpr(e1) + " " + (inline new haxe.macro.Printer()).printBinop(op) + " " + convExpr(e2);
+			case TBinop(op, e1, e2): convExpr(e1) + " " + (new haxe.macro.Printer()).printBinop(op) + " " + convExpr(e2);
 			case TField(e, TSwiz(components)): convExpr(e) + "." + [
 					for (comp in components)
 						switch comp {
@@ -136,11 +161,13 @@ class GlslOut {
 					case BuiltinVec4(t): "vec4";
 					case BuiltinVec3(t): "vec3";
 					case BuiltinVec2(t): "vec2";
+					case BuiltinSampleTexture: "texture";
+					case BuiltinMix: "mix";
 				}) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";
 			case TCall(e, el):
 				convExpr(e) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";
 			case TUnop(op, postFix, e):
-				var op = (inline new haxe.macro.Printer()).printUnop(op);
+				var op = (new haxe.macro.Printer()).printUnop(op);
 				postFix ? convExpr(e) + op : op + convExpr(e);
 			case TVar(v, expr):
 				typeToGlsl(v.t) + " " + v.name + (expr == null ? "" : " = " + convExpr(expr));
