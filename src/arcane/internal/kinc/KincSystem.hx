@@ -27,7 +27,6 @@ class KincSystem implements ISystem {
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
 		try {
-			@:bypassAccessor window.title = opts.windowOptions.title;
 			if (kinc.System.init(opts.windowOptions.title, 500, 500, {
 				title: opts.windowOptions.title,
 				y: opts.windowOptions.x,
