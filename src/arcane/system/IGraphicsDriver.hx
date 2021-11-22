@@ -190,8 +190,7 @@ typedef InputLayout = Array<{
 
 private enum BindingResource {
 	Buffer(buffer:IUniformBuffer);
-	Texture(texture:ITexture);
-	Sampler(sampler:ISampler);
+	Texture(texture:ITexture, sampler:ISampler);
 }
 
 private enum SamplerBindingType {
@@ -202,8 +201,8 @@ private enum SamplerBindingType {
 
 private enum BindingKind {
 	Buffer(hasDynamicOffset:Bool, minBindingSize:Int);
-	Sampler(type:SamplerBindingType);
-	Texture();
+	// Sampler(type:SamplerBindingType);
+	Texture(sampler_type:SamplerBindingType);
 }
 
 @:structInit class BindGroupLayoutDescriptor {

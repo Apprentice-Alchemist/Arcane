@@ -75,8 +75,8 @@ enum abstract Builtin(String) from String {
 
 	public function kind(stage:ShaderStage):TVarKind {
 		return switch (cast this : Builtin) {
-			case position: Output;
-			case instanceIndex: Input;
+			case position: Output(0);
+			case instanceIndex: Input(0);
 		}
 	}
 }
@@ -155,10 +155,10 @@ enum TConstant {
 }
 
 enum TVarKind {
-	Input;
-	Output;
+	Input(location:Int);
+	Output(location:Int);
 	Local;
-	Uniform;
+	Uniform(binding:Int);
 }
 
 /**

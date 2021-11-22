@@ -10,10 +10,8 @@ import arcane.internal.Macros;
 using StringTools;
 #end
 
-class HTML5ShaderCompiler implements IShaderCompiler {
-	public function new() {}
-
-	function command(name:String, args:Array<String>) {
+class HTML5ShaderCompiler {
+	static function command(name:String, args:Array<String>) {
 		#if macro
 		if (Sys.command(name, args) != 0) {
 			Context.fatalError("Shader compilation error, command : " + name, Context.currentPos());
@@ -21,7 +19,7 @@ class HTML5ShaderCompiler implements IShaderCompiler {
 		#end
 	}
 
-	public function compile(id:String, source:Bytes, stage:ShaderStage):Void {
+	public static function compile(id:String, source:Bytes, stage:ShaderStage):Void {
 		#if macro
 		if (Context.defined("display") || #if display true #else false #end)
 			return;

@@ -12,6 +12,7 @@ class GlslOut {
 			case var s: s;
 		}
 	}
+
 	static function typeToGlsl(t:Type) {
 		return switch t {
 			case TMonomorph(r):
@@ -91,18 +92,19 @@ class GlslOut {
 		}
 		if (!krafix && module.uniforms.filter(f -> f.t != TSampler2D).length > 0)
 			buf.add("};\n");
-		for(uniform in module.uniforms.filter(f -> f.t == TSampler2D)) {
+		var curbinding = 0;
+		for (uniform in module.uniforms.filter(f -> f.t == TSampler2D)) {
 			buf.add("#ifdef VULKAN\n");
-			buf.add("layout(set = 0, binding = 0) uniform ");
+			buf.add('layout(set = 0, binding = ${curbinding++}) uniform ');
 			buf.add("texture2D");
 			buf.add(" " + escape(uniform.name));
 			buf.add(";\n");
-			buf.add("layout(set = 0, binding = 1) uniform ");
+			buf.add('layout(set = 0, binding = ${curbinding++}) uniform ');
 			buf.add("sampler");
 			buf.add(" " + escape(uniform.name) + "_sampler");
 			buf.add(";\n");
 			buf.add("#else\n");
-			buf.add("layout(binding = 0) uniform ");
+			buf.add('layout(binding = ${curbinding++}) uniform ');
 			buf.add("sampler2D");
 			buf.add(" " + escape(uniform.name));
 			buf.add(";\n");

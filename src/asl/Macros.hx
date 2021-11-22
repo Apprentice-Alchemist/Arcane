@@ -23,17 +23,17 @@ class Macros {
 			a.push(cls.name);
 			name = StringTools.replace(a.join(""), ".", "_");
 		}
-		final vertex = if (cls.meta.has(":vert")) asl.Typer.makeModule(name,cls.meta.extract(":vert")[0].params[0], Vertex) else null;
-		final fragment = if (cls.meta.has(":frag")) asl.Typer.makeModule(name,cls.meta.extract(":frag")[0].params[0], Fragment) else null;
-		final compute = if (cls.meta.has(":comp")) asl.Typer.makeModule(name,cls.meta.extract(":comp")[0].params[0], Compute) else null;
+		final vertex = if (cls.meta.has(":vert")) asl.Typer.makeModule(name, cls.meta.extract(":vert")[0].params[0], Vertex) else null;
+		final fragment = if (cls.meta.has(":frag")) asl.Typer.makeModule(name, cls.meta.extract(":frag")[0].params[0], Fragment) else null;
+		final compute = if (cls.meta.has(":comp")) asl.Typer.makeModule(name, cls.meta.extract(":comp")[0].params[0], Compute) else null;
 
 		final compiler = arcane.internal.Macros.getShaderCompiler();
 		if (vertex != null)
-			compiler.compile(name, Bytes.ofString(GlslOut.toGlsl(vertex #if kinc, true #end)), Vertex);
+			compiler(name, Bytes.ofString(GlslOut.toGlsl(vertex #if kinc, true #end)), Vertex);
 		if (fragment != null)
-			compiler.compile(name, Bytes.ofString(GlslOut.toGlsl(fragment #if kinc, true #end)), Fragment);
+			compiler(name, Bytes.ofString(GlslOut.toGlsl(fragment #if kinc, true #end)), Fragment);
 		if (compute != null)
-			compiler.compile(name, Bytes.ofString(GlslOut.toGlsl(fragment #if kinc, true #end)), Compute);
+			compiler(name, Bytes.ofString(GlslOut.toGlsl(fragment #if kinc, true #end)), Compute);
 
 		fields.push({
 			name: "new",

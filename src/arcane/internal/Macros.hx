@@ -14,6 +14,8 @@ import haxe.macro.Expr;
 using haxe.macro.Tools;
 #end
 
+typedef ShaderCompiler = (id:String, source:haxe.io.Bytes, stage:asl.Ast.ShaderStage) -> Void;
+
 class Macros {
 	public macro static function initManifest() {
 		var path = Context.defined("resourcesPath") ? Context.definedValue("resourcesPath") : "res";
@@ -62,9 +64,9 @@ class Macros {
 	}
 
 	#if macro
-	@:persistent static var shaderCompiler:Null<IShaderCompiler> = null;
+	@:persistent static var shaderCompiler:Null<ShaderCompiler> = null;
 
-	public static function setShaderCompiler(compiler:IShaderCompiler) {
+	public static function setShaderCompiler(compiler:ShaderCompiler) {
 		shaderCompiler = compiler;
 	}
 
@@ -87,16 +89,16 @@ class Macros {
 		return __hasSpirV;
 	}
 
-	public static function getShaderCompiler():IShaderCompiler {
+	public static function getShaderCompiler():ShaderCompiler {
 		if (Context.defined("display"))
-			return new arcane.internal.empty.ShaderCompiler();
+			return arcane.internal.empty.ShaderCompiler.compile;
 		if (shaderCompiler != null)
 			return shaderCompiler;
 		if (Context.defined("js"))
-			return new arcane.internal.html5.HTML5ShaderCompiler();
+			return arcane.internal.html5.HTML5ShaderCompiler.compile;
 		if (Context.defined("kinc") && Context.defined("hl"))
-			return new arcane.internal.kinc.KrafixShaderCompiler();
-		return new arcane.internal.empty.ShaderCompiler();
+			return arcane.internal.kinc.KrafixShaderCompiler.compile;
+		return arcane.internal.empty.ShaderCompiler.compile;
 	}
 
 	public static function getTempDir():String {

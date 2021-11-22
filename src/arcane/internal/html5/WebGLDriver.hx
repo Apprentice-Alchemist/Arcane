@@ -331,8 +331,8 @@ private class RenderPipeline implements IRenderPipeline {
 
 	final driver:WebGLDriver;
 	final program:Program;
-	final locs:Array<ConstantLocation> = [];
-	final tus:Array<TextureUnit> = [];
+	final locs:Map<Int, ConstantLocation> = [];
+	final tus:Map<Int, TextureUnit> = [];
 
 	public function new(driver, desc) {
 		this.driver = driver;
@@ -363,6 +363,8 @@ private class RenderPipeline implements IRenderPipeline {
 		}
 		#end
 		var loc_count:Int = driver.gl.getProgramParameter(program, GL.ACTIVE_UNIFORMS);
+		var tu_count = 0;
+		final uniforms = desc.vertexShader.desc.module.uniforms.concat(desc.fragmentShader.desc.module.uniforms);
 		for (i in 0...loc_count) {
 			var info = driver.gl.getActiveUniform(program, i);
 			var uniform = driver.gl.getUniformLocation(program, info.name);
@@ -371,27 +373,18 @@ private class RenderPipeline implements IRenderPipeline {
 			var n = name.split(".");
 			n.shift();
 			name = n.join("");
-			// if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE)
-			// 	tus.push(new TextureUnit(name, tus.length, uniform));
-			// else
-			// 	locs.push(new ConstantLocation(name, info.type, uniform));
+			var binding = 0;
+			for (v in uniforms) {
+				trace(name, v.name);
+				if (name == asl.GlslOut.escape(v.name)) {
+					if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE)
+						tus.set(binding++, new TextureUnit(name, tu_count++, uniform));
+					else
+						locs.set(0, new ConstantLocation(name, info.type, uniform));
+				}
+			}
 		}
 	}
-
-	// public function getConstantLocation(name:String):IConstantLocation {
-	// 	for (i in locs)
-	// 		if (i.name == name)
-	// 			return i;
-	// 	Log.warn("Uniform " + name + " not found.");
-	// 	@:nullSafety(Off) return new ConstantLocation("invalid", -1, null);
-	// }
-	// public function getTextureUnit(name:String):ITextureUnit {
-	// 	for (i in tus)
-	// 		if (i.name == name)
-	// 			return i;
-	// 	Log.warn("Sampler " + name + " not found.");
-	// 	@:nullSafety(Off) return new TextureUnit("invalid", -1, null);
-	// }
 
 	public function dispose():Void {
 		if (!driver.check())
@@ -585,10 +578,8 @@ private class BindGroup implements IBindGroup {
 			arcane.Utils.assert(switch desc.entries[index].resource {
 				case Buffer(buffer):
 					e.kind.match(Buffer(_, _));
-				case Texture(texture):
-					e.kind.match(Texture);
-				case Sampler(sampler):
-					e.kind.match(Sampler(_));
+				case Texture(texture, sampler):
+					e.kind.match(Texture(_));
 			});
 		}
 	}
@@ -703,10 +694,11 @@ private class CommandBuffer implements ICommandBuffer {
 								if (buffer.buf != null)
 									gl2.bindBufferBase(GL.UNIFORM_BUFFER, entry.binding, cast buffer.buf);
 								else {}
-							case Texture(texture):
+							case Texture(texture, sampler):
+								assert(curPipeline != null);
+								final tu:TextureUnit = cast((cast curPipeline : RenderPipeline).tus.get(entry.binding));
+								gl.activeTexture(GL.TEXTURE0 + tu.index);
 								gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);
-								gl.activeTexture(GL.TEXTURE0 + entry.binding);
-							case Sampler(sampler):
 						}
 					}
 				}

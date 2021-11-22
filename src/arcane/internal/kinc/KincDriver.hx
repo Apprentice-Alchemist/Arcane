@@ -187,7 +187,6 @@ private class Texture implements ITexture {
 			});
 			if (desc.data != null)
 				upload(desc.data);
-			// tex.generateMipmaps(9);
 		}
 	}
 
@@ -374,7 +373,7 @@ private class RenderPipeline implements IRenderPipeline {
 						}]);
 				case TSampler2D:
 					final unit = state.getTextureUnit(GlslOut.escape(u.name));
-					textures.set(0,unit);
+					textures.set(0, unit);
 				case TSampler2DArray:
 				case TSamplerCube:
 			}
@@ -677,31 +676,21 @@ private class CommandBuffer implements ICommandBuffer {
 			function setTexture(binding:Int, texture:Texture, sampler:Sampler):Void;
 		}) {
 			if (bindGroupsDirty) {
-				var tex:Map<Int, {tex:Null<Texture>, sampler:Null<Sampler>}> = [];
+				var tex:Map<Int, {tex:Texture, sampler:Sampler}> = [];
 				for (group in bind_groups) {
 					for (entry in group.desc.entries) {
 						switch entry.resource {
 							case Buffer(buffer):
 								pipeline.setBuffer(entry.binding, cast buffer);
-							case Texture(texture):
+							case Texture(texture, sampler):
 								if (tex.exists(entry.binding)) {
-									final t:{tex:Null<Texture>, sampler:Null<Sampler>} = cast tex.get(entry.binding);
+									final t:{tex:Texture, sampler:Sampler} = cast tex.get(entry.binding);
 									t.tex = cast texture;
-									tex.set(entry.binding, t);
-								} else {
-									tex.set(entry.binding, {
-										tex: cast texture,
-										sampler: null
-									});
-								}
-							case Sampler(sampler):
-								if (tex.exists(entry.binding)) {
-									final t:{tex:Null<Texture>, sampler:Null<Sampler>} = cast tex.get(entry.binding);
 									t.sampler = cast sampler;
 									tex.set(entry.binding, t);
 								} else {
 									tex.set(entry.binding, {
-										tex: null,
+										tex: cast texture,
 										sampler: cast sampler
 									});
 								}
@@ -709,11 +698,7 @@ private class CommandBuffer implements ICommandBuffer {
 					}
 				}
 				for (binding => t in tex) {
-					if (t.tex != null && t.sampler != null) {
-						pipeline.setTexture(binding, cast t.tex, cast t.sampler);
-					} else {
-						throw "Incomplete binding " + binding + ", both texture and sampler needed.";
-					}
+					pipeline.setTexture(binding, cast t.tex, cast t.sampler);
 				}
 				bindGroupsDirty = false;
 			}
@@ -736,18 +721,8 @@ private class CommandBuffer implements ICommandBuffer {
 						}
 						Graphics4.setRenderTargets(targets);
 					}
-					// var flags = 0;
-					// if (col != null)
-					// 	flags |= 1;
-					// if (depth != null)
-					// 	flags |= 2;
-					// if (stencil != null)
-					// 	flags |= 3;
-					// var col:Int = col == null ? 0 : col;
-					// var depth:hl.F32 = depth == null ? 0 : (depth : Float);
-					// var stencil:hl.F32 = stencil == null ? 0 : (stencil : Float);
-					Graphics4.clear(1, 0xFF000000, 0, 0);
-				// Graphics4.clear(flags, col, depth, stencil);
+
+					Graphics4.clear(Color, 0xFF000000, 0, 0);
 				case EndRenderPass:
 					in_render = false;
 				case SetVertexBuffers(buffers):

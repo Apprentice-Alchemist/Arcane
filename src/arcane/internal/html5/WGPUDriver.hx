@@ -729,8 +729,8 @@ class WGPUDriver implements IGraphicsDriver {
 						binding: entry.binding,
 						resource: switch entry.resource {
 							case Buffer(buffer): cast buffer;
-							case Texture(texture): cast texture;
-							case Sampler(sampler): cast sampler;
+							case Texture(texture, _): cast texture;
+								// case Sampler(sampler): cast sampler;
 						}
 					}
 			]
@@ -752,19 +752,20 @@ class WGPUDriver implements IGraphicsDriver {
 								hasDynamicOffset: hasDynamicOffset,
 								minBindingSize: minBindingSize
 							};
-						case Sampler(type):
+						// case Sampler(type):
+
+						case Texture(type):
+							e.texture = {
+								sampleType: FLOAT,
+								viewDimension: _2D,
+								multisampled: false
+							}
 							e.sampler = {
 								type: switch type {
 									case Filtering: FILTERING;
 									case NonFiltering: NON_FILTERING;
 									case Comparison: COMPARISON;
 								}
-							}
-						case Texture:
-							e.texture = {
-								sampleType: FLOAT,
-								viewDimension: _2D,
-								multisampled: false
 							}
 					}
 					e;

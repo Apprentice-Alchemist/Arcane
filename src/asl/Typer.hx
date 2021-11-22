@@ -49,6 +49,9 @@ class Typer {
 			var expr:TypedExpr;
 		}> = [];
 		var entryPoint = "main";
+		var input_location = 0;
+		var output_location = 0;
+		// var
 		for (e in exprs) {
 			switch e {
 				case macro @:in var $name:$t:
@@ -56,7 +59,7 @@ class Typer {
 						id: allocID(),
 						name: name,
 						t: toType(t, e.pos),
-						kind: Input
+						kind: Input(input_location++)
 					};
 					inputs.push(tvar);
 					vars.set(name, tvar);
@@ -65,7 +68,7 @@ class Typer {
 						id: allocID(),
 						name: name,
 						t: toType(t, e.pos),
-						kind: Uniform
+						kind: Uniform(0)
 					};
 					uniforms.push(tvar);
 					vars.set(name, tvar);
@@ -75,7 +78,7 @@ class Typer {
 						id: allocID(),
 						name: name,
 						t: toType(t, e.pos),
-						kind: Output
+						kind: Output(output_location++)
 					};
 					outputs.push(tvar);
 					vars.set(name, tvar);
@@ -90,8 +93,8 @@ class Typer {
 						builtin: b
 					};
 						(switch kind {
-							case Input: inputs;
-							case Output: outputs;
+							case Input(_): inputs;
+							case Output(_): outputs;
 							case _: throw "assert";
 						}).push(tvar);
 					vars.set(name, tvar);
@@ -280,7 +283,7 @@ class Typer {
 		switch (e.expr) {
 			case TLocal(v):
 				switch (v.kind) {
-					case Local, Output:
+					case Local, Output(_):
 						return;
 					default:
 				}

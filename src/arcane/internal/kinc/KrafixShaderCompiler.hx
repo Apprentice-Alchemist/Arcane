@@ -9,10 +9,8 @@ import arcane.internal.Macros.getTempDir;
 import haxe.macro.Context;
 #end
 
-class KrafixShaderCompiler implements IShaderCompiler {
-	public function new() {}
-
-	public function compile(id:String, source:Bytes, stage:ShaderStage):Void {
+class KrafixShaderCompiler {
+	public static function compile(id:String, source:Bytes, stage:ShaderStage):Void {
 		#if macro
 		if (Context.defined("display"))
 			return;
@@ -63,8 +61,13 @@ class KrafixShaderCompiler implements IShaderCompiler {
 		File.saveBytes(input, source);
 		var output = '$tempdir/$id-$platform.$ext.$lang';
 		var data = '$tempdir/$id-$ext.data';
-		var ret = cmd(k, [lang, input, output, tempdir, platform]);
-
+		final args = [lang, input, output, tempdir, platform];
+		if (platform == "linux") {
+			args.push("--version");
+			args.push("300");
+		}
+		var ret = cmd(k, args);
+		Sys.print(ret.stdout.toString());
 		if (ret.code != 0)
 			haxe.macro.Context.error("Shader compilation failed : \n" + ret.stderr + "\n" + ret.stdout.toString(), haxe.macro.Context.currentPos());
 		Context.addResource('$id-$ext-default', File.getBytes(output));
