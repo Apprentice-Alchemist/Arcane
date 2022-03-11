@@ -12,6 +12,7 @@ import haxe.macro.Compiler;
 import haxe.macro.Expr;
 
 using haxe.macro.Tools;
+using StringTools;
 #end
 
 typedef ShaderCompiler = (id:String, source:haxe.io.Bytes, stage:asl.Ast.ShaderStage) -> Void;
