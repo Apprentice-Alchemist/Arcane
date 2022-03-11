@@ -20,5 +20,9 @@
         "casePattern": {
             "defaultWrap": "noWrap"
         }
+    },
+    "indentation": {
+        "character": "tab",
+        "tabWidth": 4
     }
 }

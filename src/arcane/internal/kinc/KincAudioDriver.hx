@@ -4,22 +4,18 @@ import arcane.Assets.AssetError;
 import arcane.util.Result;
 import hl.BytesAccess;
 import haxe.io.Bytes;
-import kinc.audio1.Sound;
 import kinc.audio2.Audio;
 import arcane.system.IAudioDriver;
 
 @:structInit
 class AudioBuffer implements IAudioBuffer {
-	// public var data:Bytes;
 	public var left:Bytes;
 	public var right:Bytes;
 	public var samples:Int;
 	public var sampleRate:Int;
 	public var channels:Int;
 
-	public function dispose() {
-		// sound.destroy();
-	}
+	public function dispose() {}
 }
 
 @:structInit
@@ -73,7 +69,8 @@ class KincAudioDriver implements IAudioDriver {
 					continue;
 				final buffer = source.buffer;
 				final pos = source.position;
-				value += sampleLinear(left ? buffer.left : buffer.right, pos);
+				final volume = source.volume;
+				value += sampleLinear(left ? buffer.left : buffer.right, pos) * volume;
 
 				value = value > 1.0 ? 1.0 : value < -1.0 ? -1.0 : value;
 				if (!left)
@@ -119,6 +116,25 @@ class KincAudioDriver implements IAudioDriver {
 	}
 	#end
 
+	static function fromFileKinc(file:String) {
+		final sound = kinc.audio1.Sound.create(file);
+		final frequency = sound.format.samples_per_second;
+		final channels = sound.format.channels;
+		final samples = sound.size;
+		final left = Bytes.alloc(sound.size * 2);
+		final right = Bytes.alloc(sound.size * 2);
+		(left : hl.Bytes).blit(0, sound.left, 0, left.length);
+		(right : hl.Bytes).blit(0, sound.right, 0, right.length);
+		sound.destroy();
+		return Ok((({
+			left: left,
+			right: right,
+			samples: samples,
+			sampleRate: frequency,
+			channels: channels
+		} : AudioBuffer) : IAudioBuffer));
+	}
+
 	public function fromFile(file:String, cb:Result<IAudioBuffer, AssetError>->Void):Void {
 		(cast Lib.system : KincSystem).thread_pool.addTask(() -> {
 			if (StringTools.endsWith(file, "ogg")) {
@@ -147,22 +163,7 @@ class KincAudioDriver implements IAudioDriver {
 					channels: channels
 				} : AudioBuffer);
 				#else
-				final sound = kinc.audio1.Sound.create(file);
-				final frequency = sound.format.samples_per_second;
-				final channels = sound.format.channels;
-				final samples = sound.size;
-				final left = Bytes.alloc(sound.size * 2);
-				final right = Bytes.alloc(sound.size * 2);
-				(left : hl.Bytes).blit(0, sound.left, 0, left.length);
-				(right : hl.Bytes).blit(0, sound.right, 0, right.length);
-				sound.destroy();
-				Ok((({
-					left: left,
-					right: right,
-					samples: samples,
-					sampleRate: frequency,
-					channels: channels
-				} : AudioBuffer) : IAudioBuffer));
+				fromFileKinc(file);
 				#end
 			} else if (StringTools.endsWith(file, "wav")) {
 				var bytes = KincSystem.readFileInternal(file);
@@ -230,9 +231,15 @@ class KincAudioDriver implements IAudioDriver {
 		return source;
 	}
 
-	public function getVolume(i:IAudioSource) return 1.0;
+	public function getVolume(i:IAudioSource) {
+		return (cast i : AudioSource).volume;
+	}
 
-	public function setVolume(i:IAudioSource, v:Float) {}
+	public function setVolume(i:IAudioSource, v:Float) {
+		mutex.acquire();
+		(cast i : AudioSource).volume = v;
+		mutex.release();
+	}
 
 	public function stop(s:IAudioSource):Void {
 		mutex.acquire();

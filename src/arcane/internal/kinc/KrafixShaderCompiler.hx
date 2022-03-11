@@ -1,5 +1,8 @@
 package arcane.internal.kinc;
 
+using StringTools;
+
+import haxe.io.Path;
 import asl.Ast.ShaderStage;
 import haxe.io.Bytes;
 #if macro
@@ -45,7 +48,12 @@ class KrafixShaderCompiler {
 				case "Mac":
 					"krafix-osx";
 				case "Linux":
-					"krafix-linux64"; // todo linuxarm and linux-aarch64 somehow
+					switch Macros.getMachine() {
+						case "x86_64": "krafix-linux64";
+						case "aarch64", "arm64": "krafix-linux-aarch64";
+						case "arm": "krafix-linux-arm";
+						case var machine: throw 'Unkown machine type $machine. Expected x86_64, aarch64 or arm';
+					}
 				case "BSD":
 					"krafix-freebsd";
 				case _:
@@ -58,6 +66,7 @@ class KrafixShaderCompiler {
 			case Compute: "comp";
 		}
 		var input = '$tempdir/$id.$ext.glsl';
+		sys.FileSystem.createDirectory(Path.directory(input));
 		File.saveBytes(input, source);
 		var output = '$tempdir/$id-$platform.$ext.$lang';
 		var data = '$tempdir/$id-$ext.data';

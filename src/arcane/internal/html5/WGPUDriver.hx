@@ -192,7 +192,7 @@ private class RenderPipeline implements IRenderPipeline {
 				}
 			},
 			depthStencil: {
-				format: DEPTH24UNORM_STENCIL8,
+				format: DEPTH24PLUS_STENCIL8,
 				depthWriteEnabled: desc.depthWrite,
 				// depthCompare: depthCompare,
 				// stencilFront: stencilFront,
@@ -396,7 +396,7 @@ private class Texture implements ITexture {
 				height: desc.width,
 				depthOrArrayLayers: 1
 			},
-			format: DEPTH24UNORM_STENCIL8,
+			format: DEPTH24PLUS_STENCIL8,
 			usage: RENDER_ATTACHMENT
 		});
 		depth_view = depth.createView();
@@ -425,7 +425,7 @@ private class Sampler implements ISampler {
 			mipmapFilter: WGPUDriver.convertFilter(desc.mipFilter),
 			lodMinClamp: desc.lodMinClamp,
 			lodMaxClamp: desc.lodMaxClamp,
-			compare: desc.compare != null ? WGPUDriver.convertCompareMode(desc.compare) : null,
+			compare: desc.compare != null ? WGPUDriver.convertCompareMode(desc.compare) : GPUCompareFunction.ALWAYS,
 			maxAnisotropy: desc.maxAnisotropy
 		});
 	}

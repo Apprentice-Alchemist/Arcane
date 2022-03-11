@@ -92,6 +92,7 @@ class HTML5System implements ISystem {
 					if (context == null) {
 						js.Browser.console.error("Could not aquire the WebGPU context of the canvas.");
 					} else {
+						js.Browser.console.info("Using WebGPU.");
 						gdriver = new WGPUDriver(canvas, context, cast gpuAdapter, device);
 					}
 				})
@@ -108,10 +109,12 @@ class HTML5System implements ISystem {
 		#end
 			#if !force_webgl1 var gl = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 			if (gl != null) {
+				js.Browser.console.log("Using WebGL.");
 				gdriver = new WebGLDriver(gl, canvas, true);
 			} else #end {
 				var gl = @:nullSafety(Off) canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
 				if (gl != null) {
+					js.Browser.console.log("Using WebGL.");
 					gdriver = new WebGLDriver(cast gl, canvas, false);
 				} else {
 					js.Browser.console.error("Could not aquire WebGL context.");

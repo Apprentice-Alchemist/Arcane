@@ -102,18 +102,24 @@ class Macros {
 	}
 
 	public static function getTempDir():String {
-		// #if (haxe_ver >= 4.2)
-		// return switch eval.luv.Path.tmpdir() {
-		// 	case Ok(value): value.toString();
-		// 	case Error(e): throw e;
-		// }
-		// #else
 		var d = haxe.io.Path.directory(Compiler.getOutput());
 		if (d == Sys.getCwd())
 			return ".tmp";
 		else
 			return d + "/temp";
-		// #end
+	}
+
+	@:persistent static var __machine:Null<String>;
+
+	public static function getMachine():String {
+		if (__machine == null) {
+			#if (haxe >= version("4.2.0"))
+			__machine = eval.luv.SystemInfo.uname().resolve().machine;
+			#else
+			__machine = cmd("uname", ["-m"]).stdout.toString().trim();
+			#end
+		}
+		return cast __machine;
 	}
 
 	public static function cmd(command:String, ?args:Array<String>, ?stdin:Bytes) {

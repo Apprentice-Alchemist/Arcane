@@ -9,8 +9,6 @@ typedef SystemOptions = {
 }
 
 typedef WindowOptions = {
-	var x:Int;
-	var y:Int;
 	var width:Int;
 	var height:Int;
 	var title:String;
@@ -54,8 +52,6 @@ interface ISystem {
 
 interface IWindow {
 	var title(get, set):String;
-	var x(get, never):Int;
-	var y(get, never):Int;
 	var width(get, never):Int;
 	var height(get, never):Int;
 	var vsync(get, never):Bool;

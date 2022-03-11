@@ -1,5 +1,8 @@
 package arcane;
 
+import arcane.arrays.UInt16Array;
+import arcane.arrays.Int32Array;
+import arcane.arrays.Float32Array;
 import arcane.system.IGraphicsDriver;
 
 @:nullSafety(Strict)
@@ -46,7 +49,7 @@ class Geometry {
 			vertices: driver.createVertexBuffer({attributes: attributes, size: points.length, dyn: true}),
 			indices: driver.createIndexBuffer({size: idx.length, is32: points.length > 65535})
 		}
-		var vert = ret.vertices.map(0, points.length);
+		var vert:Float32Array = ret.vertices.map(0, points.length);
 		var p = 0;
 		for (i in 0...points.length) {
 			vert[p++] = points[i].x;
@@ -60,11 +63,19 @@ class Geometry {
 				throw "wanted uvs";
 		}
 		ret.vertices.unmap();
-		var ind = ret.indices.map(0, idx.length);
-		for (i => v in idx)
-			ind[i] = v;
-		ret.indices.unmap();
-		return ret;
+		if (ret.indices.desc.is32) {
+			var ind:Int32Array = ret.indices.map(0, idx.length);
+			for (i => v in idx)
+				ind[i] = v;
+			ret.indices.unmap();
+			return ret;
+		} else {
+			var ind:UInt16Array = ret.indices.map(0, idx.length);
+			for (i => v in idx)
+				ind[i] = v;
+			ret.indices.unmap();
+			return ret;
+		}
 	}
 }
 

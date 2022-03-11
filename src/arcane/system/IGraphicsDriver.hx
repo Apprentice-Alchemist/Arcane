@@ -276,9 +276,9 @@ interface IVertexBuffer extends IDisposable extends IDescribed<VertexBufferDescr
 	 * @param start
 	 * @param arr
 	 */
-	function upload(start:Int, arr:Float32Array):Void;
+	function upload(start:Int, arr:ArrayBuffer):Void;
 
-	function map(start:Int, range:Int):Float32Array;
+	function map(start:Int, range:Int):ArrayBuffer;
 	function unmap():Void;
 
 	function stride():Int;
@@ -290,9 +290,9 @@ interface IIndexBuffer extends IDisposable extends IDescribed<IndexBufferDescrip
 	 * @param start
 	 * @param arr
 	 */
-	function upload(start:Int, arr:Int32Array):Void;
+	function upload(start:Int, arr:ArrayBuffer):Void;
 
-	function map(start:Int, range:Int):Int32Array;
+	function map(start:Int, range:Int):ArrayBuffer;
 	function unmap():Void;
 }
 

@@ -370,17 +370,26 @@ private class RenderPipeline implements IRenderPipeline {
 			var uniform = driver.gl.getUniformLocation(program, info.name);
 			var name = info.name.charAt(info.name.length - 1) == "]" ? info.name.substr(0, info.name.length - 3) : info.name;
 			trace(info.name, info.size, info.type);
-			var n = name.split(".");
-			n.shift();
-			name = n.join("");
+			if (name.indexOf(".") > -1) {
+				var n = name.split(".");
+				n.shift();
+				name = n.join("");
+			}
 			var binding = 0;
 			for (v in uniforms) {
-				trace(name, v.name);
+				// trace(name, v.name, asl.GlslOut.escape(v.name));
 				if (name == asl.GlslOut.escape(v.name)) {
-					if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE)
+					if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE) {
 						tus.set(binding++, new TextureUnit(name, tu_count++, uniform));
-					else
-						locs.set(0, new ConstantLocation(name, info.type, uniform));
+					} else {
+						switch v.kind {
+							case Input(location):
+							case Output(location):
+							case Local:
+							case Uniform(binding):
+								locs.set(binding, new ConstantLocation(name, info.type, uniform));
+						}
+					}
 				}
 			}
 		}
@@ -696,6 +705,7 @@ private class CommandBuffer implements ICommandBuffer {
 								else {}
 							case Texture(texture, sampler):
 								assert(curPipeline != null);
+								trace((cast curPipeline : RenderPipeline).tus);
 								final tu:TextureUnit = cast((cast curPipeline : RenderPipeline).tus.get(entry.binding));
 								gl.activeTexture(GL.TEXTURE0 + tu.index);
 								gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);

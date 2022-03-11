@@ -29,8 +29,8 @@ class KincSystem implements ISystem {
 		try {
 			if (kinc.System.init(opts.windowOptions.title, 500, 500, {
 				title: opts.windowOptions.title,
-				y: opts.windowOptions.x,
-				x: opts.windowOptions.y,
+				// y: opts.windowOptions.x,
+				// x: opts.windowOptions.y,
 				window_features: MINIMIZABLE | MAXIMIZABLE | RESIZEABLE,
 				width: opts.windowOptions.width,
 				height: opts.windowOptions.height,
@@ -259,7 +259,6 @@ class KincSystem implements ISystem {
 			var dt = curtime - lastTime;
 			lastTime = curtime;
 			arcane.Lib.handle_update(dt);
-			// kinc.g4.Graphics4.swapBuffers();
 		} catch (e) {
 			trace(e.details());
 			kinc.System.stop();
@@ -319,11 +318,27 @@ class KincSystem implements ISystem {
 	}
 
 	public function readFile(path:String, cb:(b:Bytes) -> Void, err:(e:arcane.Assets.AssetError) -> Void):Void {
-		thread_pool.addTask(() -> readFileInternal(path), b -> b == null ? err(NotFound(path)) : cb(b), e -> err(Other(path, e.message)));
+		thread_pool.addTask(
+			() -> readFileInternal(path),
+			b -> if (b == null) {
+				err(NotFound(path));
+			} else {
+				cb(b);
+			},
+			e -> err(Other(path, e.message))
+		);
 	}
 
 	public function readSavefile(name:String, cb:(Bytes) -> Void, err:(AssetError) -> Void):Void {
-		thread_pool.addTask(() -> readFileInternal(name, SaveFile), b -> if (b == null) err(NotFound(name)) else cb(b), e -> err(Other(e.message)));
+		thread_pool.addTask(
+			() -> readFileInternal(name, SaveFile),
+			b -> if (b == null) {
+				err(NotFound(name));
+			} else {
+				cb(b);
+			},
+			e -> err(Other(e.message))
+		);
 	}
 
 	public function writeSavefile(name:String, bytes:Bytes, ?complete:(success:Bool) -> Void):Void {

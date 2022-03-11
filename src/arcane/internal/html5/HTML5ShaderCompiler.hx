@@ -3,6 +3,7 @@ package arcane.internal.html5;
 import asl.Ast.ShaderStage;
 import haxe.io.Bytes;
 #if macro
+import sys.FileSystem;
 import sys.io.File;
 import haxe.macro.Context;
 import arcane.internal.Macros;
@@ -29,6 +30,7 @@ class HTML5ShaderCompiler {
 			case Fragment: "frag";
 			case Compute: "comp";
 		}
+		FileSystem.createDirectory(temp);
 		File.saveBytes('$temp/$id.$stage', source);
 		command("glslc", [
 			"-Dopengl",
@@ -38,7 +40,7 @@ class HTML5ShaderCompiler {
 			"--target-env=opengl",
 			"-o",
 			'$temp/$id.$stage.spv',
-			'$temp/$id.$stage'
+			'$temp/$id.$stage',
 		]);
 
 		command("spirv-cross", [
@@ -56,7 +58,7 @@ class HTML5ShaderCompiler {
 			"--version",
 			"300",
 			"--output",
-			'$temp/$id-webgl2.$stage'
+			'$temp/$id-webgl2.$stage',
 		]);
 
 		var _id = '$id-$stage';

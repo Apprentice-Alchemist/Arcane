@@ -36,8 +36,6 @@ class Lib {
 		#end
 		system.init({
 			windowOptions: {
-				x: -1,
-				y: -1,
 				width: 500,
 				height: 500,
 				title: "",
@@ -67,7 +65,7 @@ class Lib {
 		// MainLoop.tick() is automatically called by the main thread's event loop.
 		#if (arcane_event_loop_array && !eval)
 		// @:nullSafety(Off) because __progress is inline and certain parts of it make null safety angry.
-		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), []);
+		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), [] #if (haxe >= "4.2.3"), [] #end);
 		#else
 		mainThread.events.progress();
 		#end

@@ -1,5 +1,6 @@
 package arcane.internal.kinc;
 
+import kinc.g4.Pipeline.BlendingOperation;
 import asl.GlslOut;
 import kinc.compute.Compute.ComputeConstantLocation;
 import kinc.compute.Compute.ComputeTextureUnit;
@@ -44,11 +45,11 @@ private class VertexBuffer implements IVertexBuffer {
 		var struc = new kinc.g4.VertexStructure();
 		for (attribute in desc.attributes) {
 			struc.add(attribute.name, switch attribute.kind {
-				case Float1: Float1;
-				case Float2: Float2;
-				case Float3: Float3;
-				case Float4: Float4;
-				case Float4x4: Float4X4;
+				case Float1: KINC_G4_VERTEX_DATA_F32_1X;
+				case Float2: KINC_G4_VERTEX_DATA_F32_2X;
+				case Float3: KINC_G4_VERTEX_DATA_F32_3X;
+				case Float4: KINC_G4_VERTEX_DATA_F32_4X;
+				case Float4x4: KINC_G4_VERTEX_DATA_F32_1X;
 			});
 		}
 		this.buf = new kinc.g4.VertexBuffer(desc.size, struc, desc.dyn ? DynamicUsage : StaticUsage, desc.instanceDataStepRate);
@@ -75,7 +76,7 @@ private class VertexBuffer implements IVertexBuffer {
 
 	private var last_range:Int = -1;
 
-	public function map(start:Int, range:Int):Float32Array {
+	public function map(start:Int, range:Int):ArrayBuffer {
 		assert(buf != null);
 		last_range = range == -1 ? desc.size * buf.stride() : range;
 		var r:ArrayBuffer = untyped $new(ArrayBuffer);
@@ -103,8 +104,8 @@ private class IndexBuffer implements IIndexBuffer {
 
 	public function new(desc:IndexBufferDescriptor) {
 		this.desc = desc;
-		// 16 bit buffers are broken in kinc
-		this.buf = new kinc.g4.IndexBuffer(desc.size, IbFormat32BIT /*desc.is32 ? IbFormat32BIT : IbFormat16BIT*/);
+
+		this.buf = new kinc.g4.IndexBuffer(desc.size, desc.is32 ? IbFormat32BIT : IbFormat16BIT);
 	}
 
 	public function upload(start:Int, arr:Int32Array) {
@@ -116,7 +117,7 @@ private class IndexBuffer implements IIndexBuffer {
 		@:nullSafety(Off) buf.unlock();
 	}
 
-	public function map(start:Int, range:Int):Int32Array {
+	public function map(start:Int, range:Int):ArrayBuffer {
 		assert(buf != null);
 		if (range == -1)
 			range = desc.size;
@@ -238,6 +239,7 @@ private class Shader implements IShaderModule {
 			case Compute: "comp";
 		}
 		var bytes = haxe.Resource.getBytes('${desc.module.id}-$ext-default');
+		// trace(bytes.toString());
 		// #if krafix
 		// 	if (desc.fromGlslSrc) {
 		// 		var len , out = new hl.Bytes(1024 * 1024);
@@ -322,11 +324,11 @@ private class RenderPipeline implements IRenderPipeline {
 			struc.instanced = el.instanced;
 			for (attribute in el.attributes) {
 				struc.add(attribute.name, switch attribute.kind {
-					case Float1: Float1;
-					case Float2: Float2;
-					case Float3: Float3;
-					case Float4: Float4;
-					case Float4x4: Float4X4;
+					case Float1: KINC_G4_VERTEX_DATA_F32_1X;
+					case Float2: KINC_G4_VERTEX_DATA_F32_2X;
+					case Float3: KINC_G4_VERTEX_DATA_F32_3X;
+					case Float4: KINC_G4_VERTEX_DATA_F32_4X;
+					case Float4x4: KINC_G4_VERTEX_DATA_F32_1X;
 				});
 			}
 			state.input_layout[idx] = struc;
@@ -400,7 +402,7 @@ private class RenderPipeline implements IRenderPipeline {
 		}
 	}
 
-	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingOperation {
+	private static inline function convertBlend(b:Blend):kinc.g4.Pipeline.BlendingFactor {
 		return switch b {
 			case One: ONE;
 			case Zero: ZERO;
@@ -412,6 +414,16 @@ private class RenderPipeline implements IRenderPipeline {
 			case OneMinusSrcColor: INV_SOURCE_COLOR;
 			case OneMinusDstAlpha: INV_DEST_ALPHA;
 			case OneMinusDstColor: INV_DEST_COLOR;
+		}
+	}
+
+	private static inline function convertOperation(o:Operation):BlendingOperation {
+		return switch o {
+			case Add: ADD;
+			case Sub: SUBSTRACT;
+			case ReverseSub: REVERSE_SUBSTRACT;
+			case Min: MIN;
+			case Max: MAX;
 		}
 	}
 
@@ -503,7 +515,7 @@ private class RenderPipeline implements IRenderPipeline {
 			Graphics4.setTextureAddressing(unit, DirectionW, convertAddressing(sampler.desc.wAddressing));
 			Graphics4.setTextureMagnificationFilter(unit, convertFilter(sampler.desc.magFilter));
 			Graphics4.setTextureMinificationFilter(unit, convertFilter(sampler.desc.minFilter));
-			Graphics4.setTextureMipmapFilter(unit, convertMipmapFilter(sampler.desc.minFilter));
+			Graphics4.setTextureMipmapFilter(unit, NONE); //convertMipmapFilter(sampler.desc.minFilter));
 
 			Graphics4.setTextureCompareMode(unit, sampler.desc.compare != null);
 
@@ -839,6 +851,7 @@ class KincDriver implements IGraphicsDriver {
 	}
 
 	public function getCurrentTexture():ITexture {
+		Graphics4.begin(0);
 		return dummyTex;
 	}
 
@@ -866,5 +879,6 @@ class KincDriver implements IGraphicsDriver {
 		for (buf in buffers) {
 			(cast buf : CommandBuffer).execute();
 		}
+		Graphics4.end(0); // TODO: swapchain handling
 	}
 }
