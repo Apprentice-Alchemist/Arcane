@@ -107,19 +107,13 @@ class HTML5System implements ISystem {
 				.catchError(e -> untyped console.error(e));
 		} else {
 		#end
-			#if !force_webgl1 var gl = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
+			var gl = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 			if (gl != null) {
-				js.Browser.console.log("Using WebGL.");
-				gdriver = new WebGLDriver(gl, canvas, true);
-			} else #end {
-				var gl = @:nullSafety(Off) canvas.getContextWebGL({alpha: false, antialias: false, stencil: true});
-				if (gl != null) {
-					js.Browser.console.log("Using WebGL.");
-					gdriver = new WebGLDriver(cast gl, canvas, false);
-				} else {
-					js.Browser.console.error("Could not aquire WebGL context.");
-				}
-			}
+				js.Browser.console.log("Using WebGL 2.");
+				gdriver = new WebGLDriver(gl, canvas);
+			} else
+				js.Browser.console.error("Could not aquire WebGL 2 context.");
+
 			cb();
 			js.Browser.window.requestAnimationFrame(update);
 		#if wgpu_externs

@@ -1,9 +1,9 @@
 package arcane.arrays;
 
 @:forward(length)
-abstract UInt16Array(js.lib.UInt16Array) from js.lib.UInt16Array {
+abstract UInt16Array(js.lib.Uint16Array) from js.lib.Uint16Array {
 	public inline function new(length:Int) {
-		this = new js.lib.UInt16Array(length);
+		this = new js.lib.Uint16Array(length);
 	}
 
 	@:op([]) inline function get(i:Int):Int {
@@ -28,5 +28,5 @@ abstract UInt16Array(js.lib.UInt16Array) from js.lib.UInt16Array {
 
 	@:to inline function toArrayBuffer() return this.buffer;
 
-	@:from static inline function fromArrayBuffer(buffer:ArrayBuffer):UInt16Array return new js.lib.UInt16Array(buffer);
+	@:from static inline function fromArrayBuffer(buffer:ArrayBuffer):UInt16Array return new js.lib.Uint16Array(buffer);
 }

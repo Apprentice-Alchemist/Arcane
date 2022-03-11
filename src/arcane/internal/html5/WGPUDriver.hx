@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+import js.lib.ArrayBufferView;
 #if js
 import js.html.CanvasElement;
 #end
@@ -283,12 +284,12 @@ private class VertexBuffer implements IVertexBuffer {
 		return cast buf_stride / 4;
 	}
 
-	public function upload(start:Int, arr:Float32Array):Void {
-		var jsarray:js.lib.Float32Array = arr;
-		driver.device.queue.writeBuffer(buffer, start * buf_stride, cast jsarray.buffer, jsarray.byteOffset, jsarray.byteLength);
+	public function upload(start:Int, arr:ArrayBuffer):Void {
+		var jsarray:ArrayBufferView = (arr : Float32Array);
+		driver.device.queue.writeBuffer(buffer, start * buf_stride, jsarray, jsarray.byteOffset, jsarray.byteLength);
 	}
 
-	public function map(start:Int, range:Int):Float32Array {
+	public function map(start:Int, range:Int):ArrayBuffer {
 		return driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * buf_stride, range * buf_stride);
 	}
 
@@ -316,13 +317,12 @@ private class IndexBuffer implements IIndexBuffer {
 		buffer.destroy();
 	}
 
-	public function upload(start:Int, arr:Int32Array):Void {
-		driver.device.queue.writeBuffer(buffer, start * 4, cast arr);
+	public function upload(start:Int, arr:ArrayBuffer):Void {
+		driver.device.queue.writeBuffer(buffer, start * 4, (arr : Float32Array));
 	}
 
-	public function map(start:Int, range:Int):Int32Array {
-		final result = driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * 4, range * 4);
-		return cast new js.lib.Int32Array(result);
+	public function map(start:Int, range:Int):ArrayBuffer {
+		return driver.stagingBuffers.writeBuffer(driver.device, cast driver.encoder, buffer, start * 4, range * 4);
 	}
 
 	public function unmap():Void {}
