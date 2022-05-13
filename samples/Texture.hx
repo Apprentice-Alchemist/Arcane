@@ -108,13 +108,13 @@ function main() {
 
 			Lib.update.add((dt) -> {
 				final ubuf = new Float32Array(uniform_buffer.desc.size >> 2);
-				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true);
-				final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true, 16);
-				final mat = Matrix4.translation(0.5, -0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				final mat = Matrix4.translation(0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true, 32);
-				final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true, 48);
 				uniform_buffer.upload(0, ubuf);
 
