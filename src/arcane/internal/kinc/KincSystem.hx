@@ -26,9 +26,10 @@ class KincSystem implements ISystem {
 	}
 
 	public function init(opts:SystemOptions, cb:Void->Void):Void {
+		var title = opts.windowOptions.title == null ? "" : opts.windowOptions.title;
 		try {
-			if (kinc.System.init(opts.windowOptions.title, 500, 500, {
-				title: opts.windowOptions.title,
+			if (kinc.System.init(title, 500, 500, {
+				title: title,
 				// y: opts.windowOptions.x,
 				// x: opts.windowOptions.y,
 				window_features: MINIMIZABLE | MAXIMIZABLE | RESIZEABLE,
@@ -260,7 +261,7 @@ class KincSystem implements ISystem {
 			lastTime = curtime;
 			arcane.Lib.handle_update(dt);
 		} catch (e) {
-			trace(e.details());
+			Sys.println(e.details());
 			kinc.System.stop();
 		}
 	}

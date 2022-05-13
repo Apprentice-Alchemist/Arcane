@@ -14,6 +14,7 @@
 -D hl-ver=1.12.0
 -D absolute-path
 -D hl-profile
+-D eval-stack
 # -D hl-hot-reload
 # -D vulkan
 

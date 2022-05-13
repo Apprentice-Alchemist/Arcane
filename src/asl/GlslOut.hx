@@ -154,7 +154,7 @@ class GlslOut {
 								"w";
 						}
 				].join("");
-			case TField(e, fa): throw "TODO";
+			case TField(e, fa): throw "TODO TField";
 			case TParenthesis(e): '(${convExpr(e)})';
 			case TObjectDecl(fields): throw "TODO";
 			case TArrayDecl(el): throw "TODO";

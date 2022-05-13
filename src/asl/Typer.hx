@@ -171,7 +171,7 @@ class Typer {
 
 	public static function error(message:String, pos:Pos):Dynamic {
 		#if macro
-		return haxe.macro.Context.fatalError(message, pos);
+		return haxe.macro.Context.error(message, pos);
 		#else
 		return throw message;
 		#end
@@ -314,6 +314,7 @@ class Typer {
 					TLocal(v);
 				} else {
 					trace(name);
+					trace(vars);
 					error("TODO", e.pos);
 				}
 			case EConst(c):

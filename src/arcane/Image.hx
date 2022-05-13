@@ -1,5 +1,7 @@
 package arcane;
 
+import arcane.system.IGraphicsDriver;
+import arcane.system.IGraphicsDriver.ITexture;
 import arcane.util.Result;
 
 @:nullSafety(Strict)
@@ -158,6 +160,18 @@ class Image {
 			case RGBA | BGRA | ARGB: 4;
 			default: 4;
 		}
+	}
+
+	public function toTexture(driver:IGraphicsDriver):ITexture {
+		// if(!driver.supportsFormat(format))
+		// 	convert(RGBA);
+		return driver.createTexture({
+			width: width,
+			isRenderTarget: false,
+			height: height,
+			format: format,
+			data: data
+		});
 	}
 }
 
