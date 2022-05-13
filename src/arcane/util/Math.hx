@@ -424,41 +424,41 @@ abstract Matrix4(Mat4Internal) {
 		];
 	}
 
-	public inline function write(f:Float32Array, transpose:Bool = false):Void {
+	public inline function write(f:Float32Array, transpose:Bool = false, offset:Int = 0):Void {
 		if (transpose) {
-			f[0] = this._11;
-			f[1] = this._21;
-			f[2] = this._31;
-			f[3] = this._41;
-			f[4] = this._12;
-			f[5] = this._22;
-			f[6] = this._32;
-			f[7] = this._42;
-			f[8] = this._13;
-			f[9] = this._23;
-			f[10] = this._33;
-			f[11] = this._43;
-			f[12] = this._14;
-			f[13] = this._24;
-			f[14] = this._34;
-			f[15] = this._44;
+			f[offset + 0] = this._11;
+			f[offset + 1] = this._21;
+			f[offset + 2] = this._31;
+			f[offset + 3] = this._41;
+			f[offset + 4] = this._12;
+			f[offset + 5] = this._22;
+			f[offset + 6] = this._32;
+			f[offset + 7] = this._42;
+			f[offset + 8] = this._13;
+			f[offset + 9] = this._23;
+			f[offset + 10] = this._33;
+			f[offset + 11] = this._43;
+			f[offset + 12] = this._14;
+			f[offset + 13] = this._24;
+			f[offset + 14] = this._34;
+			f[offset + 15] = this._44;
 		} else {
-			f[0] = this._11;
-			f[1] = this._12;
-			f[2] = this._13;
-			f[3] = this._14;
-			f[4] = this._21;
-			f[5] = this._22;
-			f[6] = this._23;
-			f[7] = this._24;
-			f[8] = this._31;
-			f[9] = this._32;
-			f[10] = this._33;
-			f[11] = this._34;
-			f[12] = this._41;
-			f[14] = this._42;
-			f[15] = this._43;
-			f[16] = this._44;
+			f[offset + 0] = this._11;
+			f[offset + 1] = this._12;
+			f[offset + 2] = this._13;
+			f[offset + 3] = this._14;
+			f[offset + 4] = this._21;
+			f[offset + 5] = this._22;
+			f[offset + 6] = this._23;
+			f[offset + 7] = this._24;
+			f[offset + 8] = this._31;
+			f[offset + 9] = this._32;
+			f[offset + 10] = this._33;
+			f[offset + 11] = this._34;
+			f[offset + 12] = this._41;
+			f[offset + 14] = this._42;
+			f[offset + 15] = this._43;
+			f[offset + 16] = this._44;
 		}
 	}
 }

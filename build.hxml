@@ -1,6 +1,6 @@
--cp test
+-cp samples
 -cp src
--main Main
+-main Texture
 -lib kinc
 -lib format
 

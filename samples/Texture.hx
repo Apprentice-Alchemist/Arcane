@@ -1,3 +1,4 @@
+import arcane.util.Math.Matrix4;
 import arcane.arrays.Int32Array;
 import arcane.arrays.Float32Array;
 import arcane.system.IGraphicsDriver;
@@ -9,9 +10,11 @@ import arcane.Image;
 	@:in var uv:Vec2;
 	@:out var f_uv:Vec2;
 	@:builtin(position) var position:Vec4;
+	@:uniform var m:Array<Mat4, 4>;
+	@:builtin(instanceIndex) var instanceIndex:Int;
 	function main() {
 		f_uv = uv;
-		position = vec4(pos, 1.0);
+		position = m[instanceIndex] * vec4(pos, 1.0);
 	}
 })
 @:frag({
@@ -46,51 +49,82 @@ function main() {
 				attributes: vertex_attributes
 			});
 			vbuf.upload(0, Float32Array.fromArray([
-				-1, -1, 0,0,1,
-				 1, -1, 0,1,1,
-				-1,  1, 0,0,0,
-                1, -1, 0,1,1,
-				 1,  1, 0, 1,0,
-                 -1,  1, 0,0,0
+				-1, -1, 0, 0, 1,
+				 1, -1, 0, 1, 1,
+				-1,  1, 0, 0, 0,
+				 1, -1, 0, 1, 1,
+				 1,  1, 0, 1, 0,
+				-1,  1, 0, 0, 0
 			]));
 			final ibuf = d.createIndexBuffer({
 				size: 6
 			});
 			ibuf.upload(0, Int32Array.fromArray([
 				0, 1, 2,
-				3,4,5
+				3, 4, 5
 			]));
 
 			final shader = new MyShader().make(d);
 			arcane.Utils.assert(shader.vertex != null);
 			arcane.Utils.assert(shader.fragment != null);
-            
-            final bind_group_layout = d.createBindGroupLayout({
-                entries: [{
-                    visibility: Fragment,
-                    binding: 0,
-                    kind: Texture(Filtering)
-                }]
-            });
+
+			final bind_group_layout = d.createBindGroupLayout({
+				entries: [
+					{
+						visibility: Fragment,
+						binding: 0,
+						kind: Texture(Filtering)
+					},
+					{
+						visibility: Vertex,
+						binding: 0,
+						kind: Buffer(false, 0)
+					}
+				]
+			});
 			final pipeline = d.createRenderPipeline({
 				inputLayout: [{instanced: false, attributes: vertex_attributes}],
 				vertexShader: shader.vertex,
 				fragmentShader: shader.fragment,
 				culling: None,
-                layout: [bind_group_layout]
+				layout: [bind_group_layout]
 			});
 
-            final sampler = d.createSampler({});
-            final bind_group = d.createBindGroup({layout: bind_group_layout, entries: [{binding: 0, resource: Texture(parrot, sampler)}]});
+			final sampler = d.createSampler({});
+
+			final uniform_buffer = d.createUniformBuffer({
+				size: 4 * 16 * 4
+			});
+
+			final bind_group = d.createBindGroup({
+				layout: bind_group_layout,
+				entries: [
+					{binding: 0, resource: Texture(parrot, sampler)},
+					{
+						binding: 0,
+						resource: Buffer(uniform_buffer)
+					}
+				]});
 
 			Lib.update.add((dt) -> {
+				final ubuf = new Float32Array(uniform_buffer.desc.size >> 2);
+				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				mat.write(ubuf, true);
+				final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				mat.write(ubuf, true, 16);
+				final mat = Matrix4.translation(0.5, -0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				mat.write(ubuf, true, 32);
+				final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Sys.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				mat.write(ubuf, true, 48);
+				uniform_buffer.upload(0, ubuf);
+
 				final encoder = d.createCommandEncoder();
 				final pass = encoder.beginRenderPass({colorAttachments: [{texture: d.getCurrentTexture(), load: Clear, store: Store}]});
 				pass.setPipeline(pipeline);
 				pass.setVertexBuffer(vbuf);
 				pass.setIndexBuffer(ibuf);
-                pass.setBindGroup(0, bind_group);
-				pass.draw(0, 6);
+				pass.setBindGroup(0, bind_group);
+				pass.drawInstanced(4, 0, 6);
 				pass.end();
 				final b = encoder.finish();
 				d.submit([b]);
