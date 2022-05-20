@@ -1,6 +1,6 @@
 package arcane.internal.html5;
 
-import arcane.system.IAudioDriver;
+import arcane.audio.IAudioDevice;
 import haxe.crypto.Base64;
 import haxe.io.Bytes;
 import arcane.Assets.AssetError;
@@ -9,7 +9,7 @@ import js.html.WheelEvent;
 import js.html.KeyboardEvent;
 import js.html.MouseEvent;
 import js.html.CanvasElement;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IGPUDevice;
 import arcane.system.ISystem;
 
 @:access(arcane)
@@ -17,8 +17,8 @@ import arcane.system.ISystem;
 class HTML5System implements ISystem {
 	public var window:IWindow;
 	public var canvas:js.html.CanvasElement;
-	public var gdriver:Null<IGraphicsDriver>;
-	public var adriver:Null<IAudioDriver>;
+	public var gdriver:Null<IGPUDevice>;
+	public var adriver:Null<IAudioDevice>;
 
 	public function new() {
 		if (!js.Browser.supported)
@@ -248,11 +248,11 @@ class HTML5System implements ISystem {
 
 	public function shutdown() {}
 
-	public function getAudioDriver():Null<IAudioDriver> {
+	public function getAudioDevice():Null<IAudioDevice> {
 		return new WebAudioDriver();
 	}
 
-	public function getGraphicsDriver():Null<IGraphicsDriver> {
+	public function getGPUDevice():Null<IGPUDevice> {
 		return gdriver;
 	}
 

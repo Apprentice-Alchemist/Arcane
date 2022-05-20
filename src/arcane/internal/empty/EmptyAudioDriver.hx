@@ -1,7 +1,7 @@
 package arcane.internal.empty;
 
 import arcane.Assets.AssetError;
-import arcane.system.IAudioDriver;
+import arcane.audio.IAudioDevice;
 import arcane.util.Result;
 
 private class AudioBuffer implements IAudioBuffer {
@@ -20,7 +20,7 @@ private class AudioSource implements IAudioSource {
 	public function dispose():Void {}
 }
 
-class EmptyAudioDriver implements IAudioDriver {
+class EmptyAudioDriver implements IAudioDevice {
 	public function new() {}
 
 	public function fromFile(path:String, cb:Result<IAudioBuffer, AssetError>->Void):Void {}

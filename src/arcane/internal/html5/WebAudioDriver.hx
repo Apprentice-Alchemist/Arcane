@@ -6,7 +6,7 @@ import js.html.audio.GainNode;
 import js.html.audio.AudioContext;
 import js.html.audio.AudioBufferSourceNode;
 import js.html.audio.AudioBuffer as WebAudioBuffer;
-import arcane.system.IAudioDriver;
+import arcane.audio.IAudioDevice;
 
 @:structInit
 class AudioBuffer implements IAudioBuffer {
@@ -52,7 +52,7 @@ class AudioSource implements IAudioSource {
 }
 
 @:nullSafety(Strict)
-class WebAudioDriver implements IAudioDriver {
+class WebAudioDriver implements IAudioDevice {
 	public var context:AudioContext;
 
 	public function new() {

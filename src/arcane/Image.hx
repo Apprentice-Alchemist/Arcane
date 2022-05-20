@@ -1,7 +1,7 @@
 package arcane;
 
-import arcane.system.IGraphicsDriver;
-import arcane.system.IGraphicsDriver.ITexture;
+import arcane.gpu.ITexture;
+import arcane.gpu.IGPUDevice;
 import arcane.util.Result;
 
 @:nullSafety(Strict)
@@ -162,7 +162,7 @@ class Image {
 		}
 	}
 
-	public function toTexture(driver:IGraphicsDriver):ITexture {
+	public function toTexture(driver:IGPUDevice):ITexture {
 		// if(!driver.supportsFormat(format))
 		// 	convert(RGBA);
 		return driver.createTexture({

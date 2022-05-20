@@ -5,7 +5,21 @@ import haxe.ds.ReadOnlyArray;
 import js.html.webgl.extension.WEBGLDrawBuffers;
 import arcane.util.Log;
 import arcane.Utils.assert;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IBindGroupLayout;
+import arcane.gpu.IBindGroup;
+import arcane.gpu.IRenderPipeline;
+import arcane.gpu.IComputePipeline;
+import arcane.gpu.IShaderModule;
+import arcane.gpu.IVertexBuffer;
+import arcane.gpu.IIndexBuffer;
+import arcane.gpu.IUniformBuffer;
+import arcane.gpu.ITexture;
+import arcane.gpu.ISampler;
+import arcane.gpu.IRenderPass;
+import arcane.gpu.IComputePass;
+import arcane.gpu.ICommandEncoder;
+import arcane.gpu.ICommandBuffer;
+import arcane.gpu.IGPUDevice;
 import js.html.CanvasElement;
 import js.html.webgl.Buffer;
 import js.html.webgl.Framebuffer;
@@ -706,7 +720,7 @@ private class CommandBuffer implements ICommandBuffer {
 								else {}
 							case Texture((cast _ : Texture) => texture, (cast _ : Sampler) => sampler):
 								if (curPipeline != null) {
-									final tu:TextureUnit = cast curPipeline.tus.get(entry.binding);
+									final tu:TextureUnit = cast (cast curPipeline:RenderPipeline).tus.get(entry.binding);
 									gl.activeTexture(GL.TEXTURE0 + tu.index);
 									gl.bindTexture(GL.TEXTURE_2D, texture.texture);
 									gl.bindSampler(tu.index, sampler.sampler);
@@ -846,7 +860,7 @@ private class CommandBuffer implements ICommandBuffer {
 @:nullSafety(Strict)
 @:allow(arcane.internal.html5)
 @:access(arcane.internal.html5)
-class WebGLDriver implements IGraphicsDriver {
+class WebGLDriver implements IGPUDevice {
 	public final features:DriverFeatures;
 	public final limits:DriverLimits = {};
 

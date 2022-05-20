@@ -1,10 +1,10 @@
 package arcane;
 
-import arcane.system.IAudioDriver;
+import arcane.audio.IAudioDevice;
 import arcane.util.Version;
 import arcane.internal.System;
 import arcane.system.ISystem;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IGPUDevice;
 import arcane.util.Event;
 
 @:nullSafety(Strict)
@@ -17,8 +17,8 @@ class Lib {
 	public static var fps(default, null):Float = 0.0;
 
 	public static var system(default, null):ISystem = new arcane.internal.System();
-	public static var gdriver(default, null):Null<IGraphicsDriver>;
-	public static var adriver(default, null):Null<IAudioDriver>;
+	public static var gdriver(default, null):Null<IGPUDevice>;
+	public static var adriver(default, null):Null<IAudioDevice>;
 
 	#if target.threaded
 	@:nullSafety(Off)
@@ -43,8 +43,8 @@ class Lib {
 				mode: Windowed
 			}
 		}, () -> {
-			gdriver = system.getGraphicsDriver();
-			adriver = system.getAudioDriver();
+			gdriver = system.getGPUDevice();
+			adriver = system.getAudioDevice();
 			cb();
 		});
 	}
@@ -65,7 +65,7 @@ class Lib {
 		// MainLoop.tick() is automatically called by the main thread's event loop.
 		#if (arcane_event_loop_array && !eval)
 		// @:nullSafety(Off) because __progress is inline and certain parts of it make null safety angry.
-		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), [] #if (haxe >= "4.2.3"), [] #end);
+		@:privateAccess @:nullSafety(Off) mainThread.events.__progress(Sys.time(), []#if (haxe >= "4.2.3"), [] #end);
 		#else
 		mainThread.events.progress();
 		#end

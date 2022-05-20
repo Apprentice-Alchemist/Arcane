@@ -3,8 +3,8 @@ package arcane.internal.empty;
 import haxe.io.Bytes;
 import arcane.Assets.AssetError;
 import arcane.system.ISystem;
-import arcane.system.IAudioDriver;
-import arcane.system.IGraphicsDriver;
+import arcane.audio.IAudioDevice;
+import arcane.gpu.IGPUDevice;
 
 class EmptySystem implements ISystem {
 	public function new() {
@@ -29,11 +29,11 @@ class EmptySystem implements ISystem {
 		sd = true;
 	}
 
-	public function getAudioDriver():Null<IAudioDriver> {
+	public function getAudioDevice():Null<IAudioDevice> {
 		return new EmptyAudioDriver();
 	}
 
-	public function getGraphicsDriver():Null<IGraphicsDriver> {
+	public function getGPUDevice():Null<IGPUDevice> {
 		return new EmptyGraphicsDriver();
 	}
 

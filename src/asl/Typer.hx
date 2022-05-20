@@ -119,7 +119,8 @@ class Typer {
 						}
 					}));
 
-				case _: error("Invalid expression", e.pos);
+				case _:
+					error("Invalid expression", e.pos);
 			}
 		}
 		for (f in functions)

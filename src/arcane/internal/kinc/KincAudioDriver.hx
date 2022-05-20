@@ -5,7 +5,7 @@ import arcane.util.Result;
 import hl.BytesAccess;
 import haxe.io.Bytes;
 import kinc.audio2.Audio;
-import arcane.system.IAudioDriver;
+import arcane.audio.IAudioDevice;
 
 @:structInit
 class AudioBuffer implements IAudioBuffer {
@@ -33,7 +33,7 @@ class AudioSource implements IAudioSource {
 typedef OggFile = hl.Abstract<"fmt_ogg">;
 #end
 
-class KincAudioDriver implements IAudioDriver {
+class KincAudioDriver implements IAudioDevice {
 	static final sources:Array<Null<AudioSource>> = [];
 	static final mutex = new sys.thread.Mutex();
 

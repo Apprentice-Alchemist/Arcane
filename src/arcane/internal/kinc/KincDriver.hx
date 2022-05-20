@@ -9,7 +9,21 @@ import kinc.g4.ConstantLocation;
 import haxe.ds.ReadOnlyArray;
 import kinc.compute.ComputeShader;
 import arcane.arrays.ArrayBuffer;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IGPUDevice;
+import arcane.gpu.IVertexBuffer;
+import arcane.gpu.IIndexBuffer;
+import arcane.gpu.IBindGroup;
+import arcane.gpu.IBindGroupLayout;
+import arcane.gpu.ICommandBuffer;
+import arcane.gpu.ICommandEncoder;
+import arcane.gpu.IComputePass;
+import arcane.gpu.IComputePipeline;
+import arcane.gpu.IRenderPass;
+import arcane.gpu.IRenderPipeline;
+import arcane.gpu.ISampler;
+import arcane.gpu.IShaderModule;
+import arcane.gpu.ITexture;
+import arcane.gpu.IUniformBuffer;
 import kinc.g4.Graphics4;
 import kinc.g4.Pipeline.StencilAction;
 import kinc.g4.RenderTarget;
@@ -515,7 +529,7 @@ private class RenderPipeline implements IRenderPipeline {
 			Graphics4.setTextureAddressing(unit, DirectionW, convertAddressing(sampler.desc.wAddressing));
 			Graphics4.setTextureMagnificationFilter(unit, convertFilter(sampler.desc.magFilter));
 			Graphics4.setTextureMinificationFilter(unit, convertFilter(sampler.desc.minFilter));
-			Graphics4.setTextureMipmapFilter(unit, NONE); //convertMipmapFilter(sampler.desc.minFilter));
+			Graphics4.setTextureMipmapFilter(unit, NONE); // convertMipmapFilter(sampler.desc.minFilter));
 
 			Graphics4.setTextureCompareMode(unit, sampler.desc.compare != null);
 
@@ -782,7 +796,7 @@ private class CommandBuffer implements ICommandBuffer {
 	}
 }
 
-class KincDriver implements IGraphicsDriver {
+class KincDriver implements IGPUDevice {
 	public final limits:DriverLimits = {};
 	public final features:DriverFeatures = {
 		compute: false,

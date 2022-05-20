@@ -1,5 +1,7 @@
 package arcane.system;
 
+import arcane.audio.IAudioDevice;
+import arcane.gpu.IGPUDevice;
 import haxe.io.Bytes;
 
 typedef SystemOptions = {
@@ -30,8 +32,8 @@ interface ISystem {
 
 	function init(options:SystemOptions, cb:Void->Void):Void;
 	function shutdown():Void;
-	function getAudioDriver():Null<IAudioDriver>;
-	function getGraphicsDriver():Null<IGraphicsDriver>;
+	function getAudioDevice():Null<IAudioDevice>;
+	function getGPUDevice():Null<IGPUDevice>;
 	function language():String;
 	function time():Float;
 	function width():Int;

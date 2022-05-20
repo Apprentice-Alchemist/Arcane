@@ -6,7 +6,21 @@ import js.html.CanvasElement;
 #end
 #if wgpu_externs
 import arcane.arrays.*;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IBindGroupLayout;
+import arcane.gpu.IBindGroup;
+import arcane.gpu.IRenderPipeline;
+import arcane.gpu.IComputePipeline;
+import arcane.gpu.IShaderModule;
+import arcane.gpu.IVertexBuffer;
+import arcane.gpu.IIndexBuffer;
+import arcane.gpu.IUniformBuffer;
+import arcane.gpu.ITexture;
+import arcane.gpu.ISampler;
+import arcane.gpu.IRenderPass;
+import arcane.gpu.IComputePass;
+import arcane.gpu.ICommandEncoder;
+import arcane.gpu.ICommandBuffer;
+import arcane.gpu.IGPUDevice;
 import wgpu.*;
 
 using arcane.Utils;

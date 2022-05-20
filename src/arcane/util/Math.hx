@@ -160,18 +160,22 @@ abstract Matrix3(Mat3Internal) {
 	}
 
 	@:op(A * B) inline static function mult(a:Matrix3, b:Matrix3):Matrix3 {
-		var a1 = inline new Vector3(a._11, a._12, a._13);
-		var a2 = inline new Vector3(a._21, a._22, a._23);
-		var a3 = inline new Vector3(a._31, a._32, a._33);
+		var a1 =
+		inline new Vector3(a._11, a._12, a._13);
+		var a2 =
+		inline new Vector3(a._21, a._22, a._23);
+		var a3 =
+		inline new Vector3(a._31, a._32, a._33);
 
-		var b1 = inline new Vector3(b._11, b._21, b._31);
-		var b2 = inline new Vector3(b._12, b._22, b._32);
-		var b3 = inline new Vector3(b._13, b._23, b._33);
+		var b1 =
+		inline new Vector3(b._11, b._21, b._31);
+		var b2 =
+		inline new Vector3(b._12, b._22, b._32);
+		var b3 =
+		inline new Vector3(b._13, b._23, b._33);
 
-		return new Matrix3(
-			inline a1.dot(b1), inline a1.dot(b2), inline a1.dot(b3),
-			inline a2.dot(b1), inline a2.dot(b2), inline a2.dot(b3),
-			inline a3.dot(b1), inline a3.dot(b2), inline a3.dot(b3)
+		return new Matrix3(inline a1.dot(b1), inline a1.dot(b2), inline a1.dot(b3), inline a2.dot(b1), inline a2.dot(b2), inline a2.dot(b3), inline a3.dot(b1),
+			inline a3.dot(b2), inline a3.dot(b3)
 		);
 	}
 
@@ -185,9 +189,12 @@ abstract Matrix3(Mat3Internal) {
 	}
 
 	@:op(A * B) inline static function multvec(a:Matrix3, b:Vector3):Vector3 {
-		var a1 = inline new Vector3(a._11, a._12, a._13);
-		var a2 = inline new Vector3(a._21, a._22, a._23);
-		var a3 = inline new Vector3(a._31, a._32, a._33);
+		var a1 =
+		inline new Vector3(a._11, a._12, a._13);
+		var a2 =
+		inline new Vector3(a._21, a._22, a._23);
+		var a3 =
+		inline new Vector3(a._31, a._32, a._33);
 
 		return new Vector3(inline a1.dot(b), inline a2.dot(b), inline a3.dot(b));
 	}
@@ -375,21 +382,27 @@ abstract Matrix4(Mat4Internal) {
 	}
 
 	@:op(A * B) inline static function mult(a:Matrix4, b:Matrix4):Matrix4 {
-		var a1 = inline new Vector4(a._11, a._12, a._13, a._14);
-		var a2 = inline new Vector4(a._21, a._22, a._23, a._24);
-		var a3 = inline new Vector4(a._31, a._32, a._33, a._34);
-		var a4 = inline new Vector4(a._41, a._42, a._43, a._44);
+		var a1 =
+		inline new Vector4(a._11, a._12, a._13, a._14);
+		var a2 =
+		inline new Vector4(a._21, a._22, a._23, a._24);
+		var a3 =
+		inline new Vector4(a._31, a._32, a._33, a._34);
+		var a4 =
+		inline new Vector4(a._41, a._42, a._43, a._44);
 
-		var b1 = inline new Vector4(b._11, b._21, b._31, b._41);
-		var b2 = inline new Vector4(b._12, b._22, b._32, b._42);
-		var b3 = inline new Vector4(b._13, b._23, b._33, b._43);
-		var b4 = inline new Vector4(b._14, b._24, b._34, b._44);
+		var b1 =
+		inline new Vector4(b._11, b._21, b._31, b._41);
+		var b2 =
+		inline new Vector4(b._12, b._22, b._32, b._42);
+		var b3 =
+		inline new Vector4(b._13, b._23, b._33, b._43);
+		var b4 =
+		inline new Vector4(b._14, b._24, b._34, b._44);
 
-		return new Matrix4(
-			inline a1.dot(b1), inline a1.dot(b2), inline a1.dot(b3), inline a1.dot(b4),
-			inline a2.dot(b1), inline a2.dot(b2), inline a2.dot(b3), inline a2.dot(b4),
-			inline a3.dot(b1), inline a3.dot(b2), inline a3.dot(b3), inline a3.dot(b4),
-			inline a4.dot(b1), inline a4.dot(b2), inline a4.dot(b3), inline a4.dot(b4)
+		return new Matrix4(inline a1.dot(b1), inline a1.dot(b2), inline a1.dot(b3), inline a1.dot(b4), inline a2.dot(b1), inline a2.dot(b2), inline a2.dot(b3),
+			inline a2.dot(b4), inline a3.dot(b1), inline a3.dot(b2), inline a3.dot(b3), inline a3.dot(b4), inline a4.dot(b1), inline a4.dot(b2),
+			inline a4.dot(b3), inline a4.dot(b4)
 		);
 	}
 
@@ -403,10 +416,14 @@ abstract Matrix4(Mat4Internal) {
 		);
 
 	@:op(A * B) inline static function multv(a:Matrix4, b:Vector4):Vector4 {
-		var a1 = inline new Vector4(a._11, a._12, a._13, a._14);
-		var a2 = inline new Vector4(a._21, a._22, a._23, a._24);
-		var a3 = inline new Vector4(a._31, a._32, a._33, a._34);
-		var a4 = inline new Vector4(a._41, a._42, a._43, a._44);
+		var a1 =
+		inline new Vector4(a._11, a._12, a._13, a._14);
+		var a2 =
+		inline new Vector4(a._21, a._22, a._23, a._24);
+		var a3 =
+		inline new Vector4(a._31, a._32, a._33, a._34);
+		var a4 =
+		inline new Vector4(a._41, a._42, a._43, a._44);
 		return new Vector4(inline a1.dot(b), inline a2.dot(b), inline a3.dot(b), inline a4.dot(b));
 	}
 

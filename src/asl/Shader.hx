@@ -1,6 +1,6 @@
 package asl;
 
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IGPUDevice;
 import haxe.io.Bytes;
 import asl.Ast;
 
@@ -24,7 +24,7 @@ class Shader {
 		this.compute = compute;
 	}
 
-	public function make(d:IGraphicsDriver) {
+	public function make(d:IGPUDevice) {
 		return {
 			vertex: vertex == null ? null : d.createShader({module: vertex}),
 			fragment: fragment == null ? null : d.createShader({module: fragment}),

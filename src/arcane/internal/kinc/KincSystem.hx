@@ -4,9 +4,9 @@ import arcane.Assets.AssetError;
 import arcane.util.Result;
 import arcane.util.ThreadPool;
 import haxe.io.Bytes;
-import arcane.system.IAudioDriver;
+import arcane.audio.IAudioDevice;
 import kinc.input.Mouse;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.*;
 import arcane.system.ISystem;
 import kinc.input.Keyboard.KeyCode as KincCode;
 import arcane.system.Event.KeyCode as ArcaneCode;
@@ -270,11 +270,11 @@ class KincSystem implements ISystem {
 		kinc.System.stop();
 	}
 
-	public function getAudioDriver():Null<IAudioDriver> {
+	public function getAudioDevice():Null<IAudioDevice> {
 		return new KincAudioDriver();
 	}
 
-	public function getGraphicsDriver():Null<IGraphicsDriver> {
+	public function getGPUDevice():Null<IGPUDevice> {
 		return new KincDriver(0);
 	}
 

@@ -3,7 +3,7 @@ package arcane;
 import arcane.arrays.UInt16Array;
 import arcane.arrays.Int32Array;
 import arcane.arrays.Float32Array;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IGPUDevice;
 
 @:nullSafety(Strict)
 class Geometry {

@@ -1,9 +1,23 @@
 package arcane.internal.empty;
 
+import arcane.gpu.IBindGroupLayout;
+import arcane.gpu.IBindGroup;
+import arcane.gpu.IRenderPipeline;
+import arcane.gpu.IComputePipeline;
+import arcane.gpu.IShaderModule;
+import arcane.gpu.IVertexBuffer;
+import arcane.gpu.IIndexBuffer;
+import arcane.gpu.IUniformBuffer;
+import arcane.gpu.ITexture;
+import arcane.gpu.ISampler;
+import arcane.gpu.IRenderPass;
+import arcane.gpu.IComputePass;
+import arcane.gpu.ICommandEncoder;
+import arcane.gpu.ICommandBuffer;
 import arcane.arrays.ArrayBuffer;
 import arcane.arrays.Int32Array;
 import arcane.arrays.Float32Array;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IGPUDevice;
 
 private class BindGroupLayout implements IBindGroupLayout {
 	public function new(desc) {}
@@ -179,7 +193,7 @@ private class CommandBuffer implements ICommandBuffer {
 	public function new() {}
 }
 
-class EmptyGraphicsDriver implements IGraphicsDriver {
+class EmptyGraphicsDriver implements IGPUDevice {
 	public final features:DriverFeatures = {
 		compute: false,
 		instancedRendering: false,

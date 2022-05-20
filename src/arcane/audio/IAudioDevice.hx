@@ -1,4 +1,4 @@
-package arcane.system;
+package arcane.audio;
 
 import arcane.util.Result;
 
@@ -13,7 +13,7 @@ interface IAudioSource {
 	function dispose():Void;
 }
 
-interface IAudioDriver {
+interface IAudioDevice {
 	function fromFile(path:String, cb:Result<IAudioBuffer, arcane.Assets.AssetError>->Void):Void;
 	function play(buffer:IAudioBuffer, volume:Float, pitch:Float, loop:Bool):IAudioSource;
 	function getVolume(source:IAudioSource):Float;

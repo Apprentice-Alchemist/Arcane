@@ -1,7 +1,21 @@
 import arcane.util.Math.Matrix4;
 import arcane.arrays.Int32Array;
 import arcane.arrays.Float32Array;
-import arcane.system.IGraphicsDriver;
+import arcane.gpu.IVertexBuffer;
+import arcane.gpu.IIndexBuffer;
+import arcane.gpu.IBindGroup;
+import arcane.gpu.IBindGroupLayout;
+import arcane.gpu.ICommandBuffer;
+import arcane.gpu.ICommandEncoder;
+import arcane.gpu.IComputePass;
+import arcane.gpu.IComputePipeline;
+import arcane.gpu.IRenderPass;
+import arcane.gpu.IRenderPipeline;
+import arcane.gpu.ISampler;
+import arcane.gpu.IShaderModule;
+import arcane.gpu.ITexture;
+import arcane.gpu.IUniformBuffer;
+import arcane.gpu.IGPUDevice;
 import arcane.Lib;
 import arcane.Image;
 
@@ -31,9 +45,9 @@ function main() {
 	arcane.Lib.init(() -> {
 		arcane.Assets.loadBytesAsync("res/parrot.png", bytes -> {
 			arcane.Utils.assert(bytes != null);
-			final d:IGraphicsDriver = cast Lib.gdriver;
+			final d:IGPUDevice = cast Lib.gdriver;
 			final parrot = Image.fromPngBytes(bytes).expect().toTexture(d);
-			final vertex_attributes:Array<VertexAttribute> = [
+			final vertex_attributes = [
 				{
 					name: "pos",
 					kind: Float3
