@@ -51,7 +51,7 @@ class Typer {
 		var entryPoint = "main";
 		var input_location = 0;
 		var output_location = 0;
-		// var
+
 		for (e in exprs) {
 			switch e {
 				case macro @:in var $name:$t:
@@ -119,7 +119,7 @@ class Typer {
 						}
 					}));
 
-				case _:
+				case _: error("Invalid expression", e.pos);
 			}
 		}
 		for (f in functions)
@@ -295,12 +295,15 @@ class Typer {
 		error("This expression cannot be assigned", e.pos);
 	}
 
+	// ensure consistent result across all platforms
+	static var PI = "3.1415926535897932384626433832795";
+
 	function typeExpr(e:Expr):TypedExpr {
 		var type:Null<Type> = null;
 		final expr:TypedExprDef = switch e.expr {
 			case EConst(CIdent("PI")):
 				type = TFloat;
-				TConst(TFloat(Std.string(Math.PI)));
+				TConst(TFloat(PI));
 			case EConst(CIdent("true")):
 				type = TBool;
 				TConst(TBool(true));
@@ -379,7 +382,6 @@ class Typer {
 							case var l: TVec(t, l);
 						}
 						fa = TSwiz(out);
-					case TMat(t, size):
 					case TStruct(fields):
 						for (field in fields)
 							if (field.name == name) {
@@ -387,13 +389,12 @@ class Typer {
 								fa = FStruct(name);
 								break;
 							}
-					case _:
+					case _: error('Field access is not allowed on type ${typeToString(e.t)}', e.pos);
 				}
 				if (fa == null) {
 					error('${typeToString(e.t)} has no field $name', e.pos);
 				}
 				TField(e, fa);
-
 			case EParenthesis(typeExpr(_) => e):
 				type = e.t;
 				TParenthesis(e);

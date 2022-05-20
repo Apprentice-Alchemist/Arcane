@@ -18,4 +18,6 @@ jobs:
     - name: Build
       run: |
         haxelib install tests.hxml --always --quiet
+    - name: Run tests
+      run: |
         haxe tests.hxml

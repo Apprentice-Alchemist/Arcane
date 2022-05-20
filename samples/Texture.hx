@@ -90,7 +90,7 @@ function main() {
 				layout: [bind_group_layout]
 			});
 
-			final sampler = d.createSampler({});
+			final sampler = d.createSampler({compare: Greater});
 
 			final uniform_buffer = d.createUniformBuffer({
 				size: 4 * 16 * 4

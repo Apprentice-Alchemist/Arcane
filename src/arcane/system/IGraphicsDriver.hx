@@ -371,3 +371,8 @@ interface IGraphicsDriver extends IDisposable {
 	function submit(buffers:Array<ICommandBuffer>):Void;
 	function present():Void;
 }
+
+// function supportsFormat(format:PixelFormat) {
+// 		throw new haxe.exceptions.NotImplementedException();
+// 	}
+

@@ -195,18 +195,18 @@ private class UniformBuffer implements IUniformBuffer {
 
 		this.data = new JsArrayBuffer(desc.size);
 		// if (driver.hasGL2) {
-			this.buf = driver.gl.createBuffer();
-			this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, buf);
-			this.driver.gl.bufferData(GL.UNIFORM_BUFFER, desc.size, GL.DYNAMIC_DRAW);
-			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
+		this.buf = driver.gl.createBuffer();
+		this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, buf);
+		this.driver.gl.bufferData(GL.UNIFORM_BUFFER, desc.size, GL.DYNAMIC_DRAW);
+		@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
 		// }
 	}
 
 	public function upload(start:Int, arr:ArrayBuffer):Void {
 		// if (driver.hasGL2) {
-			this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, cast buf);
-			this.driver.gl.bufferSubData(GL.UNIFORM_BUFFER, start, arr);
-			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
+		this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, cast buf);
+		this.driver.gl.bufferSubData(GL.UNIFORM_BUFFER, start, arr);
+		@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
 		// } else {
 		// 	var src = new js.lib.Uint8Array(arr);
 		// 	var dst = new js.lib.Uint8Array(this.data);
@@ -224,9 +224,9 @@ private class UniformBuffer implements IUniformBuffer {
 
 	public function unmap():Void {
 		// if (driver.hasGL2) {
-			this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, cast buf);
-			@:nullSafety(Off) this.driver.gl.bufferSubData(GL.UNIFORM_BUFFER, last_start, map_data);
-			@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
+		this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, cast buf);
+		@:nullSafety(Off) this.driver.gl.bufferSubData(GL.UNIFORM_BUFFER, last_start, map_data);
+		@:nullSafety(Off) this.driver.gl.bindBuffer(GL.UNIFORM_BUFFER, null);
 		// } else {
 		// 	@:nullSafety(Off) var src = new js.lib.Uint8Array(map_data);
 		// 	var dst = new js.lib.Uint8Array(this.data);
@@ -236,7 +236,7 @@ private class UniformBuffer implements IUniformBuffer {
 
 	public function dispose() {
 		// if (driver.hasGL2 && driver.check()) {
-			driver.gl.deleteBuffer(cast this.buf);
+		driver.gl.deleteBuffer(cast this.buf);
 		// }
 	}
 
@@ -486,7 +486,14 @@ private class Texture implements ITexture {
 
 @:nullSafety(Strict)
 private class Sampler implements ISampler {
-	public function new(driver:WebGLDriver, desc:SamplerDescriptor) {}
+	public final sampler:js.html.webgl.Sampler;
+
+	public function new(driver:WebGLDriver, desc:SamplerDescriptor) {
+		sampler = driver.gl.createSampler();
+		// if(desc.compare != null) {
+		// 	driver.gl.samplerParameteri(sampler, GL.TEXTURE_COMPARE_MODE, CommandBuffer.convertCompare(desc.compare));
+		// }
+	}
 }
 
 @:nullSafety(Strict)
@@ -620,7 +627,7 @@ private class CommandBuffer implements ICommandBuffer {
 		this.commands = commands;
 	}
 
-	static function convertBlend(b:Blend):Int {
+	public static function convertBlend(b:Blend):Int {
 		return switch b {
 			case One: GL.ONE;
 			case Zero: GL.ZERO;
@@ -635,7 +642,7 @@ private class CommandBuffer implements ICommandBuffer {
 		}
 	}
 
-	static function convertOperation(o:Operation) {
+	public static function convertOperation(o:Operation) {
 		return switch o {
 			case Add: GL.FUNC_ADD;
 			case Sub: GL.FUNC_SUBTRACT;
@@ -645,7 +652,7 @@ private class CommandBuffer implements ICommandBuffer {
 		}
 	}
 
-	static function convertCompare(c:Compare) {
+	public static function convertCompare(c:Compare) {
 		return switch c {
 			case Always: GL.ALWAYS;
 			case Never: GL.NEVER;
@@ -658,7 +665,7 @@ private class CommandBuffer implements ICommandBuffer {
 		}
 	}
 
-	static function convertStencil(c:StencilOp) {
+	public static function convertStencil(c:StencilOp) {
 		return switch c {
 			case Keep:
 				GL.KEEP;
@@ -697,12 +704,13 @@ private class CommandBuffer implements ICommandBuffer {
 								if (buffer.buf != null)
 									gl.bindBufferBase(GL.UNIFORM_BUFFER, entry.binding, cast buffer.buf);
 								else {}
-							case Texture(texture, sampler):
-								assert(curPipeline != null);
-								trace((cast curPipeline : RenderPipeline).tus);
-								final tu:TextureUnit = cast((cast curPipeline : RenderPipeline).tus.get(entry.binding));
-								gl.activeTexture(GL.TEXTURE0 + tu.index);
-								gl.bindTexture(GL.TEXTURE_2D, (cast texture : Texture).texture);
+							case Texture((cast _ : Texture) => texture, (cast _ : Sampler) => sampler):
+								if (curPipeline != null) {
+									final tu:TextureUnit = cast curPipeline.tus.get(entry.binding);
+									gl.activeTexture(GL.TEXTURE0 + tu.index);
+									gl.bindTexture(GL.TEXTURE_2D, texture.texture);
+									gl.bindSampler(tu.index, sampler.sampler);
+								}
 						}
 					}
 				}
@@ -856,9 +864,9 @@ class WebGLDriver implements IGraphicsDriver {
 		var multipleColorAttachments;
 
 		// if (hasGL2) {
-			instancedRendering = true;
-			uintIndexBuffers = true;
-			multipleColorAttachments = true;
+		instancedRendering = true;
+		uintIndexBuffers = true;
+		multipleColorAttachments = true;
 		// } else {
 		// 	uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
 		// 	var ext = gl.getExtension(ANGLE_instanced_arrays);

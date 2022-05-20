@@ -4,8 +4,8 @@
 -lib format:3.5.0
 # -lib wgpu-externs:git:https://github.com/Apprentice-Alchemist/wgpu-haxe-externs
 --macro arcane.internal.Macros.initSourceMaps()
---macro nullSafety("arcane",StrictThreaded)
---macro nullSafety("asl",StrictThreaded)
+--macro nullSafety("arcane")
+--macro nullSafety("asl")
 
 -D js-es=6
 
