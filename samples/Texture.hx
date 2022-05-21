@@ -121,7 +121,8 @@ function main() {
 				]});
 
 			Lib.update.add((dt) -> {
-				final ubuf = new Float32Array(uniform_buffer.desc.size >> 2);
+				// var map = uniform_buffer.map(0, uniform_buffer.desc.size);
+				final ubuf:Float32Array = uniform_buffer.map(0, uniform_buffer.desc.size);
 				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true);
 				final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
@@ -130,7 +131,8 @@ function main() {
 				mat.write(ubuf, true, 32);
 				final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true, 48);
-				uniform_buffer.upload(0, ubuf);
+				uniform_buffer.unmap();
+				// uniform_buffer.upload(0, ubuf);
 
 				final encoder = d.createCommandEncoder();
 				final pass = encoder.beginRenderPass({colorAttachments: [{texture: d.getCurrentTexture(), load: Clear, store: Store}]});

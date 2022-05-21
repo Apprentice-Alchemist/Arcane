@@ -1,5 +1,6 @@
 package arcane.internal.html5;
 
+import js.html.webgl.extension.EXTTextureFilterAnisotropic;
 import js.html.webgl.WebGL2RenderingContext;
 import haxe.ds.ReadOnlyArray;
 import js.html.webgl.extension.WEBGLDrawBuffers;
@@ -461,10 +462,10 @@ private class Texture implements ITexture {
 			@:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE,
 				desc.data == null ? null : @:privateAccess desc.data.b);
 
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
 
 			@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
 		}
@@ -504,9 +505,44 @@ private class Sampler implements ISampler {
 
 	public function new(driver:WebGLDriver, desc:SamplerDescriptor) {
 		sampler = driver.gl.createSampler();
-		// if(desc.compare != null) {
-		// 	driver.gl.samplerParameteri(sampler, GL.TEXTURE_COMPARE_MODE, CommandBuffer.convertCompare(desc.compare));
-		// }
+
+		driver.gl.samplerParameteri(sampler, GL.TEXTURE_MAG_FILTER, convertMagFilter(desc.magFilter));
+		driver.gl.samplerParameteri(sampler, GL.TEXTURE_MIN_FILTER, convertMinFilter(desc.minFilter, desc.mipFilter));
+		driver.gl.samplerParameteri(sampler, GL.TEXTURE_WRAP_S, convertWrap(desc.uAddressing));
+		driver.gl.samplerParameteri(sampler, GL.TEXTURE_WRAP_T, convertWrap(desc.vAddressing));
+		driver.gl.samplerParameteri(sampler, GL.TEXTURE_WRAP_R, convertWrap(desc.wAddressing));
+		driver.gl.samplerParameterf(sampler, GL.TEXTURE_MAX_LOD, desc.lodMaxClamp);
+		driver.gl.samplerParameterf(sampler, GL.TEXTURE_MIN_LOD, desc.lodMinClamp);
+		if(driver.anisotropy) {
+			driver.gl.samplerParameteri(sampler, EXTTextureFilterAnisotropic.TEXTURE_MAX_ANISOTROPY_EXT, desc.maxAnisotropy);
+		}
+		if(desc.compare != null) {
+			driver.gl.samplerParameteri(sampler, GL.TEXTURE_COMPARE_MODE, GL.COMPARE_REF_TO_TEXTURE);
+			driver.gl.samplerParameteri(sampler, GL.TEXTURE_COMPARE_FUNC, CommandBuffer.convertCompare(cast desc.compare));
+		}
+	}
+
+	public static function convertWrap(w:AddressMode) {
+		return switch w {
+			case Clamp: GL.CLAMP_TO_EDGE;
+			case Repeat: GL.REPEAT;
+			case Mirrored: GL.MIRRORED_REPEAT;
+		}
+	}
+	public static function convertMagFilter(f:FilterMode) {
+		return switch f {
+			case Nearest: GL.NEAREST;
+			case Linear: GL.LINEAR;
+		}
+	}
+
+	public static function convertMinFilter(min:FilterMode, mip:FilterMode) {
+		return switch [min, mip] {
+			case [Linear, Linear]: GL.LINEAR_MIPMAP_LINEAR;
+			case [Linear, Nearest]: GL.LINEAR_MIPMAP_NEAREST;
+			case [Nearest, Linear]: GL.NEAREST_MIPMAP_LINEAR;
+			case [Nearest, Nearest]: GL.NEAREST_MIPMAP_NEAREST;
+		}
 	}
 }
 
@@ -720,7 +756,8 @@ private class CommandBuffer implements ICommandBuffer {
 								else {}
 							case Texture((cast _ : Texture) => texture, (cast _ : Sampler) => sampler):
 								if (curPipeline != null) {
-									final tu:TextureUnit = cast (cast curPipeline:RenderPipeline).tus.get(entry.binding);
+									assert((cast curPipeline : RenderPipeline).tus != null);
+									final tu:TextureUnit = cast((cast curPipeline : RenderPipeline).tus.get(entry.binding));
 									gl.activeTexture(GL.TEXTURE0 + tu.index);
 									gl.bindTexture(GL.TEXTURE_2D, texture.texture);
 									gl.bindSampler(tu.index, sampler.sampler);
@@ -863,6 +900,7 @@ private class CommandBuffer implements ICommandBuffer {
 class WebGLDriver implements IGPUDevice {
 	public final features:DriverFeatures;
 	public final limits:DriverLimits = {};
+	public final anisotropy:Bool;
 
 	var canvas:CanvasElement;
 	var gl:WebGL2RenderingContext;
@@ -881,6 +919,7 @@ class WebGLDriver implements IGPUDevice {
 		instancedRendering = true;
 		uintIndexBuffers = true;
 		multipleColorAttachments = true;
+		anisotropy = false; //gl.getExtension(EXT_texture_filter_anisotropic) != null;
 		// } else {
 		// 	uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
 		// 	var ext = gl.getExtension(ANGLE_instanced_arrays);

@@ -84,7 +84,7 @@ class HTML5System implements ISystem {
 					} else {
 						throw "Null adapter.";
 					}
-				})
+				},e -> untyped console.error(e))
 				.then(device -> {
 					var context = canvas.getContext("webgpu");
 					if (context == null)

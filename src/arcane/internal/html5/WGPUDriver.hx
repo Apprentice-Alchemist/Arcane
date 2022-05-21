@@ -299,8 +299,8 @@ private class VertexBuffer implements IVertexBuffer {
 	}
 
 	public function upload(start:Int, arr:ArrayBuffer):Void {
-		var jsarray:ArrayBufferView = (arr : Float32Array);
-		driver.device.queue.writeBuffer(buffer, start * buf_stride, jsarray, jsarray.byteOffset, jsarray.byteLength);
+		// var jsarray:ArrayBufferView = (arr : Float32Array);
+		driver.device.queue.writeBuffer(buffer, start * buf_stride, cast arr, 0, arr.byteLength);
 	}
 
 	public function map(start:Int, range:Int):ArrayBuffer {
@@ -332,7 +332,7 @@ private class IndexBuffer implements IIndexBuffer {
 	}
 
 	public function upload(start:Int, arr:ArrayBuffer):Void {
-		driver.device.queue.writeBuffer(buffer, start * 4, (arr : Float32Array));
+		driver.device.queue.writeBuffer(buffer, start * 4, cast arr, 0, arr.byteLength);
 	}
 
 	public function map(start:Int, range:Int):ArrayBuffer {
@@ -364,7 +364,7 @@ private class UniformBuffer implements IUniformBuffer {
 	}
 
 	public function upload(start:Int, arr:ArrayBuffer):Void {
-		driver.device.queue.writeBuffer(buffer, 0, cast arr, start);
+		driver.device.queue.writeBuffer(buffer, start, cast arr, 0, arr.byteLength);
 	}
 
 	public function map(start:Int, range:Int):ArrayBuffer {
@@ -436,7 +436,7 @@ private class Sampler implements ISampler {
 			addressModeW: WGPUDriver.convertAddressMode(desc.wAddressing),
 			magFilter: WGPUDriver.convertFilter(desc.magFilter),
 			minFilter: WGPUDriver.convertFilter(desc.minFilter),
-			mipmapFilter: WGPUDriver.convertFilter(desc.mipFilter),
+			mipmapFilter: WGPUDriver.convertMipmapFilter(desc.mipFilter),
 			lodMinClamp: desc.lodMinClamp,
 			lodMaxClamp: desc.lodMaxClamp,
 			compare: desc.compare != null ? WGPUDriver.convertCompareMode(desc.compare) : GPUCompareFunction.ALWAYS,
@@ -486,7 +486,7 @@ private class RenderPass implements IRenderPass {
 				for (a in desc.colorAttachments)
 					{
 						view: (cast a.texture : Texture).view,
-						loadValue: switch a.load {
+						clearValue: switch a.load {
 							case Clear if (a.loadValue != null): ({
 									r: a.loadValue.r / 0xFF,
 									g: a.loadValue.g / 0xFF,
@@ -499,7 +499,11 @@ private class RenderPass implements IRenderPass {
 									b: 0.0,
 									a: 1.0
 								}
-							case Load: "load";
+							case Load: null;
+						},
+						loadOp: switch a.load {
+							case Load: LOAD;
+							case Clear: CLEAR;
 						},
 						storeOp: switch a.store {
 							case Store: STORE;
@@ -509,9 +513,9 @@ private class RenderPass implements IRenderPass {
 			],
 			depthStencilAttachment: {
 				view: (cast desc.colorAttachments[0].texture : Texture).depth_view,
-				depthLoadValue: 0,
+				depthClearValue: 0,
 				depthStoreOp: DISCARD,
-				stencilLoadValue: 0,
+				stencilClearValue: 0,
 				stencilStoreOp: DISCARD
 			}});
 	}
@@ -546,7 +550,7 @@ private class RenderPass implements IRenderPass {
 	}
 
 	public function end() {
-		renderPass.endPass();
+		renderPass.end();
 	}
 }
 
@@ -559,7 +563,8 @@ private class ComputePipeline implements IComputePipeline {
 	public function new(driver:WGPUDriver, desc:ComputePipelineDescriptor) {
 		this.desc = desc;
 		this.pipeline = driver.device.createComputePipeline({
-			compute: {module: (cast desc.shader : Shader).module, entryPoint: "main"}
+			compute: {module: (cast desc.shader : Shader).module, entryPoint: "main"},
+			layout: "auto"
 		});
 	}
 
@@ -585,17 +590,17 @@ private class ComputePass implements IComputePass {
 	}
 
 	public function dispatch(x:Int, y:Int, z:Int) {
-		pass.dispatch(x, y, z);
+		pass.dispatchWorkgroups(x, y, z);
 	}
 
 	public function end() {
-		pass.endPass();
+		pass.end();
 	}
 }
 
 @:nullSafety(Strict)
 @:allow(arcane.internal)
-class WGPUDriver implements IGraphicsDriver {
+class WGPUDriver implements IGPUDevice {
 	public final features:DriverFeatures;
 	public final limits:DriverLimits;
 
@@ -633,7 +638,10 @@ class WGPUDriver implements IGraphicsDriver {
 		this.context = context;
 		this.adapter = adapter;
 		this.device = device;
-		this.preferredFormat = try context.getPreferredFormat(adapter) catch (_) untyped context.getSwapChainPreferredFormat(adapter);
+		this.preferredFormat = try (untyped navigator.gpu : wgpu.GPU).getPreferredCanvasFormat() catch (_) try
+			untyped context.getPreferredFormat(adapter)
+		catch (_)
+			untyped context.getSwapChainPreferredFormat(adapter);
 		final presentationConfiguration:GPUCanvasConfiguration = {
 			device: device,
 			format: preferredFormat,
@@ -657,11 +665,7 @@ class WGPUDriver implements IGraphicsDriver {
 	}
 
 	public function getName(details:Bool = false):String {
-		if (details) {
-			return "WebGPU " + adapter.name;
-		} else {
-			return "WebGPU";
-		}
+		return "WebGPU";
 	}
 
 	public function dispose() {
@@ -807,6 +811,13 @@ class WGPUDriver implements IGraphicsDriver {
 	}
 
 	static function convertFilter(mode:FilterMode):GPUFilterMode {
+		return switch mode {
+			case Nearest: NEAREST;
+			case Linear: LINEAR;
+		}
+	}
+
+	static function convertMipmapFilter(mode:FilterMode):GPUMipmapFilterMode {
 		return switch mode {
 			case Nearest: NEAREST;
 			case Linear: LINEAR;
