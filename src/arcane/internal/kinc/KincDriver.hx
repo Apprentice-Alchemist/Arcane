@@ -351,10 +351,14 @@ private class RenderPipeline implements IRenderPipeline {
 		state.stencil_reference_value = desc.stencil.reference;
 		state.stencil_read_mask = desc.stencil.readMask;
 		state.stencil_write_mask = desc.stencil.writeMask;
-		state.stencil_mode = convertCompare(desc.stencil.frontTest);
-		state.stencil_fail = convertStencilOp(desc.stencil.frontSTfail);
-		state.stencil_depth_fail = convertStencilOp(desc.stencil.frontDPfail);
-		state.stencil_both_pass = convertStencilOp(desc.stencil.frontPass);
+		state.stencil_front_mode = convertCompare(desc.stencil.frontTest);
+		state.stencil_front_fail = convertStencilOp(desc.stencil.frontSTfail);
+		state.stencil_front_depth_fail = convertStencilOp(desc.stencil.frontDPfail);
+		state.stencil_front_both_pass = convertStencilOp(desc.stencil.frontPass);
+		state.stencil_back_mode = convertCompare(desc.stencil.backTest);
+		state.stencil_back_fail = convertStencilOp(desc.stencil.backSTfail);
+		state.stencil_back_depth_fail = convertStencilOp(desc.stencil.backDPfail);
+		state.stencil_back_both_pass = convertStencilOp(desc.stencil.backPass);
 
 		state.cull_mode = switch desc.culling {
 			case None: NOTHING;
