@@ -20,7 +20,19 @@ class HTML5ShaderCompiler {
 		#end
 	}
 
-	public static function compile(id:String, source:Bytes, stage:ShaderStage):Void {
+	public static function compile(id:String, vertex:haxe.io.Bytes, fragment:haxe.io.Bytes, compute:haxe.io.Bytes) {
+		if (vertex != null) {
+			compileSingle(id, vertex, Vertex);
+		}
+		if (fragment != null) {
+			compileSingle(id, fragment, Fragment);
+		}
+		if (compute != null) {
+			compileSingle(id, compute, Compute);
+		}
+	}
+
+	public static function compileSingle(id:String, source:Bytes, stage:ShaderStage):Void {
 		#if macro
 		if (Context.defined("display") || #if display true #else false #end)
 			return;

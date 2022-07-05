@@ -439,7 +439,7 @@ private class Sampler implements ISampler {
 			mipmapFilter: WGPUDriver.convertMipmapFilter(desc.mipFilter),
 			lodMinClamp: desc.lodMinClamp,
 			lodMaxClamp: desc.lodMaxClamp,
-			compare: desc.compare != null ? WGPUDriver.convertCompareMode(desc.compare) : GPUCompareFunction.ALWAYS,
+			compare: desc.compare != null ? WGPUDriver.convertCompareMode(desc.compare) : js.Syntax.code("undefined"),
 			maxAnisotropy: desc.maxAnisotropy
 		});
 	}
@@ -486,7 +486,7 @@ private class RenderPass implements IRenderPass {
 				for (a in desc.colorAttachments)
 					{
 						view: (cast a.texture : Texture).view,
-						clearValue: switch a.load {
+						loadValue: switch a.load {
 							case Clear if (a.loadValue != null): ({
 									r: a.loadValue.r / 0xFF,
 									g: a.loadValue.g / 0xFF,
@@ -513,9 +513,9 @@ private class RenderPass implements IRenderPass {
 			],
 			depthStencilAttachment: {
 				view: (cast desc.colorAttachments[0].texture : Texture).depth_view,
-				depthClearValue: 0,
+				depthLoadValue: 0,
 				depthStoreOp: DISCARD,
-				stencilClearValue: 0,
+				stencilLoadValue: 0,
 				stencilStoreOp: DISCARD
 			}});
 	}
@@ -550,7 +550,7 @@ private class RenderPass implements IRenderPass {
 	}
 
 	public function end() {
-		renderPass.end();
+		renderPass.endPass();
 	}
 }
 
@@ -739,58 +739,72 @@ class WGPUDriver implements IGPUDevice {
 	}
 
 	public function createBindGroup(desc:BindGroupDescriptor):IBindGroup {
+		var entries:Array<GPUBindGroupEntry> = [];
+		for (entry in desc.entries)
+			switch entry.resource {
+				case Buffer(buffer):
+					entries.push({
+						binding: entry.binding,
+						resource: {buffer: (cast buffer : UniformBuffer).buffer}
+					});
+				case Texture(texture, sampler):
+					entries.push({
+						binding: entry.binding,
+						resource: (cast texture : Texture).view
+					});
+					entries.push({
+						binding: entry.binding + 1,
+						resource: (cast sampler : Sampler).sampler
+					});
+			}
+
 		return new BindGroup(device.createBindGroup({
 			layout: (cast desc.layout : BindGroupLayout).layout,
-			entries: [
-				for (entry in desc.entries)
-					{
-						binding: entry.binding,
-						resource: switch entry.resource {
-							case Buffer(buffer): cast buffer;
-							case Texture(texture, _): cast texture;
-								// case Sampler(sampler): cast sampler;
-						}
-					}
-			]
+			entries: entries
 		}));
 	}
 
 	public function createBindGroupLayout(desc:BindGroupLayoutDescriptor):IBindGroupLayout {
-		var layout:GPUBindGroupLayoutDescriptor = {
-			entries: [
-				for (entry in desc.entries) {
-					var e:GPUBindGroupLayoutEntry = {
+		final entries:Array<GPUBindGroupLayoutEntry> = [];
+		for (entry in desc.entries) {
+			var e:GPUBindGroupLayoutEntry = {
+				binding: entry.binding,
+				visibility: cast entry.visibility
+			};
+			switch entry.kind {
+				case Buffer(hasDynamicOffset, minBindingSize):
+					entries.push({
 						binding: entry.binding,
-						visibility: cast entry.visibility
-					};
-					switch entry.kind {
-						case Buffer(hasDynamicOffset, minBindingSize):
-							e.buffer = {
-								type: UNIFORM,
-								hasDynamicOffset: hasDynamicOffset,
-								minBindingSize: minBindingSize
-							};
-						// case Sampler(type):
+						visibility: cast entry.visibility,
+						buffer: {type: UNIFORM, hasDynamicOffset: hasDynamicOffset, minBindingSize: minBindingSize}
+					});
+				case Texture(type):
+					entries.push({
+						binding: entry.binding,
+						visibility: cast entry.visibility,
+						texture: {
+							sampleType: FLOAT,
+							viewDimension: _2D,
+							multisampled: false
+						}
+					});
+					entries.push({
+						binding: entry.binding + 1,
+						visibility: cast entry.visibility,
+						sampler: {
+							type: switch type {
+								case Filtering: FILTERING;
+								case NonFiltering: NON_FILTERING;
+								case Comparison: COMPARISON;
+							}
+						}
+					});
+			}
+		}
 
-						case Texture(type):
-							e.texture = {
-								sampleType: FLOAT,
-								viewDimension: _2D,
-								multisampled: false
-							}
-							e.sampler = {
-								type: switch type {
-									case Filtering: FILTERING;
-									case NonFiltering: NON_FILTERING;
-									case Comparison: COMPARISON;
-								}
-							}
-					}
-					e;
-				}
-			]
-		};
-		return new BindGroupLayout(device.createBindGroupLayout(layout));
+		return new BindGroupLayout(device.createBindGroupLayout({
+			entries: entries
+		}));
 	}
 
 	public function submit(buffers:Array<ICommandBuffer>) @:nullSafety(Off) {

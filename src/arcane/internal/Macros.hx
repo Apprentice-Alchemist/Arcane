@@ -15,7 +15,7 @@ using haxe.macro.Tools;
 using StringTools;
 #end
 
-typedef ShaderCompiler = (id:String, source:haxe.io.Bytes, stage:asl.Ast.ShaderStage) -> Void;
+typedef ShaderCompiler = (id:String, vertex:haxe.io.Bytes, fragment:haxe.io.Bytes, compute:haxe.io.Bytes) -> Void;
 
 class Macros {
 	public macro static function initManifest() {

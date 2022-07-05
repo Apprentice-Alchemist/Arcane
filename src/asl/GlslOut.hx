@@ -94,21 +94,26 @@ class GlslOut {
 			buf.add("};\n");
 		var curbinding = 0;
 		for (uniform in module.uniforms.filter(f -> f.t == TSampler2D)) {
+			final binding = switch uniform.kind {
+				case Uniform(binding): binding;
+				case _: throw "assert";
+			}
 			buf.add("#ifdef VULKAN\n");
-			buf.add('layout(set = 0, binding = ${curbinding++}) uniform ');
+			buf.add('layout(set = 0, binding = ${binding + curbinding}) uniform ');
 			buf.add("texture2D");
 			buf.add(" " + escape(uniform.name));
 			buf.add(";\n");
-			buf.add('layout(set = 0, binding = ${curbinding++}) uniform ');
+			buf.add('layout(set = 0, binding = ${binding + curbinding + 1}) uniform ');
 			buf.add("sampler");
 			buf.add(" " + escape(uniform.name) + "_sampler");
 			buf.add(";\n");
 			buf.add("#else\n");
-			buf.add('layout(binding = ${curbinding++}) uniform ');
+			buf.add('layout(binding = ${binding}) uniform ');
 			buf.add("sampler2D");
 			buf.add(" " + escape(uniform.name));
 			buf.add(";\n");
 			buf.add("#endif\n");
+			curbinding++;
 		}
 		for (func in module.functions) {
 			buf.add(typeToGlsl(func.ret));

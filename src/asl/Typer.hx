@@ -63,12 +63,15 @@ class Typer {
 					};
 					inputs.push(tvar);
 					vars.set(name, tvar);
-				case macro @:uniform var $name:$t:
+				case macro @:uniform($binding) var $name:$t:
 					var tvar:TVar = {
 						id: allocID(),
 						name: name,
 						t: toType(t, e.pos),
-						kind: Uniform(0)
+						kind: Uniform(switch binding.expr {
+							case EConst(CInt(v)): Std.parseInt(v);
+							case _: error("Expected integer", binding.pos);
+						})
 					};
 					uniforms.push(tvar);
 					vars.set(name, tvar);

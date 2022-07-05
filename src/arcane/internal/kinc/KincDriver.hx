@@ -752,7 +752,7 @@ private class CommandBuffer implements ICommandBuffer {
 						Graphics4.setRenderTargets(targets);
 					}
 
-					Graphics4.clear(Color, 0xFF000000, 0, 0);
+					Graphics4.clear(Color, 0xFF0000FF, 0, 0);
 				case EndRenderPass:
 					in_render = false;
 				case SetVertexBuffers(buffers):

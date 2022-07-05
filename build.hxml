@@ -1,12 +1,13 @@
 -cp samples
 -cp src
+-cp test
 -main Texture
 -lib kinc
 -lib format
 
 --debug
 
--D arcane-event-loop-array
+# -D arcane-event-loop-array
 -D asl-shader-bin=out/shaders
 # -D arcane-audio-use-fmt
 -D shader-clean
@@ -16,7 +17,7 @@
 -D hl-profile
 -D eval-stack
 # -D hl-hot-reload
-# -D vulkan
+-D vulkan
 
 --macro nullSafety("arcane",StrictThreaded)
 --macro nullSafety("asl",StrictThreaded)

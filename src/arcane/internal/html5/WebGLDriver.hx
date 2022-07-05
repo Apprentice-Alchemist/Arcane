@@ -513,10 +513,10 @@ private class Sampler implements ISampler {
 		driver.gl.samplerParameteri(sampler, GL.TEXTURE_WRAP_R, convertWrap(desc.wAddressing));
 		driver.gl.samplerParameterf(sampler, GL.TEXTURE_MAX_LOD, desc.lodMaxClamp);
 		driver.gl.samplerParameterf(sampler, GL.TEXTURE_MIN_LOD, desc.lodMinClamp);
-		if(driver.anisotropy) {
+		if (driver.anisotropy) {
 			driver.gl.samplerParameteri(sampler, EXTTextureFilterAnisotropic.TEXTURE_MAX_ANISOTROPY_EXT, desc.maxAnisotropy);
 		}
-		if(desc.compare != null) {
+		if (desc.compare != null) {
 			driver.gl.samplerParameteri(sampler, GL.TEXTURE_COMPARE_MODE, GL.COMPARE_REF_TO_TEXTURE);
 			driver.gl.samplerParameteri(sampler, GL.TEXTURE_COMPARE_FUNC, CommandBuffer.convertCompare(cast desc.compare));
 		}
@@ -529,6 +529,7 @@ private class Sampler implements ISampler {
 			case Mirrored: GL.MIRRORED_REPEAT;
 		}
 	}
+
 	public static function convertMagFilter(f:FilterMode) {
 		return switch f {
 			case Nearest: GL.NEAREST;
@@ -758,9 +759,12 @@ private class CommandBuffer implements ICommandBuffer {
 								if (curPipeline != null) {
 									assert((cast curPipeline : RenderPipeline).tus != null);
 									final tu:TextureUnit = cast((cast curPipeline : RenderPipeline).tus.get(entry.binding));
-									gl.activeTexture(GL.TEXTURE0 + tu.index);
-									gl.bindTexture(GL.TEXTURE_2D, texture.texture);
-									gl.bindSampler(tu.index, sampler.sampler);
+
+									if (tu != null && !(untyped tu != undefined)) {
+										gl.activeTexture(GL.TEXTURE0 + tu.index);
+										gl.bindTexture(GL.TEXTURE_2D, texture.texture);
+										gl.bindSampler(tu.index, sampler.sampler);
+									}
 								}
 						}
 					}
@@ -919,7 +923,7 @@ class WebGLDriver implements IGPUDevice {
 		instancedRendering = true;
 		uintIndexBuffers = true;
 		multipleColorAttachments = true;
-		anisotropy = false; //gl.getExtension(EXT_texture_filter_anisotropic) != null;
+		anisotropy = false; // gl.getExtension(EXT_texture_filter_anisotropic) != null;
 		// } else {
 		// 	uintIndexBuffers = gl.getExtension(OES_element_index_uint) != null;
 		// 	var ext = gl.getExtension(ANGLE_instanced_arrays);
