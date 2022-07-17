@@ -1,35 +1,12 @@
 package asl.std;
 
-private extern function __builtin_vec2_get_x<T>(v:Vec2<T>):T;
-private extern function __builtin_vec2_get_y<T>(v:Vec2<T>):T;
-private extern function __builtin_vec2_set_x<T>(v:Vec2<T>, value:T):T;
-private extern function __builtin_vec2_set_y<T>(v:Vec2<T>, value:T):T;
-private extern function __builtin_vec3_get_x<T>(v:Vec3<T>):T;
-private extern function __builtin_vec3_get_y<T>(v:Vec3<T>):T;
-private extern function __builtin_vec3_get_z<T>(v:Vec3<T>):T;
-private extern function __builtin_vec3_set_x<T>(v:Vec3<T>, value:T):T;
-private extern function __builtin_vec3_set_y<T>(v:Vec3<T>, value:T):T;
-private extern function __builtin_vec3_set_z<T>(v:Vec3<T>, value:T):T;
-private extern function __builtin_vec4_get_x<T>(v:Vec4<T>):T;
-private extern function __builtin_vec4_get_y<T>(v:Vec4<T>):T;
-private extern function __builtin_vec4_get_z<T>(v:Vec4<T>):T;
-private extern function __builtin_vec4_get_w<T>(v:Vec4<T>):T;
-private extern function __builtin_vec4_set_x<T>(v:Vec4<T>, value:T):T;
-private extern function __builtin_vec4_set_y<T>(v:Vec4<T>, value:T):T;
-private extern function __builtin_vec4_set_z<T>(v:Vec4<T>, value:T):T;
-private extern function __builtin_vec4_set_w<T>(v:Vec4<T>, value:T):T;
-private extern function __builtin_texture_get(t:Texture2D, coord:Vec2<Float>):Vec4<Float>;
-private extern function __builtin_mat4_mul_vec4<T>(m:Mat4<T>, v:Vec4<T>):Vec4<T>;
-private extern function __builtin_vec4_add<T>(a:Vec4<T>, b:Vec4<T>):Vec4<T>;
-private extern function __builtin_vec4_from_values<T>(a:T, b:T, c:T, d:T):Vec4<T>;
-private extern function __builtin_vec4_mix<T>(a:Vec4<T>, b:Vec4<T>, v:T):Vec4<T>;
-private extern function __builtin_vec3_from_values<T>(a:T, b:T, c:T):Vec3<T>;
-private extern function __builtin_vec2_from_values<T>(a:T, b:T):Vec2<T>;
-
 @:coreType
 abstract Array<T, @:const L:Int> {
 	@:arrayAccess extern function get(index:Int):T;
 }
+
+private typedef E<A, B> = haxe.extern.EitherType<A, B>;
+typedef VecType<T> = E<Vec2<T>, E<Vec3<T>, Vec4<T>>>;
 
 #if !macro
 @:build(asl.std.StdLib.buildSwizzles(2))
@@ -39,21 +16,21 @@ abstract Array<T, @:const L:Int> {
 	public var x(get, set):T;
 
 	extern inline function get_x() {
-		return __builtin_vec2_get_x(this);
+		return Builtins.vec2_get_x(this);
 	}
 
 	extern inline function set_x(value:T) {
-		return __builtin_vec2_set_x(this, value);
+		return Builtins.vec2_set_x(this, value);
 	}
 
 	public var y(get, set):T;
 
 	extern inline function get_y() {
-		return __builtin_vec2_get_y(this);
+		return Builtins.vec2_get_y(this);
 	}
 
 	extern inline function set_y(value:T) {
-		return __builtin_vec2_set_y(this, value);
+		return Builtins.vec2_set_y(this, value);
 	}
 }
 
@@ -65,31 +42,31 @@ abstract Array<T, @:const L:Int> {
 	public var x(get, set):T;
 
 	extern inline function get_x() {
-		return __builtin_vec3_get_x(this);
+		return Builtins.vec3_get_x(this);
 	}
 
 	extern inline function set_x(value:T) {
-		return __builtin_vec3_set_x(this, value);
+		return Builtins.vec3_set_x(this, value);
 	}
 
 	public var y(get, set):T;
 
 	extern inline function get_y() {
-		return __builtin_vec3_get_y(this);
+		return Builtins.vec3_get_y(this);
 	}
 
 	extern inline function set_y(value:T) {
-		return __builtin_vec3_set_y(this, value);
+		return Builtins.vec3_set_y(this, value);
 	}
 
 	public var z(get, set):T;
 
 	extern inline function get_z() {
-		return __builtin_vec3_get_x(this);
+		return Builtins.vec3_get_x(this);
 	}
 
 	extern inline function set_z(value:T) {
-		return __builtin_vec3_set_z(this, value);
+		return Builtins.vec3_set_z(this, value);
 	}
 }
 
@@ -101,46 +78,46 @@ abstract Array<T, @:const L:Int> {
 	public var x(get, set):T;
 
 	extern inline function get_x() {
-		return __builtin_vec4_get_x(this);
+		return Builtins.vec4_get_x(this);
 	}
 
 	extern inline function set_x(value:T) {
-		return __builtin_vec4_set_x(this, value);
+		return Builtins.vec4_set_x(this, value);
 	}
 
 	public var y(get, set):T;
 
 	extern inline function get_y() {
-		return __builtin_vec4_get_y(this);
+		return Builtins.vec4_get_y(this);
 	}
 
 	extern inline function set_y(value:T) {
-		return __builtin_vec4_set_y(this, value);
+		return Builtins.vec4_set_y(this, value);
 	}
 
 	public var z(get, set):T;
 
 	extern inline function get_z() {
-		return __builtin_vec4_get_z(this);
+		return Builtins.vec4_get_z(this);
 	}
 
 	extern inline function set_z(value:T) {
-		return __builtin_vec4_set_z(this, value);
+		return Builtins.vec4_set_z(this, value);
 	}
 
 	public var w(get, set):T;
 
 	extern inline function get_w() {
-		return __builtin_vec4_get_w(this);
+		return Builtins.vec4_get_w(this);
 	}
 
 	extern inline function set_w(value:T) {
-		return __builtin_vec4_set_w(this, value);
+		return Builtins.vec4_set_w(this, value);
 	}
 
 	@:op(A + B)
 	extern inline static function add<T>(a:Vec4<T>, b:Vec4<T>):Vec4<T> {
-		return __builtin_vec4_add(a, b);
+		return Builtins.vec4_add(a, b);
 	}
 
 	@:commutative
@@ -148,19 +125,24 @@ abstract Array<T, @:const L:Int> {
 	extern inline static function addValue<T>(a:Vec4<T>, b:T):Vec4<T> {
 		return a + vec4(b);
 	}
+
+	@:op(A * B)
+	extern inline static function dot<T>(a:Vec4<T>, b:Vec4<T>):T {
+		return Builtins.dot(a, b);
+	}
 }
 
 @:builtin(mat4)
 @:coreType abstract Mat4<T #if (haxe_ver >= 4.3) = Float #end> {
 	@:op(A * B) extern inline function mulVec(b:Vec4<T>):Vec4<T> {
-		return __builtin_mat4_mul_vec4(this, b);
+		return Builtins.mat4_mul_vec4(this, b);
 	}
 }
 
 @:builtin(texture2d)
 @:coreType abstract Texture2D {
 	public extern inline function get(coord:Vec2<Float>):Vec4<Float> {
-		return __builtin_texture_get(this, coord);
+		return Builtins.texture_get(this, coord);
 	}
 }
 
@@ -169,7 +151,7 @@ extern inline overload function vec2<T>(a:T):Vec2<T> {
 }
 
 extern inline overload function vec2<T>(a:T, b:T):Vec2<T> {
-	return __builtin_vec2_from_values(a, b);
+	return Builtins.vec2_from_values(a, b);
 }
 
 extern inline overload function vec3<T>(a:T):Vec3<T> {
@@ -181,7 +163,7 @@ extern inline overload function vec3<T>(a:Vec2<T>, value:T):Vec3<T> {
 }
 
 extern inline overload function vec3<T>(a:T, b:T, c:T):Vec3<T> {
-	return __builtin_vec3_from_values(a, b, c);
+	return Builtins.vec3_from_values(a, b, c);
 }
 
 extern inline overload function vec4<T>(a:T):Vec4<T> {
@@ -193,9 +175,9 @@ extern inline overload function vec4<T>(a:Vec3<T>, value:T) {
 }
 
 extern inline overload function vec4<T>(a:T, b:T, c:T, d:T):Vec4<T> {
-	return __builtin_vec4_from_values(a, b, c, d);
+	return Builtins.vec4_from_values(a, b, c, d);
 }
 
 extern inline function mix<T>(a:Vec4<T>, b:Vec4<T>, v:T):Vec4<T> {
-	return __builtin_vec4_mix(a, b, v);
+	return Builtins.mix(a, b, v);
 }
