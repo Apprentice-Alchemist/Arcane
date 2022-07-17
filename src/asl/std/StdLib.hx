@@ -1,6 +1,4 @@
-package asl;
-
-import asl.Ast;
+package asl.std;
 
 private extern function __builtin_vec2_get_x<T>(v:Vec2<T>):T;
 private extern function __builtin_vec2_get_y<T>(v:Vec2<T>):T;
@@ -31,46 +29,11 @@ private extern function __builtin_vec2_from_values<T>(a:T, b:T):Vec2<T>;
 @:coreType
 abstract Array<T, @:const L:Int> {
 	@:arrayAccess extern function get(index:Int):T;
-	
 }
 
-#if macro
-function swizzle(self:haxe.macro.Expr, size:Int, name:String) {
-	final str = "xrsygtzbpwaq";
-	var cat = -1;
-	final out = [];
-	for (i in 0...name.length) {
-		var idx = str.indexOf(name.charAt(i));
-		if (idx < 0)
-			throw "err";
-		var icat = idx % 3;
-		if (cat < 0)
-			cat = icat
-		else if (icat != cat)
-			break; // down't allow .ryz
-		var cid = Std.int(idx / 3);
-		if (cid >= size)
-			throw "err";
-		// error(typeToString(e.t) + " does not have component " + name.charAt(i), e.pos);
-		out.push(cid);
-	}
-	var comps = out.map(c -> switch c {
-		case 0: macro $self.x;
-		case 1: macro $self.y;
-		case 2: macro $self.z;
-		case 3: macro $self.w;
-		case _: throw "assert";
-	});
-
-	return switch size {
-		case 2: macro vec2($a{comps});
-		case 3: macro vec3($a{comps});
-		case 4: macro vec4($a{comps});
-		case var l: throw "assert";
-	}
-}
+#if !macro
+@:build(asl.std.StdLib.buildSwizzles(2))
 #end
-
 @:builtin(vec2)
 @:coreType abstract Vec2<T #if (haxe_ver >= 4.3) = Float #end> {
 	public var x(get, set):T;
@@ -92,12 +55,11 @@ function swizzle(self:haxe.macro.Expr, size:Int, name:String) {
 	extern inline function set_y(value:T) {
 		return __builtin_vec2_set_y(this, value);
 	}
-
-	@:resolve static macro function resolve<T>(self:haxe.macro.Expr.ExprOf<Vec2<T>>, name:String):haxe.macro.Expr.ExprOf<T> {
-		return swizzle(self, 2, name);
-	}
 }
 
+#if !macro
+@:build(asl.std.StdLib.buildSwizzles(3))
+#end
 @:builtin(vec3)
 @:coreType abstract Vec3<T #if (haxe_ver >= 4.3) = Float #end> {
 	public var x(get, set):T;
@@ -129,12 +91,11 @@ function swizzle(self:haxe.macro.Expr, size:Int, name:String) {
 	extern inline function set_z(value:T) {
 		return __builtin_vec3_set_z(this, value);
 	}
-
-	@:resolve static macro function resolve<T>(self:haxe.macro.Expr.ExprOf<Vec2<T>>, name:String):haxe.macro.Expr.ExprOf<T> {
-		return swizzle(self, 3, name);
-	}
 }
 
+#if !macro
+@:build(asl.std.StdLib.buildSwizzles(4))
+#end
 @:builtin(vec4)
 @:coreType abstract Vec4<T #if (haxe_ver >= 4.3) = Float #end> {
 	public var x(get, set):T;
@@ -186,10 +147,6 @@ function swizzle(self:haxe.macro.Expr, size:Int, name:String) {
 	@:op(A + B)
 	extern inline static function addValue<T>(a:Vec4<T>, b:T):Vec4<T> {
 		return a + vec4(b);
-	}
-
-	@:resolve static macro function resolve<T>(self:haxe.macro.Expr.ExprOf<Vec2<T>>, name:String):haxe.macro.Expr.ExprOf<T> {
-		return swizzle(self, 4, name);
 	}
 }
 
