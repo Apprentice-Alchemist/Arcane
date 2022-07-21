@@ -5,14 +5,18 @@ abstract Array<T, @:const L:Int> {
 	@:arrayAccess extern function get(index:Int):T;
 }
 
+typedef Int32 = Int;
+typedef Float32 = Single;
+typedef Float64 = Float;
 private typedef E<A, B> = haxe.extern.EitherType<A, B>;
-typedef VecType<T> = E<Vec2<T>, E<Vec3<T>, Vec4<T>>>;
+typedef VecElem = E<Int32, E<Float32, Float64>>;
+typedef VecType<T:VecElem> = E<Vec2<T>, E<Vec3<T>, Vec4<T>>>;
 
 #if !macro
 @:build(asl.std.StdLib.buildSwizzles(2))
 #end
 @:builtin(vec2)
-@:coreType abstract Vec2<T #if (haxe_ver >= 4.3) = Float #end> {
+@:coreType abstract Vec2<T:VecElem #if (haxe_ver >= 4.3) = Float #end> {
 	public var x(get, set):T;
 
 	extern inline function get_x() {
@@ -38,7 +42,7 @@ typedef VecType<T> = E<Vec2<T>, E<Vec3<T>, Vec4<T>>>;
 @:build(asl.std.StdLib.buildSwizzles(3))
 #end
 @:builtin(vec3)
-@:coreType abstract Vec3<T #if (haxe_ver >= 4.3) = Float #end> {
+@:coreType abstract Vec3<T:VecElem #if (haxe_ver >= 4.3) = Float #end> {
 	public var x(get, set):T;
 
 	extern inline function get_x() {
@@ -74,7 +78,7 @@ typedef VecType<T> = E<Vec2<T>, E<Vec3<T>, Vec4<T>>>;
 @:build(asl.std.StdLib.buildSwizzles(4))
 #end
 @:builtin(vec4)
-@:coreType abstract Vec4<T #if (haxe_ver >= 4.3) = Float #end> {
+@:coreType abstract Vec4<T:VecElem #if (haxe_ver >= 4.3) = Float #end> {
 	public var x(get, set):T;
 
 	extern inline function get_x() {
@@ -116,24 +120,24 @@ typedef VecType<T> = E<Vec2<T>, E<Vec3<T>, Vec4<T>>>;
 	}
 
 	@:op(A + B)
-	extern inline static function add<T>(a:Vec4<T>, b:Vec4<T>):Vec4<T> {
+	extern inline static function add<T:VecElem>(a:Vec4<T>, b:Vec4<T>):Vec4<T> {
 		return Builtins.vec4_add(a, b);
 	}
 
 	@:commutative
 	@:op(A + B)
-	extern inline static function addValue<T>(a:Vec4<T>, b:T):Vec4<T> {
+	extern inline static function addValue<T:VecElem>(a:Vec4<T>, b:T):Vec4<T> {
 		return a + vec4(b);
 	}
 
 	@:op(A * B)
-	extern inline static function dot<T>(a:Vec4<T>, b:Vec4<T>):T {
+	extern inline static function dot<T:VecElem>(a:Vec4<T>, b:Vec4<T>):T {
 		return Builtins.dot(a, b);
 	}
 }
 
 @:builtin(mat4)
-@:coreType abstract Mat4<T #if (haxe_ver >= 4.3) = Float #end> {
+@:coreType abstract Mat4<T:VecElem #if (haxe_ver >= 4.3) = Float #end> {
 	@:op(A * B) extern inline function mulVec(b:Vec4<T>):Vec4<T> {
 		return Builtins.mat4_mul_vec4(this, b);
 	}
@@ -146,38 +150,38 @@ typedef VecType<T> = E<Vec2<T>, E<Vec3<T>, Vec4<T>>>;
 	}
 }
 
-extern inline overload function vec2<T>(a:T):Vec2<T> {
+extern inline overload function vec2<T:VecElem>(a:T):Vec2<T> {
 	return vec2(a, a);
 }
 
-extern inline overload function vec2<T>(a:T, b:T):Vec2<T> {
+extern inline overload function vec2<T:VecElem>(a:T, b:T):Vec2<T> {
 	return Builtins.vec2_from_values(a, b);
 }
 
-extern inline overload function vec3<T>(a:T):Vec3<T> {
+extern inline overload function vec3<T:VecElem>(a:T):Vec3<T> {
 	return vec3(a, a, a);
 }
 
-extern inline overload function vec3<T>(a:Vec2<T>, value:T):Vec3<T> {
+extern inline overload function vec3<T:VecElem>(a:Vec2<T>, value:T):Vec3<T> {
 	return vec3(a.x, a.y, value);
 }
 
-extern inline overload function vec3<T>(a:T, b:T, c:T):Vec3<T> {
+extern inline overload function vec3<T:VecElem>(a:T, b:T, c:T):Vec3<T> {
 	return Builtins.vec3_from_values(a, b, c);
 }
 
-extern inline overload function vec4<T>(a:T):Vec4<T> {
+extern inline overload function vec4<T:VecElem>(a:T):Vec4<T> {
 	return vec4(a, a, a, a);
 }
 
-extern inline overload function vec4<T>(a:Vec3<T>, value:T) {
+extern inline overload function vec4<T:VecElem>(a:Vec3<T>, value:T) {
 	return vec4(a.x, a.y, a.z, value);
 }
 
-extern inline overload function vec4<T>(a:T, b:T, c:T, d:T):Vec4<T> {
+extern inline overload function vec4<T:VecElem>(a:T, b:T, c:T, d:T):Vec4<T> {
 	return Builtins.vec4_from_values(a, b, c, d);
 }
 
-extern inline function mix<T>(a:Vec4<T>, b:Vec4<T>, v:T):Vec4<T> {
+extern inline function mix<T:VecElem>(a:Vec4<T>, b:Vec4<T>, v:T):Vec4<T> {
 	return Builtins.mix(a, b, v);
 }

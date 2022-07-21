@@ -4,7 +4,7 @@ import arcane.util.Color;
 
 enum LoadOp {
 	Clear;
-	Load;
+	Load(color:Color);
 }
 
 enum StoreOp {
@@ -17,8 +17,6 @@ enum StoreOp {
 
 	public final load:LoadOp;
 	public final store:StoreOp;
-
-	@:optional public final loadValue:Null<Color>;
 }
 
 @:structInit class RenderPassDescriptor {
