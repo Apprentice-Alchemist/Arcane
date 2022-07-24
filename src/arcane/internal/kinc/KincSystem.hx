@@ -254,12 +254,22 @@ class KincSystem implements ISystem {
 
 	private var lastTime = 0.0;
 
+	static var isG5 = switch kinc.System.getGraphicsApi() {
+			case D3D12, Metal, Vulkan: true;
+			case _: false;
+		}
+
 	public function update() {
 		try {
 			var curtime = kinc.System.time();
 			var dt = curtime - lastTime;
 			lastTime = curtime;
 			arcane.Lib.handle_update(dt);
+			if (isG5) {
+				kinc.g5.Graphics5.swapBuffers();
+			} else {
+				kinc.g4.Graphics4.swapBuffers();
+			}
 		} catch (e) {
 			Sys.println(e.details());
 			kinc.System.stop();
@@ -275,8 +285,8 @@ class KincSystem implements ISystem {
 	}
 
 	public function getGPUDevice():Null<IGPUDevice> {
-		return new G5Driver(0);
-		// return new KincDriver(0);
+		// return new G5Driver(0);
+		return new KincDriver(0);
 	}
 
 	public function language():String {

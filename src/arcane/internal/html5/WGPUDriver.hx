@@ -487,23 +487,24 @@ private class RenderPass implements IRenderPass {
 					{
 						view: (cast a.texture : Texture).view,
 						loadValue: switch a.load {
-							case Clear if (a.loadValue != null): ({
-									r: a.loadValue.r / 0xFF,
-									g: a.loadValue.g / 0xFF,
-									b: a.loadValue.b / 0xFF,
-									a: a.loadValue.a / 0xFF
-								} : wgpu.GPUColorDict);
-							case Clear: {
+							case Clear(null): {
 									r: 0.0,
 									g: 0.0,
 									b: 0.0,
 									a: 1.0
 								}
+							case Clear(color):({
+								r: color.r / 0xFF,
+								g: color.g / 0xFF,
+								b: color.b / 0xFF,
+								a: color.a / 0xFF
+							} : wgpu.GPUColorDict);
+
 							case Load: null;
 						},
 						loadOp: switch a.load {
 							case Load: LOAD;
-							case Clear: CLEAR;
+							case Clear(_): CLEAR;
 						},
 						storeOp: switch a.store {
 							case Store: STORE;

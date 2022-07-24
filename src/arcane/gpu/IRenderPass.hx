@@ -3,8 +3,8 @@ package arcane.gpu;
 import arcane.util.Color;
 
 enum LoadOp {
-	Clear;
-	Load(color:Color);
+	Clear(?color:Color);
+	Load;
 }
 
 enum StoreOp {

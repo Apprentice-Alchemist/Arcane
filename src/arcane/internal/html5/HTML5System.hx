@@ -110,7 +110,7 @@ class HTML5System implements ISystem {
 			var gl = canvas.getContextWebGL2({alpha: false, antialias: false, stencil: true});
 			if (gl != null) {
 				js.Browser.console.log("Using WebGL 2.");
-				gdriver = new WebGLDriver(gl, canvas);
+				gdriver = new WebGL2Driver(gl, canvas);
 			} else
 				js.Browser.console.error("Could not aquire WebGL 2 context.");
 

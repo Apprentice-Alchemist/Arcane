@@ -50,7 +50,7 @@ private enum Command {
 private class VertexBuffer implements IVertexBuffer {
 	public var desc:VertexBufferDescriptor;
 
-	var driver:WebGLDriver;
+	var driver:WebGL2Driver;
 	var buf:Buffer;
 	var buf_stride:Int;
 	var layout:Array<{
@@ -122,7 +122,7 @@ private class VertexBuffer implements IVertexBuffer {
 		}
 	}
 
-	public inline function check(?driver:WebGLDriver):Bool {
+	public inline function check(?driver:WebGL2Driver):Bool {
 		if (driver != null) {
 			assert(driver == this.driver, "driver mismatch");
 		}
@@ -134,7 +134,7 @@ private class VertexBuffer implements IVertexBuffer {
 private class IndexBuffer implements IIndexBuffer {
 	public var desc:IndexBufferDescriptor;
 
-	var driver:WebGLDriver;
+	var driver:WebGL2Driver;
 	var buf:Buffer;
 	var data:ArrayBuffer;
 
@@ -188,7 +188,7 @@ private class IndexBuffer implements IIndexBuffer {
 		}
 	}
 
-	public inline function check(?driver:WebGLDriver):Bool {
+	public inline function check(?driver:WebGL2Driver):Bool {
 		if (driver != null) {
 			assert(driver == this.driver, "driver mismatch");
 		}
@@ -200,7 +200,7 @@ private class IndexBuffer implements IIndexBuffer {
 private class UniformBuffer implements IUniformBuffer {
 	public var desc:UniformBufferDescriptor;
 
-	var driver:WebGLDriver;
+	var driver:WebGL2Driver;
 	var buf:Null<Buffer>;
 	var data:JsArrayBuffer;
 
@@ -255,7 +255,7 @@ private class UniformBuffer implements IUniformBuffer {
 		// }
 	}
 
-	public inline function check(?driver:WebGLDriver):Bool {
+	public inline function check(?driver:WebGL2Driver):Bool {
 		if (driver != null) {
 			assert(driver == this.driver, "driver mismatch");
 		}
@@ -267,7 +267,7 @@ private class UniformBuffer implements IUniformBuffer {
 private class Shader implements IShaderModule {
 	public var desc:ShaderDescriptor;
 
-	var driver:WebGLDriver;
+	var driver:WebGL2Driver;
 	var shader:js.html.webgl.Shader;
 
 	public function new(driver, desc) {
@@ -292,7 +292,7 @@ private class Shader implements IShaderModule {
 		driver.gl.deleteShader(shader);
 	}
 
-	public inline function check(?driver:WebGLDriver):Bool {
+	public inline function check(?driver:WebGL2Driver):Bool {
 		if (driver != null) {
 			assert(driver == this.driver, "driver mismatch");
 		}
@@ -338,7 +338,7 @@ private class TextureUnit {
 private class RenderPipeline implements IRenderPipeline {
 	public var desc:RenderPipelineDescriptor;
 
-	final driver:WebGLDriver;
+	final driver:WebGL2Driver;
 	final program:Program;
 	final locs:Map<Int, ConstantLocation> = [];
 	final tus:Map<Int, TextureUnit> = [];
@@ -374,30 +374,34 @@ private class RenderPipeline implements IRenderPipeline {
 		var loc_count:Int = driver.gl.getProgramParameter(program, GL.ACTIVE_UNIFORMS);
 		var tu_count = 0;
 		final uniforms = desc.vertexShader.desc.module.uniforms.concat(desc.fragmentShader.desc.module.uniforms);
+		// var binding = 0;
 		for (i in 0...loc_count) {
 			var info = driver.gl.getActiveUniform(program, i);
 			var uniform = driver.gl.getUniformLocation(program, info.name);
-			var name = info.name.charAt(info.name.length - 1) == "]" ? info.name.substr(0, info.name.length - 3) : info.name;
-			trace(info.name, info.size, info.type);
+			var name = info.name.charAt(info.name.length - 1) == "]" ? info.name.substr(0, info.name.indexOf("[")) : info.name;
+			// trace(info.name, info.size, info.type);
 			if (name.indexOf(".") > -1) {
 				var n = name.split(".");
 				n.shift();
 				name = n.join("");
 			}
-			var binding = 0;
+			// trace(name, Std.string(info.type));
 			for (v in uniforms) {
+				var uname = asl.GlslOut.escape(v.name);
+				// var uname = v.kind.match(Uniform(_)) ? "M." + uname : uname;
 				// trace(name, v.name, asl.GlslOut.escape(v.name));
-				if (name == asl.GlslOut.escape(v.name)) {
-					if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE) {
-						tus.set(binding++, new TextureUnit(name, tu_count++, uniform));
-					} else {
-						switch v.kind {
-							case Input(location):
-							case Output(location):
-							case Local:
-							case Uniform(binding):
+				// trace(name, uname);
+				if (name == uname || name == "M." + uname) {
+					switch v.kind {
+						case Input(location):
+						case Output(location):
+						case Local:
+						case Uniform(binding):
+							if (info.type == GL.SAMPLER_2D || info.type == GL.SAMPLER_CUBE) {
+								tus.set(binding, new TextureUnit(name, tu_count++, uniform));
+							} else {
 								locs.set(binding, new ConstantLocation(name, info.type, uniform));
-						}
+							}
 					}
 				}
 			}
@@ -410,7 +414,7 @@ private class RenderPipeline implements IRenderPipeline {
 		driver.gl.deleteProgram(program);
 	}
 
-	public inline function check(?driver:WebGLDriver):Bool {
+	public inline function check(?driver:WebGL2Driver):Bool {
 		if (driver != null) {
 			assert(driver == this.driver, "driver mismatch");
 		}
@@ -418,49 +422,59 @@ private class RenderPipeline implements IRenderPipeline {
 	}
 }
 
+private enum TextureInner {
+	RenderBuffer(rb:Renderbuffer);
+	DefaultRenderBuffer;
+	Texture(tex:js.html.webgl.Texture, target:Int);
+}
+
 @:nullSafety(Strict)
 private class Texture implements ITexture {
 	public var desc:TextureDescriptor;
 
-	final driver:WebGLDriver;
-	final texture:js.html.webgl.Texture;
-	@:nullSafety(Off) final frameBuffer:Framebuffer;
-	@:nullSafety(Off) final renderBuffer:Renderbuffer;
+	final driver:WebGL2Driver;
+	// final texture:js.html.webgl.Texture;
+	final inner:TextureInner;
+
+	// // @:nullSafety(Off) final frameBuffer:Framebuffer;
+	// @:nullSafety(Off) final renderBuffer:Renderbuffer;
 
 	public function new(driver, desc) {
 		this.driver = driver;
 		this.desc = desc;
 
-		if (desc.isRenderTarget) {
-			texture = driver.gl.createTexture();
-			driver.gl.bindTexture(GL.TEXTURE_2D, texture);
-			@:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, null);
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-			driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+		inner = if (desc.isRenderTarget) {
+			// texture = driver.gl.createTexture();
+			// driver.gl.bindTexture(GL.TEXTURE_2D, texture);
+			// @:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, null);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
 
-			frameBuffer = driver.gl.createFramebuffer();
-			driver.gl.bindFramebuffer(GL.FRAMEBUFFER, frameBuffer);
-			driver.gl.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0, GL.TEXTURE_2D, texture, 0);
+			// frameBuffer = driver.gl.createFramebuffer();
+			// driver.gl.bindFramebuffer(GL.FRAMEBUFFER, frameBuffer);
+			// driver.gl.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0, GL.TEXTURE_2D, texture, 0);
 
-			renderBuffer = driver.gl.createRenderbuffer();
+			var renderBuffer = driver.gl.createRenderbuffer();
 			driver.gl.bindRenderbuffer(GL.RENDERBUFFER, renderBuffer);
 			driver.gl.renderbufferStorage(GL.RENDERBUFFER, GL.DEPTH_STENCIL, desc.width, desc.height);
-			driver.gl.framebufferRenderbuffer(GL.FRAMEBUFFER, GL.DEPTH_STENCIL_ATTACHMENT, GL.RENDERBUFFER, renderBuffer);
+			// driver.gl.framebufferRenderbuffer(GL.FRAMEBUFFER, GL.DEPTH_STENCIL_ATTACHMENT, GL.RENDERBUFFER, renderBuffer);
 
-			if (driver.gl.checkFramebufferStatus(GL.FRAMEBUFFER) != GL.FRAMEBUFFER_COMPLETE) {
-				throw "Failed to create framebuffer.";
-			}
+			// if (driver.gl.checkFramebufferStatus(GL.FRAMEBUFFER) != GL.FRAMEBUFFER_COMPLETE) {
+			// 	throw "Failed to create framebuffer.";
+			// }
 			@:nullSafety(Off) driver.gl.bindRenderbuffer(GL.RENDERBUFFER, null);
-			@:nullSafety(Off) driver.gl.bindFramebuffer(GL.FRAMEBUFFER, null);
-			@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
+			RenderBuffer(renderBuffer);
+			// @:nullSafety(Off) driver.gl.bindFramebuffer(GL.FRAMEBUFFER, null);
+			// @:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
 		} else {
 			assert(desc.format.match(RGBA), "WebGL only supports rgba textures right now.");
-			texture = driver.gl.createTexture();
+			var texture = driver.gl.createTexture();
 			driver.gl.bindTexture(GL.TEXTURE_2D, texture);
-			@:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE,
-				desc.data == null ? null : @:privateAccess desc.data.b);
+			driver.gl.texStorage2D(GL.TEXTURE_2D, 1, GL.RGBA8, desc.width, desc.height);
+			// @:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA8, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE,
+			// 	desc.data == null ? null : @:privateAccess desc.data.b);
 
 			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
 			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
@@ -468,30 +482,34 @@ private class Texture implements ITexture {
 			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
 
 			@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
+			Texture(texture, GL.TEXTURE_2D);
 		}
 	}
 
 	public function upload(data:haxe.io.Bytes) {
-		if (!desc.isRenderTarget) {
-			driver.gl.bindTexture(GL.TEXTURE_2D, texture);
-			driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, @:privateAccess data.b);
-			@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
+		switch inner {
+			case RenderBuffer(_) | DefaultRenderBuffer:
+				throw "assert";
+			case Texture(tex, target):
+				driver.gl.bindTexture(GL.TEXTURE_2D, tex);
+				driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, @:privateAccess data.b);
+				@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
 		}
 	}
 
 	public function dispose() {
 		if (driver.check()) {
-			driver.gl.deleteTexture(texture);
-			if (frameBuffer != null) {
-				driver.gl.deleteFramebuffer(frameBuffer);
-			}
-			if (renderBuffer != null) {
-				driver.gl.deleteRenderbuffer(renderBuffer);
+			switch inner {
+				case RenderBuffer(rb):
+					driver.gl.deleteRenderbuffer(rb);
+				case DefaultRenderBuffer:
+				case Texture(tex, target):
+					driver.gl.deleteTexture(tex);
 			}
 		}
 	}
 
-	public inline function check(?driver:WebGLDriver):Bool {
+	public inline function check(?driver:WebGL2Driver):Bool {
 		if (driver != null) {
 			assert(driver == this.driver, "driver mismatch");
 		}
@@ -503,7 +521,7 @@ private class Texture implements ITexture {
 private class Sampler implements ISampler {
 	public final sampler:js.html.webgl.Sampler;
 
-	public function new(driver:WebGLDriver, desc:SamplerDescriptor) {
+	public function new(driver:WebGL2Driver, desc:SamplerDescriptor) {
 		sampler = driver.gl.createSampler();
 
 		driver.gl.samplerParameteri(sampler, GL.TEXTURE_MAG_FILTER, convertMagFilter(desc.magFilter));
@@ -738,7 +756,7 @@ private class CommandBuffer implements ICommandBuffer {
 	}
 
 	@:access(arcane.internal)
-	public function execute(driver:WebGLDriver):Void {
+	public function execute(driver:WebGL2Driver):Void {
 		final gl = driver.gl;
 		// final gl2 = driver.gl2;
 		// final hasGL2 = driver.hasGL2;
@@ -759,11 +777,15 @@ private class CommandBuffer implements ICommandBuffer {
 								if (curPipeline != null) {
 									assert((cast curPipeline : RenderPipeline).tus != null);
 									final tu:TextureUnit = cast((cast curPipeline : RenderPipeline).tus.get(entry.binding));
-
-									if (tu != null && !(untyped tu != undefined)) {
-										gl.activeTexture(GL.TEXTURE0 + tu.index);
-										gl.bindTexture(GL.TEXTURE_2D, texture.texture);
-										gl.bindSampler(tu.index, sampler.sampler);
+									if (tu != null && (untyped tu != undefined)) {
+										switch texture.inner {
+											case RenderBuffer(rb):
+											case DefaultRenderBuffer:
+											case Texture(tex, target):
+												gl.activeTexture(GL.TEXTURE0 + tu.index);
+												gl.bindTexture(GL.TEXTURE_2D, tex);
+												gl.bindSampler(tu.index, sampler.sampler);
+										}
 									}
 								}
 						}
@@ -787,23 +809,35 @@ private class CommandBuffer implements ICommandBuffer {
 		for (command in commands) {
 			switch command {
 				case BeginRenderPass(desc):
-					final t = desc.colorAttachments[0].texture;
-					if (t == WebGLDriver.dummyTexture) {
-						@:nullSafety(Off) gl.bindFramebuffer(GL.FRAMEBUFFER, null);
-						gl.viewport(0, 0, driver.canvas.width, driver.canvas.height);
+					final a = desc.colorAttachments[0];
+					if (a.texture == WebGL2Driver.dummyTexture) {
+						// @:nullSafety(Off) gl.bindFramebuffer(GL.FRAMEBUFFER, null);
+						// gl.viewport(0, 0, driver.canvas.width, driver.canvas.height);
 					} else {
-						var tex:Texture = cast t;
+						var tex:Texture = cast a.texture;
 						assert(tex.driver == driver, "driver mismatch");
-						gl.bindFramebuffer(GL.FRAMEBUFFER, tex.frameBuffer);
+						// gl.bindFramebuffer(GL.FRAMEBUFFER, tex.frameBuffer);
 						gl.viewport(0, 0, tex.desc.width, tex.desc.height);
-						if (desc.colorAttachments.length > 1 && driver.features.multipleColorAttachments) {
-							final attachments = [];
-							for (i => attachment in desc.colorAttachments) {
-								gl.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0 + i, GL.TEXTURE_2D, (cast attachment.texture : Texture)
-									.texture, 0);
-								attachments.push(GL.COLOR_ATTACHMENT0 + i);
+						final attachments = [];
+						for (i => attachment in desc.colorAttachments) {
+							var t:Texture = cast attachment.texture;
+							switch t.inner {
+								case RenderBuffer(rb):
+									gl.framebufferRenderbuffer(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0 + i, GL.RENDERBUFFER, rb);
+								case DefaultRenderBuffer:
+								case Texture(tex, target):
+									gl.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0 + i, GL.TEXTURE_2D, tex, 0);
 							}
-							gl.drawBuffers(attachments);
+							attachments.push(GL.COLOR_ATTACHMENT0 + i);
+						}
+						gl.drawBuffers(attachments);
+					}
+					for (i => attachment in desc.colorAttachments) {
+						switch desc.colorAttachments[i].load {
+							case Clear(color) if (color != null):
+								gl.clearBufferfv(GL.COLOR, i, [color.r / 0xFF, color.g / 0xFF, color.b / 0xFF, color.a / 0xFF]);
+							case Clear(_):
+							case Load:
 						}
 					}
 				case EndRenderPass:
@@ -901,7 +935,7 @@ private class CommandBuffer implements ICommandBuffer {
 @:nullSafety(Strict)
 @:allow(arcane.internal.html5)
 @:access(arcane.internal.html5)
-class WebGLDriver implements IGPUDevice {
+class WebGL2Driver implements IGPUDevice {
 	public final features:DriverFeatures;
 	public final limits:DriverLimits = {};
 	public final anisotropy:Bool;
@@ -965,24 +999,6 @@ class WebGLDriver implements IGPUDevice {
 		@:nullSafety(Off) gl = null;
 	}
 
-	// public function clear(?col:arcane.util.Color, ?depth:Float, ?stencil:Int):Void {
-	// 	var bits:arcane.util.IntFlags = 0;
-	// 	if (col == null)
-	// 		col = 0x000000;
-	// 	gl.colorMask(true, true, true, true);
-	// 	gl.clearColor(col.r, col.g, col.b, 0xff);
-	// 	bits.add(GL.COLOR_BUFFER_BIT);
-	// 	if (depth != null) {
-	// 		gl.depthMask(true);
-	// 		gl.clearDepth(depth);
-	// 		bits.add(GL.DEPTH_BUFFER_BIT);
-	// 	}
-	// 	if (stencil != null) {
-	// 		gl.clearStencil(stencil);
-	// 		bits.add(GL.STENCIL_BUFFER_BIT);
-	// 	}
-	// 	gl.clear(bits);
-	// }
 	@:noCompletion var enabled_things:Map<Int, Bool> = new Map();
 
 	public function present():Void {}

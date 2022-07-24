@@ -6,6 +6,8 @@ import hl.BytesAccess;
 import haxe.io.Bytes;
 import kinc.audio2.Audio;
 import arcane.audio.IAudioDevice;
+using arcane.Utils;
+import arcane.Utils.*;
 
 @:structInit
 class AudioBuffer implements IAudioBuffer {
@@ -94,6 +96,7 @@ class KincAudioDriver implements IAudioDevice {
 		Audio.init();
 		Audio.setCallback(mix);
 		sample_rate = Audio.getSamplesPerSecond();
+		arcane.Lib.update.add((_) -> Audio.update());
 		mutex.acquire();
 		sources.resize(0);
 		mutex.release();
@@ -137,6 +140,7 @@ class KincAudioDriver implements IAudioDevice {
 
 	public function fromFile(file:String, cb:Result<IAudioBuffer, AssetError>->Void):Void {
 		(cast Lib.system : KincSystem).thread_pool.addTask(() -> {
+			trace("loading audio from file", file);
 			if (StringTools.endsWith(file, "ogg")) {
 				#if arcane_audio_use_fmt
 				var bytes = KincSystem.readFileInternal(file).sure();

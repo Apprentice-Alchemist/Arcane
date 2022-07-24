@@ -17,7 +17,7 @@
 -D hl-profile
 -D eval-stack
 # -D hl-hot-reload
--D vulkan
+# -D vulkan
 
 --macro nullSafety("arcane",StrictThreaded)
 --macro nullSafety("asl",StrictThreaded)

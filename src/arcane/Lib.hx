@@ -77,9 +77,11 @@ class Lib {
 		#if hl_profile
 		hl.Profile.event(-1); // pause
 		#end
+		#if kinc
 		if (gdriver != null) {
 			gdriver.present();
 		}
+		#end
 		#if hl_profile
 		hl.Profile.event(0); // next frame
 		hl.Profile.event(-2); // resume

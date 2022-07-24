@@ -1,3 +1,4 @@
+import arcane.util.Color;
 import arcane.util.Math.Matrix4;
 import arcane.arrays.Int32Array;
 import arcane.arrays.Float32Array;
@@ -124,7 +125,7 @@ function main() {
 				// var ubuf = new Float32Array(16 * 4);
 				final ubuf:Float32Array = uniform_buffer.map(0, uniform_buffer.desc.size);
 				// final mat = Matrix4.
-				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time() / 0.5, 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true);
 				// final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				// mat.write(ubuf, true, 16);
@@ -136,7 +137,7 @@ function main() {
 				// uniform_buffer.upload(0, ubuf);
 
 				final encoder = d.createCommandEncoder();
-				final pass = encoder.beginRenderPass({colorAttachments: [{texture: d.getCurrentTexture(), load: Clear, store: Store}]});
+				final pass = encoder.beginRenderPass({colorAttachments: [{texture: d.getCurrentTexture(), load: Clear(Color.fromARGB(1, 255, 0, 0)), store: Store}]});
 				pass.setPipeline(pipeline);
 				pass.setVertexBuffer(vbuf);
 				pass.setIndexBuffer(ibuf);

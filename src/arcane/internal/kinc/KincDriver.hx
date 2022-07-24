@@ -165,19 +165,11 @@ private class UniformBuffer implements IUniformBuffer {
 		this.data.blit(start, arr, 0, arr.byteLength);
 	}
 
-	var last_data:Null<ArrayBuffer> = null;
-	var last_start:Null<Int> = null;
-
 	public function map(start:Int, range:Int):ArrayBuffer {
-		last_start = start;
-		return last_data = new ArrayBuffer(range);
+		return ArrayBuffer.fromBytes(data.b.offset(start), range);
 	}
 
-	public function unmap() {
-		if (last_data != null) {
-			this.data.blit(cast last_start, cast last_data, 0, (cast last_data).byteLength);
-		}
-	}
+	public function unmap() {}
 }
 
 @:nullSafety(Strict)
@@ -752,7 +744,7 @@ private class CommandBuffer implements ICommandBuffer {
 						Graphics4.setRenderTargets(targets);
 					}
 
-					Graphics4.clear(Color, 0xFF0000FF, 0, 0);
+					Graphics4.clear(Color, 0xFF000000, 0, 0);
 				case EndRenderPass:
 					in_render = false;
 				case SetVertexBuffers(buffers):
@@ -827,22 +819,11 @@ class KincDriver implements IGPUDevice {
 	@:allow(arcane.internal.kinc)
 	static final dummyTex = Type.createEmptyInstance(Texture);
 
-	public function begin():ITexture {
-		Graphics4.begin(window);
-		return dummyTex;
-	}
-
-	public function end():Void {
-		Graphics4.end(window);
-	}
-
 	public function flush():Void {
 		Graphics4.flush();
 	}
 
-	public function present():Void {
-		Graphics4.swapBuffers();
-	}
+	public function present():Void {}
 
 	public function createVertexBuffer(desc:VertexBufferDescriptor):IVertexBuffer {
 		return new VertexBuffer(desc);
@@ -869,7 +850,7 @@ class KincDriver implements IGPUDevice {
 	}
 
 	public function getCurrentTexture():ITexture {
-		Graphics4.begin(0);
+		Graphics4.begin(window);
 		return dummyTex;
 	}
 
@@ -897,6 +878,6 @@ class KincDriver implements IGPUDevice {
 		for (buf in buffers) {
 			(cast buf : CommandBuffer).execute();
 		}
-		Graphics4.end(0); // TODO: swapchain handling
+		Graphics4.end(window); // TODO: swapchain handling
 	}
 }
