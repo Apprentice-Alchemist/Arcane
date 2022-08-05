@@ -472,14 +472,9 @@ private class Texture implements ITexture {
 			assert(desc.format.match(RGBA), "WebGL only supports rgba textures right now.");
 			var texture = driver.gl.createTexture();
 			driver.gl.bindTexture(GL.TEXTURE_2D, texture);
-			driver.gl.texStorage2D(GL.TEXTURE_2D, 1, GL.RGBA8, desc.width, desc.height);
-			// @:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA8, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE,
-			// 	desc.data == null ? null : @:privateAccess desc.data.b);
-
-			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
-			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
-			// driver.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+			@:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA8, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE,
+				desc.data == null ? null : @:privateAccess desc.data.b);
+				driver.gl.generateMipmap(GL.TEXTURE_2D);
 
 			@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
 			Texture(texture, GL.TEXTURE_2D);

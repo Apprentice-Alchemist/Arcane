@@ -25,11 +25,11 @@ import arcane.Image;
 	@:in var uv:Vec2;
 	@:out var f_uv:Vec2;
 	@:builtin(position) var position:Vec4;
-	@:uniform(0) var m:Mat4; //Array<Mat4, 4>;
-	// @:builtin(instanceIndex) var instanceIndex:Int;
+	@:uniform(0) var m:Array<Mat4, 4>;
+	@:builtin(instanceIndex) var instanceIndex:Int;
 	function main() {
 		f_uv = uv;
-		position = m/*[instanceIndex]*/ * vec4(pos, 1.0);
+		position = m[instanceIndex] * vec4(pos, 1.0);
 	}
 })
 @:frag({
@@ -38,6 +38,7 @@ import arcane.Image;
 	@:uniform(1) var tex:Texture2D;
 	function main() {
 		color = tex.get(f_uv);
+		color.w = 1.0;
 	}
 })
 private class MyShader extends asl.Shader {}
@@ -108,7 +109,7 @@ function main() {
 			final sampler = d.createSampler({compare: null});
 
 			final uniform_buffer = d.createUniformBuffer({
-				size: 4 * 16 // * 4
+				size: 4 * 16 * 4
 			});
 
 			final bind_group = d.createBindGroup({
@@ -125,19 +126,21 @@ function main() {
 				// var ubuf = new Float32Array(16 * 4);
 				final ubuf:Float32Array = uniform_buffer.map(0, uniform_buffer.desc.size);
 				// final mat = Matrix4.
-				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time() / 0.5, 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time() , 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true);
-				// final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
-				// mat.write(ubuf, true, 16);
-				// final mat = Matrix4.translation(0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
-				// mat.write(ubuf, true, 32);
-				// final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
-				// mat.write(ubuf, true, 48);
+				final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				mat.write(ubuf, true, 16);
+				final mat = Matrix4.translation(0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				mat.write(ubuf, true, 32);
+				final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				mat.write(ubuf, true, 48);
 				uniform_buffer.unmap();
-				// uniform_buffer.upload(0, ubuf);
+				uniform_buffer.upload(0, ubuf);
 
 				final encoder = d.createCommandEncoder();
-				final pass = encoder.beginRenderPass({colorAttachments: [{texture: d.getCurrentTexture(), load: Clear(Color.fromARGB(1, 255, 0, 0)), store: Store}]});
+				final pass = encoder.beginRenderPass({colorAttachments: [
+					{texture: d.getCurrentTexture(), load: Clear(Color.fromARGB(255, 255, 0, 0)), store: Store}
+				]});
 				pass.setPipeline(pipeline);
 				pass.setVertexBuffer(vbuf);
 				pass.setIndexBuffer(ibuf);
