@@ -73,9 +73,9 @@ function buildSwizzles(size:Int) {
 				pos: (macro null).pos,
 			});
 			var vecCtor = switch perm.length {
-				case 2: macro vec2;
-				case 3: macro vec3;
-				case 4: macro vec4;
+				case 2: macro asl.std.StdLib.vec2;
+				case 3: macro asl.std.StdLib.vec3;
+				case 4: macro asl.std.StdLib.vec4;
 				case _: throw "assert";
 			}
 			fields.push({
@@ -102,7 +102,7 @@ function buildSwizzles(size:Int) {
 								name: "value"
 							}
 						],
-						expr: macro {
+						expr: macro @:swizzle {
 							$b{
 								[
 									for (i in 0...perm.length) {

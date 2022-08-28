@@ -474,7 +474,7 @@ private class Texture implements ITexture {
 			driver.gl.bindTexture(GL.TEXTURE_2D, texture);
 			@:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA8, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE,
 				desc.data == null ? null : @:privateAccess desc.data.b);
-				driver.gl.generateMipmap(GL.TEXTURE_2D);
+			driver.gl.generateMipmap(GL.TEXTURE_2D);
 
 			@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
 			Texture(texture, GL.TEXTURE_2D);
@@ -828,10 +828,11 @@ private class CommandBuffer implements ICommandBuffer {
 						gl.drawBuffers(attachments);
 					}
 					for (i => attachment in desc.colorAttachments) {
-						switch desc.colorAttachments[i].load {
+						switch attachment.load {
 							case Clear(color) if (color != null):
 								gl.clearBufferfv(GL.COLOR, i, [color.r / 0xFF, color.g / 0xFF, color.b / 0xFF, color.a / 0xFF]);
 							case Clear(_):
+								gl.clearBufferfv(GL.COLOR, i, [0, 0, 0, 1]);
 							case Load:
 						}
 					}

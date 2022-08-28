@@ -106,7 +106,7 @@ function main() {
 				layout: [bind_group_layout]
 			});
 
-			final sampler = d.createSampler({compare: null});
+			final sampler = d.createSampler({});
 
 			final uniform_buffer = d.createUniformBuffer({
 				size: 4 * 16 * 4
@@ -123,10 +123,8 @@ function main() {
 				]});
 
 			Lib.update.add((dt) -> {
-				// var ubuf = new Float32Array(16 * 4);
 				final ubuf:Float32Array = uniform_buffer.map(0, uniform_buffer.desc.size);
-				// final mat = Matrix4.
-				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time() , 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true);
 				final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true, 16);
@@ -135,12 +133,11 @@ function main() {
 				final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
 				mat.write(ubuf, true, 48);
 				uniform_buffer.unmap();
-				uniform_buffer.upload(0, ubuf);
 
 				final encoder = d.createCommandEncoder();
-				final pass = encoder.beginRenderPass({colorAttachments: [
-					{texture: d.getCurrentTexture(), load: Clear(Color.fromARGB(255, 255, 0, 0)), store: Store}
-				]});
+				final pass = encoder.beginRenderPass({
+					colorAttachments: [{texture: d.getCurrentTexture(), load: Clear(), store: Store}]
+				});
 				pass.setPipeline(pipeline);
 				pass.setVertexBuffer(vbuf);
 				pass.setIndexBuffer(ibuf);

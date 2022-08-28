@@ -6,7 +6,7 @@ abstract Array<T, @:const L:Int> {
 }
 
 typedef Int32 = Int;
-typedef Float32 = Single;
+typedef Float32 = #if hl Single #else Float #end;
 typedef Float64 = Float;
 private typedef E<A, B> = haxe.extern.EitherType<A, B>;
 typedef VecElem = E<Int32, E<Float32, Float64>>;
