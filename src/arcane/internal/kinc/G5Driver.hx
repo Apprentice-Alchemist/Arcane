@@ -8,10 +8,7 @@ import kinc.g5.CommandList;
 import kinc.Window;
 import kinc.g5.Shader;
 import asl.GlslOut;
-// import kinc.compute.Compute.ComputeConstantLocation;
-// import kinc.compute.Compute.ComputeTextureUnit;
 import kinc.g5.TextureUnit;
-// import kinc.g4.ConstantLocation;
 import haxe.ds.ReadOnlyArray;
 import kinc.compute.ComputeShader;
 import arcane.arrays.ArrayBuffer;
@@ -37,21 +34,6 @@ import arcane.arrays.Float32Array;
 import arcane.arrays.Int32Array;
 import arcane.Utils.assert;
 import arcane.util.Log;
-
-// private enum Command {
-// 	BeginRenderPass(desc:RenderPassDescriptor);
-// 	EndRenderPass;
-// 	SetVertexBuffers(b:Array<VertexBuffer>);
-// 	SetIndexBuffer(b:IndexBuffer);
-// 	SetPipeline(p:RenderPipeline);
-// 	SetBindGroup(index:Int, b:BindGroup);
-// 	Draw(start:Int, count:Int);
-// 	DrawInstanced(instanceCount:Int, start:Int, count:Int);
-// 	BeginComputePass(desc:ComputePassDescriptor);
-// 	SetComputePipeline(p:ComputePipeline);
-// 	Compute(x:Int, y:Int, z:Int);
-// 	EndComputePass;
-// }
 
 private class VertexBuffer implements IVertexBuffer {
 	public var desc(default, null):VertexBufferDescriptor;
@@ -196,7 +178,7 @@ private class Texture implements ITexture {
 		this.desc = desc;
 
 		if (desc.isRenderTarget) {
-			renderTarget = RenderTarget.create(desc.width, desc.height, 24, false, RenderTargetFormat32Bit, 8, 0);
+			renderTarget = RenderTarget.create(desc.width, desc.height, RenderTargetFormat32Bit, 24, 8);
 		} else {
 			this.tex = kinc.g5.Texture.create(desc.width, desc.height, switch desc.format {
 				case RGBA: FORMAT_RGBA32;
@@ -626,22 +608,29 @@ private class ComputePass implements IComputePass {
 
 private class RenderPass implements IRenderPass {
 	final encoder:CommandEncoder;
+	final targets:hl.NativeArray<RenderTarget>;
+
+	var curPipeline:Null<RenderPipeline> = null;
+	var bindGroups:Map<Int, BindGroup> = [];
+	var groupsChanged:Bool = false;
 
 	public function new(encoder:CommandEncoder, desc:RenderPassDescriptor) {
 		this.encoder = encoder;
-		trace(desc.colorAttachments);
-		var targets = new hl.NativeArray(desc.colorAttachments.length);
+
+		targets = new hl.NativeArray(desc.colorAttachments.length);
 		for (i => attachment in desc.colorAttachments) {
-			targets[i] = cast(cast attachment.texture : Texture).renderTarget;
+			var t:RenderTarget = cast(cast attachment.texture : Texture).renderTarget;
+			encoder.list.framebufferToRenderTargetBarrier(t);
+			targets[i] = t;
 		}
 		encoder.list.setRenderTargets(targets);
 		for (i => attachment in desc.colorAttachments) {
 			var target = cast(cast desc.colorAttachments[i].texture : Texture).renderTarget;
 			switch attachment.load {
-				case Clear:
+				case Clear(color):
+					encoder.list.clear(target, Color, color ?? 0, 0, 0);
+				case Load:
 					encoder.list.clear(target, Color, 0, 0, 0);
-				case Load(color):
-					encoder.list.clear(target, Color, color, 0, 0);
 			}
 		}
 		// TODO: depth textures, somehow
@@ -672,6 +661,19 @@ private class RenderPass implements IRenderPass {
 	}
 
 	public function draw(start:Int, count:Int):Void {
+		if(groupsChanged) {
+			for(group in bindGroups) {
+				for(entry in group.desc.entries) {
+					@:nullSafety(Off) switch entry.resource {
+						case Buffer(buffer):
+						case Texture(texture, sampler):
+							assert(curPipeline != null);
+							var unit = curPipeline.state.getTextureUnit("tex");
+							// encoder.list.set
+					}
+				}
+			}
+		}
 		encoder.list.drawIndexedVerticesFromTo(start, count);
 	}
 
@@ -679,9 +681,15 @@ private class RenderPass implements IRenderPass {
 		encoder.list.drawIndexedVerticesInstancedFromTo(instanceCount, start, count);
 	}
 
-	public function end() {}
+	public function end() {
+		for(target in targets) {
+			encoder.list.renderTargetToFramebufferBarrier(target);
+		}
+	}
 
-	public function setBindGroup(index:Int, group:IBindGroup) {}
+	public function setBindGroup(index:Int, group:IBindGroup) {
+		bindGroups[index] = cast group;
+	}
 }
 
 private class CommandEncoder implements ICommandEncoder {
@@ -715,6 +723,7 @@ private class CommandBuffer implements ICommandBuffer {
 
 	public function execute() {
 		list.execute();
+		list.waitForExecutionToFinish();
 	}
 }
 
@@ -739,7 +748,7 @@ class G5Driver implements IGPUDevice {
 		this.window = window;
 
 		renderTargets = [
-			for (i in 1...3) {
+			for (_ in 0...2) {
 				final target:Texture = untyped $new(Texture);
 				@:privateAccess target.desc = {
 					width: Window.width(window),
@@ -747,7 +756,7 @@ class G5Driver implements IGPUDevice {
 					format: RGBA,
 					isRenderTarget: true
 				};
-				target.renderTarget = RenderTarget.create(Window.width(window), Window.height(window), 24, false, RenderTargetFormat32Bit, 16, -i);
+				target.renderTarget = RenderTarget.createFramebuffer(Window.width(window), Window.height(window), RenderTargetFormat32Bit, 24, 16);
 				target;
 			}
 			// RenderTarget.create(Window.width(window), Window.height(window), 24, false, RenderTargetFormat32Bit, 16, -1),
@@ -761,19 +770,6 @@ class G5Driver implements IGPUDevice {
 	}
 
 	public function dispose():Void {};
-
-	@:allow(arcane.internal.kinc)
-	static final dummyTex = Type.createEmptyInstance(Texture);
-
-	public function begin():ITexture {
-		var rt = renderTargets[currentRenderTarget++ % renderTargets.length];
-		Graphics5.begin(cast rt.renderTarget, window);
-		return rt;
-	}
-
-	public function end():Void {
-		Graphics5.end(window);
-	}
 
 	public function flush():Void {
 		Graphics5.flush();
@@ -808,7 +804,9 @@ class G5Driver implements IGPUDevice {
 	}
 
 	public function getCurrentTexture():ITexture {
-		return begin();
+		var rt = renderTargets[currentRenderTarget++ %= renderTargets.length];
+		Graphics5.begin(cast rt.renderTarget, window);
+		return rt;
 	}
 
 	public function createUniformBuffer(desc:UniformBufferDescriptor):IUniformBuffer {
@@ -835,6 +833,6 @@ class G5Driver implements IGPUDevice {
 		for (buf in buffers) {
 			(cast buf : CommandBuffer).execute();
 		}
-		Graphics5.end(0);
+		Graphics5.end(window);
 	}
 }

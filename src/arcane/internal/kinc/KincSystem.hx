@@ -285,8 +285,7 @@ class KincSystem implements ISystem {
 	}
 
 	public function getGPUDevice():Null<IGPUDevice> {
-		// return new G5Driver(0);
-		return new KincDriver(0);
+		return isG5 ? new G5Driver(0) : new KincDriver(0);
 	}
 
 	public function language():String {

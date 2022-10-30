@@ -87,6 +87,11 @@ enum BuiltinFunction {
 	BuiltinVec2(t:Type);
 	BuiltinSampleTexture;
 	BuiltinMix;
+	BuiltinNormalize;
+	BuiltinMax;
+	BuiltinPow;
+	BuiltinReflect;
+	BuiltinDot;
 }
 
 typedef ShaderModule = {

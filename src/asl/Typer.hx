@@ -173,6 +173,14 @@ class Typer {
 			error(a + " should be " + b, pos);
 	}
 
+	public static function warning(message:String, pos:Pos) {
+		#if macro
+		haxe.macro.Context.warning(message, pos);
+		#else
+		trace(message);
+		#end
+	}
+
 	public static function error(message:String, pos:Pos):Dynamic {
 		#if macro
 		return haxe.macro.Context.error(message, pos);
@@ -192,6 +200,16 @@ class Typer {
 				// e.expr = TCall({e: TGlobal(ToFloat), t: TFun([]), p: e.p}, [{e: e.e, t: e.t, p: e.p}]);
 				// e.t = TFloat;
 		}
+	}
+
+	function unifyVec(e:TypedExpr, elemType:Type) {
+		for (i in 2...5) {
+			var t = TVec(elemType, i);
+			if (tryUnify(e.t, t)) {
+				return t;
+			}
+		}
+		return error(e.t + " should be a vector", e.pos);
 	}
 
 	function unifyExpr(e:TypedExpr, t:Type) {
@@ -440,21 +458,74 @@ class Typer {
 				}, [for (p in params) p]);
 			// case EObjectDecl(fields):
 			// case EArrayDecl(values):
-			case ECall(_.expr => EConst(CIdent("mix")), [typeExpr(_) => col1, typeExpr(_) => col2, typeExpr(_) => f]):
-				unifyExpr(col1, TVec(TFloat, 4));
-				unifyExpr(col2, TVec(TFloat, 4));
-				unifyExpr(f, TFloat);
-				type = TVec(TFloat, 4);
-				TCallBuiltin(BuiltinMix, [col1, col2, f]);
 			case ECall(_.expr => EField(typeExpr(_) => e, "get"), [typeExpr(_) => uv]):
 				unifyExpr(e, TSampler2D);
 				unifyExpr(uv, TVec(TFloat, 2));
 				type = TVec(TFloat, 4);
 				TCallBuiltin(BuiltinSampleTexture, [e, uv]);
+			case ECall(_.expr => EConst(CIdent(ident)), _.map(typeExpr) => exprs):
+				function args(n) {
+					if (exprs.length > n) {
+						error("Too many arguments", e.pos);
+					}
+					if (exprs.length < n) {
+						error("Not enough arguments", e.pos);
+					}
+				}
+				switch ident {
+
+					case "mix":
+						args(3);
+						final t = unifyVec(exprs[0], TFloat);
+						unifyExpr(exprs[1], t);
+						unifyExpr(exprs[2], TFloat);
+						type = t;
+						TCallBuiltin(BuiltinMix, exprs);
+					case "$type":
+						args(1);
+						type = exprs[0].t;
+						warning(type + "", exprs[0].pos);
+						exprs[0].expr;
+					case "dot":
+						args(2);
+						var t = unifyVec(exprs[0], TFloat);
+						unifyExpr(exprs[1], t);
+						type = TFloat;
+						TCallBuiltin(BuiltinDot, exprs);
+					case "normalize":
+						args(1);
+						type = unifyVec(exprs[0], TFloat);
+						TCallBuiltin(BuiltinNormalize, exprs);
+					case "max":
+						args(2);
+						type = exprs[0].t;
+						unifyExpr(exprs[1], type);
+						TCallBuiltin(BuiltinMax, exprs);
+					case "pow":
+						args(2);
+						type = exprs[0].t;
+						unifyExpr(exprs[1], TFloat);
+						TCallBuiltin(BuiltinPow, exprs);
+					case "reflect":
+						args(2);
+						unifyExpr(exprs[0], TVec(TFloat, 3));
+						unifyExpr(exprs[1], TVec(TFloat, 3));
+						type = TVec(TFloat, 3);
+						TCallBuiltin(BuiltinReflect, exprs);
+					default:
+						error("Unknown call", e.pos);
+				}
+
+			// BuiltinNormalize;
+			// BuiltinMax;
+			// BuiltinPow;
+			// BuiltinReflect;
+
 			case EUnop(op, postFix, typeExpr(_) => e):
 				type = e.t;
 				TUnop(op, postFix, e);
 			case EVars(_vars):
+				// trace(_vars);
 				if (_vars.length != 1)
 					error("Multi variable declarations not yet supported", e.pos);
 				var v = _vars[0];

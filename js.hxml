@@ -2,7 +2,7 @@
 -cp src
 -m Texture
 -lib format:3.5.0
--lib wgpu-externs 
+# -lib wgpu-externs 
 #:git:https://github.com/Apprentice-Alchemist/wgpu-haxe-externs
 --macro arcane.internal.Macros.initSourceMaps()
 --macro nullSafety("arcane")

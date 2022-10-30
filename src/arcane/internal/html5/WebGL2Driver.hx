@@ -472,9 +472,10 @@ private class Texture implements ITexture {
 			assert(desc.format.match(RGBA), "WebGL only supports rgba textures right now.");
 			var texture = driver.gl.createTexture();
 			driver.gl.bindTexture(GL.TEXTURE_2D, texture);
-			@:nullSafety(Off) driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA8, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE,
-				desc.data == null ? null : @:privateAccess desc.data.b);
-			driver.gl.generateMipmap(GL.TEXTURE_2D);
+			driver.gl.texStorage2D(GL.TEXTURE_2D, 1, GL.RGBA8, desc.width, desc.height);
+			if (desc.data != null) {
+				driver.gl.texSubImage2D(GL.TEXTURE_2D, 0, 0, 0, desc.width, desc.height, GL.RGBA, GL.UNSIGNED_BYTE, @:privateAccess desc.data.b);
+			}
 
 			@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
 			Texture(texture, GL.TEXTURE_2D);
@@ -487,7 +488,7 @@ private class Texture implements ITexture {
 				throw "assert";
 			case Texture(tex, target):
 				driver.gl.bindTexture(GL.TEXTURE_2D, tex);
-				driver.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, desc.width, desc.height, 0, GL.RGBA, GL.UNSIGNED_BYTE, @:privateAccess data.b);
+				driver.gl.texSubImage2D(GL.TEXTURE_2D, 0, 0, 0, desc.width, desc.height, GL.RGBA, GL.UNSIGNED_BYTE, @:privateAccess data.b);
 				@:nullSafety(Off) driver.gl.bindTexture(GL.TEXTURE_2D, null);
 		}
 	}
@@ -647,7 +648,7 @@ private class BindGroup implements IBindGroup {
 
 	public function new(driver, desc) {
 		this.desc = desc;
-		for (index => e in (cast desc.layout : BindGroupLayout).desc.entries) {
+		for (index => e in(cast desc.layout : BindGroupLayout).desc.entries) {
 			arcane.Utils.assert(desc.entries[index].binding == e.binding);
 			arcane.Utils.assert(switch desc.entries[index].resource {
 				case Buffer(buffer):

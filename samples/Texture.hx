@@ -23,22 +23,73 @@ import arcane.Image;
 @:vert({
 	@:in var pos:Vec3;
 	@:in var uv:Vec2;
+	@:in var normal:Vec3;
+	@:out var f_pos:Vec3;
 	@:out var f_uv:Vec2;
+	@:out var f_normal:Vec3;
 	@:builtin(position) var position:Vec4;
-	@:uniform(0) var m:Array<Mat4, 4>;
-	@:builtin(instanceIndex) var instanceIndex:Int;
+	@:uniform(0) var m:Mat4;
+	@:uniform(0) var mInvT:Mat4;
 	function main() {
+		f_pos = pos;
 		f_uv = uv;
-		position = m[instanceIndex] * vec4(pos, 1.0);
+		f_normal = normal;
+		position = m * vec4(pos, 1.0);
 	}
 })
 @:frag({
+	@:in var f_pos:Vec3;
 	@:in var f_uv:Vec2;
+	@:in var f_normal:Vec3;
 	@:out var color:Vec4;
+
 	@:uniform(1) var tex:Texture2D;
+
+	@:uniform(2) var lightPos:Vec3;
+	@:uniform(2) var viewPos:Vec3;
+	@:uniform(2) var lightColor:Vec3;
+	@:uniform(2) var objectColor:Vec3;
+
 	function main() {
-		color = tex.get(f_uv);
-		color.w = 1.0;
+	// 	    // ambient
+    // float ambientStrength = 0.1;
+    // vec3 ambient = ambientStrength * lightColor;
+  	
+    // // diffuse 
+    // vec3 norm = normalize(Normal);
+    // vec3 lightDir = normalize(lightPos - FragPos);
+    // float diff = max(dot(norm, lightDir), 0.0);
+    // vec3 diffuse = diff * lightColor;
+    
+    // // specular
+    // float specularStrength = 0.5;
+    // vec3 viewDir = normalize(viewPos - FragPos);
+    // vec3 reflectDir = reflect(-lightDir, norm);  
+    // float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    // vec3 specular = specularStrength * spec * lightColor;  
+        
+    // vec3 result = (ambient + diffuse + specular) * objectColor;
+    // FragColor = vec4(result, 1.0);
+	var ambientStrength = 0.1;
+	var ambient = ambientStrength * lightColor;
+
+	var norm = normalize(f_normal);
+	var lightDir = normalize(lightPos - f_pos);
+	var diff = max(dot(norm, lightDir), 0.0);
+	var diffuse = diff * lightColor;
+
+	var specularStrength = 0.5;
+	var viewDir = normalize(viewPos - f_pos);
+	var reflectDir = reflect($type(-lightDir), $type(norm));
+	var spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+	var specular = specularStrength * spec * lightColor;
+
+	var result = (ambient + diffuse + specular) * tex.get(f_uv).xyz;
+	
+	color = vec4(result, 1.0);
+		// color = tex.get(f_uv);
+		// color.w = 1.0;
+		// color = vec4(1.0, 0.0, 0.0, 1.0);
 	}
 })
 private class MyShader extends asl.Shader {}
@@ -124,14 +175,15 @@ function main() {
 
 			Lib.update.add((dt) -> {
 				final ubuf:Float32Array = uniform_buffer.map(0, uniform_buffer.desc.size);
-				final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
-				mat.write(ubuf, true);
-				final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
-				mat.write(ubuf, true, 16);
-				final mat = Matrix4.translation(0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
-				mat.write(ubuf, true, 32);
-				final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
-				mat.write(ubuf, true, 48);
+				// Matrix4.identity()
+				// final mat = Matrix4.translation(-0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				// mat.write(ubuf, true);
+				// final mat = Matrix4.translation(0.5, 0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				// mat.write(ubuf, true, 16);
+				// final mat = Matrix4.translation(0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				// mat.write(ubuf, true, 32);
+				// final mat = Matrix4.translation(-0.5, -0.5, 0) * Matrix4.rotation(0, Lib.time(), 0) * Matrix4.scale(0.25, 0.25, 0.25);
+				// mat.write(ubuf, true, 48);
 				uniform_buffer.unmap();
 
 				final encoder = d.createCommandEncoder();

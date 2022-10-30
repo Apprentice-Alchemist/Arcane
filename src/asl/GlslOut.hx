@@ -170,6 +170,11 @@ class GlslOut {
 					case BuiltinVec2(t): "vec2";
 					case BuiltinSampleTexture: "texture";
 					case BuiltinMix: "mix";
+					case BuiltinNormalize: "normalize";
+					case BuiltinMax: "max";
+					case BuiltinPow: "pow";
+					case BuiltinDot: "dot";
+					case BuiltinReflect: "reflect";
 				}) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";
 			case TCall(e, el):
 				convExpr(e) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";

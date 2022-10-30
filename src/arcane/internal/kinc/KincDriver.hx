@@ -183,7 +183,7 @@ private class Texture implements ITexture {
 		this.desc = desc;
 
 		if (desc.isRenderTarget) {
-			renderTarget = RenderTarget.create(desc.width, desc.height, 24, false, Format32Bit, 8, 0);
+			renderTarget = RenderTarget.create(desc.width, desc.height, Format32Bit, 24, 8);
 		} else {
 			var tex = new kinc.g4.Texture();
 			this.tex = tex;
