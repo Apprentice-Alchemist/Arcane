@@ -16,12 +16,43 @@ abstract Vector3(Vec3Internal) {
 		return this.x * b.x + this.y * b.y + this.z * b.z;
 	}
 
+	@:commutative
+	@:op(A + B)
+	public inline function mulFloat(f:Float):Vector3 {
+		return new Vector3(this.x * f, this.y * f, this.z * f);
+	}
+
+	@:op(A / B)
+	public inline function divFloat(f:Float):Vector3 {
+		return new Vector3(this.x / f, this.y / f, this.z / f);
+	}
+
+	@:op(A + B)
+	public inline function addV(b:Vector3) {
+		return new Vector3(this.x + this.x, this.y + this.y, this.z + this.z);
+	}
+	@:op(A - B)
+	public inline function sub(b:Vector3) {
+		return new Vector3(this.x - this.x, this.y - this.y, this.z - this.z);
+	}
+
 	public inline function new(x:Float, y:Float, z:Float) {
 		this = new Vec3Internal(x, y, z);
 	}
 
 	@:op(A == B) inline static function equals(a:Vector3, b:Vector3) {
 		return a.x == b.x && a.y == b.y && a.z == b.z;
+	}
+
+	public inline function normalize() {
+		return abstract / (Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z));
+	}
+
+	public inline function cross(v:Vector3):Vector3 {
+		var x = this.y * v.z - this.z * v.y;
+		var y = this.z * v.x - this.x * v.z;
+		var z = this.x * v.y - this.y * v.x;
+		return new Vector3(x, y, z);
 	}
 }
 
@@ -310,6 +341,33 @@ abstract Matrix4(Mat4Internal) {
 			0, 0, c, e,
 			0, 0, d, 0
 		);
+	}
+
+	public static inline function lookAt(eye:Vector3, center:Vector3, up:Vector3) {
+		var f = (center - eye).normalize();
+		var s = f.cross(up).normalize();
+		var u = s.cross(f);
+
+		// var mat = Matrix4.identity();
+		return new Matrix4(
+			s.x,u.x,-f.x, 0,
+			s.y, u.y, -f.y, 0,
+			s.z, u.z, -f.z, 0,
+			-s.dot(eye), -u.dot(eye), f.dot(eye), 1,
+		).transpose();
+		// mat._11 = s.x;
+		// mat._21 = s.y;
+		// mat._31 = s.z;
+		// mat._12 = u.x;
+		// mat._22 = u.y;
+		// mat._31 = u.z;
+		// mat._13 = -f.x;
+		// mat._23 = -f.y;
+		// mat._33 = -f.z;
+		// mat._41 = -s.dot(eye);
+		// mat._42 = -u.dot(eye);
+		// mat._43 = f.dot(eye);
+		// return mat;
 	}
 
 	public inline function new(_11:Float, _12:Float, _13:Float, _14:Float, _21:Float, _22:Float, _23:Float, _24:Float, _31:Float, _32:Float, _33:Float,

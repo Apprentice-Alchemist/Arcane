@@ -1,22 +1,18 @@
 package asl;
 
-import haxe.macro.Printer;
-// import arcane.internal.html5.WebAudioDriver.AudioBuffer;
-import haxe.macro.Compiler;
 import haxe.Serializer;
 import haxe.io.Bytes;
+import haxe.macro.Compiler;
+import haxe.macro.Printer;
+// import arcane.internal.html5.WebAudioDriver.AudioBuffer;
 #if macro
-import haxe.macro.Expr;
 import haxe.macro.Context.*;
+import haxe.macro.Expr;
 
 using haxe.macro.Tools;
 #end
 
 class Macros {
-	public static macro function shader(e) {
-		return macro $e;
-	}
-
 	#if macro
 
 	public static function buildShader() {

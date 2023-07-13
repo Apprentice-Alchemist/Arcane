@@ -52,7 +52,7 @@ class Utils {
 		return macro @:pos(b.pos) if (!$b) {
 			throw $v{
 				if (msg == null)
-					"assertion failed : " + " (" + $v{b.toString()} + ")"
+					"assertion failed : " + " (" + macro $v{b.toString()} + ")"
 				else
 					msg
 			};

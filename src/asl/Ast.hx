@@ -92,6 +92,9 @@ enum BuiltinFunction {
 	BuiltinPow;
 	BuiltinReflect;
 	BuiltinDot;
+	BuiltinInverse;
+	BuiltinTranspose;
+	BuiltinMat3;
 }
 
 typedef ShaderModule = {

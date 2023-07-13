@@ -76,6 +76,18 @@ typedef VertexAttribute = {
 	final kind:VertexData;
 }
 
+macro function vertex_attribs(exprs:Array<haxe.macro.Expr>) {
+	var arr = [for(e in exprs) switch e {
+		case macro $name => $kind:
+			macro {
+				name: ($name:String),
+				kind: ($kind:arcane.gpu.IRenderPipeline.VertexData)
+			};
+		default: haxe.macro.Context.error("Unexpected expression", e.pos);
+	}];
+	return macro $a{arr};
+}
+
 typedef InputLayout = Array<{
 	final instanced:Bool;
 	final attributes:Array<VertexAttribute>;

@@ -74,7 +74,7 @@ class GlslOut {
 				buf.add(";\n");
 			}
 		if (!krafix && module.uniforms.filter(f -> f.t != TSampler2D).length > 0)
-			buf.add("layout(binding = 0) uniform M {\n");
+			buf.add('layout(binding = 0) uniform M${module.stage.match(Vertex) ? "vert" : "frag"} {\n');
 		for (uniform in module.uniforms.filter(f -> f.t != TSampler2D)) {
 			if (krafix)
 				buf.add("uniform ");
@@ -175,6 +175,9 @@ class GlslOut {
 					case BuiltinPow: "pow";
 					case BuiltinDot: "dot";
 					case BuiltinReflect: "reflect";
+					case BuiltinTranspose: "transpose";
+					case BuiltinInverse: "inverse";
+					case BuiltinMat3: "mat3";
 				}) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";
 			case TCall(e, el):
 				convExpr(e) + "(" + [for (e in el) convExpr(e)].join(", ") + ")";

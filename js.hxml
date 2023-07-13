@@ -1,6 +1,6 @@
--cp samples
+-cp samples/light
 -cp src
--m Texture
+-m Light
 -lib format:3.5.0
 # -lib wgpu-externs 
 #:git:https://github.com/Apprentice-Alchemist/wgpu-haxe-externs

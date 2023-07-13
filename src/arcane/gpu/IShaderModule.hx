@@ -9,6 +9,10 @@ enum abstract ShaderStage(Int) {
 	var Compute = 0x4;
 
 	@:op(A | B) static function and(a:ShaderStage, b:ShaderStage):ShaderStage;
+	
+	public function has(a:ShaderStage):Bool {
+		return this & (cast a) == cast a; 
+	}
 }
 
 @:structInit class ShaderDescriptor {

@@ -268,6 +268,7 @@ private class Shader implements IShaderModule {
 		// 		bytes = out.toBytes(len);
 		// 	}
 		// #end
+		trace(bytes.getString(0, bytes.length));
 		if (desc.module.stage == Compute) {
 			compute = new ComputeShader(bytes);
 			shader = null;
@@ -371,6 +372,7 @@ private class RenderPipeline implements IRenderPipeline {
 		this.uniforms = [];
 		this.textures = [];
 		for (u in (cast desc.vertexShader : Shader).desc.module.uniforms) {
+			trace(u);
 			switch u.t {
 				case TMonomorph(r):
 				case TVoid, TBool, TInt, TFloat, TVec(_, _), TMat(_, _), TArray(_, _), TStruct(_):
@@ -391,6 +393,7 @@ private class RenderPipeline implements IRenderPipeline {
 			}
 		}
 		for (u in (cast desc.fragmentShader : Shader).desc.module.uniforms) {
+			// trace(u);
 			switch u.t {
 				case TMonomorph(r):
 				case TVoid, TBool, TInt, TFloat, TVec(_, _), TMat(_, _), TArray(_, _), TStruct(_):

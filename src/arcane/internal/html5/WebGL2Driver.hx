@@ -375,6 +375,18 @@ private class RenderPipeline implements IRenderPipeline {
 		var tu_count = 0;
 		final uniforms = desc.vertexShader.desc.module.uniforms.concat(desc.fragmentShader.desc.module.uniforms);
 		// var binding = 0;
+		var blocks = driver.gl.getProgramParameter(program, GL.ACTIVE_UNIFORM_BLOCKS);
+		trace(blocks);
+		for(i in 0...blocks) {
+			var name = driver.gl.getActiveUniformBlockName(program, i);
+			trace(name);
+			var binding = driver.gl.getActiveUniformBlockParameter(program, i, GL.UNIFORM_BLOCK_BINDING);
+			var size = driver.gl.getActiveUniformBlockParameter(program, i, GL.UNIFORM_BLOCK_DATA_SIZE);
+			trace(binding);
+			trace(size);
+			trace(driver.gl.getUniformBlockIndex(program, name));
+			driver.gl.uniformBlockBinding(program, i, i);
+		}
 		for (i in 0...loc_count) {
 			var info = driver.gl.getActiveUniform(program, i);
 			var uniform = driver.gl.getUniformLocation(program, info.name);
@@ -762,12 +774,16 @@ private class CommandBuffer implements ICommandBuffer {
 		var bindGroupsDirty = true;
 		function updateBindGroups() {
 			if (bindGroupsDirty) {
-				for (b in bindGroups) {
-					for (entry in b.desc.entries) {
+				for (b_i => b in bindGroups) {
+					for (entry_i => entry in b.desc.entries) {
 						switch entry.resource {
 							case Buffer((cast _ : UniformBuffer) => buffer):
+								var layout:BindGroupLayout = cast b.desc.layout;
+								var entry_desc = layout.desc.entries[entry_i];
+								var index = entry_desc.visibility.has(Fragment) ? 1 : 0;
+								// trace(index);
 								if (buffer.buf != null)
-									gl.bindBufferBase(GL.UNIFORM_BUFFER, entry.binding, cast buffer.buf);
+									gl.bindBufferBase(GL.UNIFORM_BUFFER, index, cast buffer.buf);
 								else {}
 							case Texture((cast _ : Texture) => texture, (cast _ : Sampler) => sampler):
 								if (curPipeline != null) {
@@ -837,6 +853,7 @@ private class CommandBuffer implements ICommandBuffer {
 							case Load:
 						}
 					}
+					gl.clear(GL.DEPTH);
 				case EndRenderPass:
 				case SetVertexBuffers(buffers):
 					var enabledVertexAttribs = driver.enabledVertexAttribs;

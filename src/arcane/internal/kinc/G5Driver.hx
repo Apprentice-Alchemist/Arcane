@@ -628,7 +628,7 @@ private class RenderPass implements IRenderPass {
 			var target = cast(cast desc.colorAttachments[i].texture : Texture).renderTarget;
 			switch attachment.load {
 				case Clear(color):
-					encoder.list.clear(target, Color, color ?? 0, 0, 0);
+					encoder.list.clear(target, Color, color == null ? 0 : color, 0, 0);
 				case Load:
 					encoder.list.clear(target, Color, 0, 0, 0);
 			}

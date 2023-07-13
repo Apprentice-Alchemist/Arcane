@@ -4,6 +4,9 @@ import haxe.macro.Context;
 import haxe.macro.Expr;
 import asl.Ast;
 
+// #if !(macro || display)
+// #error "Not in macro"
+// #end
 abstract Pos(asl.Ast.Position) from asl.Ast.Position to asl.Ast.Position {
 	#if macro
 	@:from static function fromP(p:haxe.macro.Expr.Position) {
@@ -212,6 +215,16 @@ class Typer {
 		return error(e.t + " should be a vector", e.pos);
 	}
 
+	function unifyMat(e:TypedExpr, elemType:Type) {
+		for (i in 2...5) {
+			var t = TMat(elemType, i);
+			if (tryUnify(e.t, t)) {
+				return t;
+			}
+		}
+		return error(e.t + " should be a matrix", e.pos);
+	}
+
 	function unifyExpr(e:TypedExpr, t:Type) {
 		if (!tryUnify(e.t, t)) {
 			if (follow(e.t) == TInt && follow(t) == TFloat) {
@@ -231,7 +244,7 @@ class Typer {
 						TVec(TFloat, 4);
 					// case [OpMult, TVec(TFloat,3), TMat3x4]:
 					// 	vec3;
-					case [OpMult, TVec(TFloat, 3), TMat(TFloat, 3)]:
+					case [OpMult, TVec(TFloat, 3), TMat(TFloat, 3)] | [OpMult, TMat(TFloat, 3), TVec(TFloat, 3)]:
 						TVec(TFloat, 3);
 					case [OpMult, TVec(TFloat, 2), TMat(TFloat, 2)]:
 						TVec(TFloat, 2);
@@ -473,7 +486,21 @@ class Typer {
 					}
 				}
 				switch ident {
-
+					case "inverse":
+						args(1);
+						final t = unifyMat(exprs[0], TFloat);
+						type = t;
+						TCallBuiltin(BuiltinInverse, exprs);
+					case "transpose":
+						args(1);
+						final t = unifyMat(exprs[0], TFloat);
+						type = t;
+						TCallBuiltin(BuiltinTranspose, exprs);
+					case "mat3":
+						args(1);
+						final t = unifyMat(exprs[0], TFloat);
+						type = TMat(TFloat, 3);
+						TCallBuiltin(BuiltinMat3, exprs);
 					case "mix":
 						args(3);
 						final t = unifyVec(exprs[0], TFloat);
