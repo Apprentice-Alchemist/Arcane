@@ -17,7 +17,7 @@ class Lib {
 	public static var fps(default, null):Float = 0.0;
 
 	public static var system(default, null):ISystem = new arcane.internal.System();
-	public static var gdriver(default, null):Null<IGPUDevice>;
+	public static var gpu(default, null):Null<IGPUDevice>;
 	public static var adriver(default, null):Null<IAudioDevice>;
 
 	#if target.threaded
@@ -43,7 +43,7 @@ class Lib {
 				mode: Windowed
 			}
 		}, () -> {
-			gdriver = system.getGPUDevice();
+			gpu = system.getGPUDevice();
 			adriver = system.getAudioDevice();
 			cb();
 		});
@@ -78,8 +78,8 @@ class Lib {
 		hl.Profile.event(-1); // pause
 		#end
 		#if kinc
-		if (gdriver != null) {
-			gdriver.present();
+		if (gpu != null) {
+			gpu.present();
 		}
 		#end
 		#if hl_profile
@@ -109,8 +109,8 @@ class Lib {
 	 * @param code Exit code
 	 */
 	public static function exit(code:Int):Void {
-		if (gdriver != null)
-			gdriver.dispose();
+		if (gpu != null)
+			gpu.dispose();
 		if (system != null)
 			system.shutdown();
 		#if hl_profile

@@ -4,6 +4,7 @@ import arcane.arrays.UInt16Array;
 import arcane.arrays.Int32Array;
 import arcane.arrays.Float32Array;
 import arcane.gpu.IGPUDevice;
+import arcane.gpu.IRenderPipeline;
 
 @:nullSafety(Strict)
 class Geometry {
@@ -43,7 +44,7 @@ class Geometry {
 		}
 	}
 
-	public function makeBuffers(driver:IGraphicsDriver) {
+	public function makeBuffers(driver:IGPUDevice) {
 		var attributes = [{name: "pos", kind: Float3}, {name: "uv", kind: Float2}];
 		var ret = {
 			vertices: driver.createVertexBuffer({attributes: attributes, size: points.length, dyn: true}),

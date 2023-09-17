@@ -311,10 +311,49 @@ private class BindGroup implements IBindGroup {
 	}
 }
 
+private enum Binding {
+	BUniform(arr:Array<{
+		var loc:ConstantLocation;
+		var size:Int;
+		var use_int:Bool;
+	}>);
+	BTexture(unit:TextureUnit);
+}
+
+private class BindingMap {
+	var map:Map<Int, Binding> = [];
+
+	public function new() {}
+
+	public function get(binding:Int) {
+		return map.get(binding);
+	}
+
+	public function addUniform(binding:Int, loc:ConstantLocation, size:Int, use_int:Bool) {
+		if(map.exists(binding)) {
+			switch map.get(binding) {
+				case BUniform(arr): 
+					arr.push({loc:loc, size:size, use_int: use_int});
+				case _:
+					throw "binding used for two different things";
+			}
+		} else {
+			map.set(binding, BUniform([{loc:loc, size:size, use_int: use_int}]));
+		}
+	}
+
+	public function addTexture(binding:Int, unit:TextureUnit) {
+		if(map.exists(binding)) throw "binding used for two different things";
+		map.set(binding, BTexture(unit));
+	}
+}
+
 private class RenderPipeline implements IRenderPipeline {
 	public var desc(default, null):RenderPipelineDescriptor;
 
 	public final state:kinc.g4.Pipeline;
+
+	final bindingMap:BindingMap = new BindingMap();
 
 	public function new(desc:RenderPipelineDescriptor) {
 		this.desc = desc;
@@ -369,46 +408,50 @@ private class RenderPipeline implements IRenderPipeline {
 		state.blend_destination = convertBlend(desc.blend.dst);
 		state.compile();
 
-		this.uniforms = [];
-		this.textures = [];
+		// this.uniforms = [];
+		// this.textures = [];
+		this.bindingMap = new BindingMap();
 		for (u in (cast desc.vertexShader : Shader).desc.module.uniforms) {
 			trace(u);
+			var binding = switch u.kind {
+				case Uniform(binding): binding;
+				default: throw "expected uniform";
+			}
 			switch u.t {
 				case TMonomorph(r):
 				case TVoid, TBool, TInt, TFloat, TVec(_, _), TMat(_, _), TArray(_, _), TStruct(_):
 					final location = state.getConstantLocation(u.name);
 					final size = asl.Typer.sizeof(u.t);
 
-					uniforms.set(0, [
-						{
-							loc: location,
-							size: size,
-							use_int: u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
-						}]);
+					bindingMap.addUniform(binding, location,
+							size,
+							 u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
+						);
 				case TSampler2D:
 					final unit = state.getTextureUnit(GlslOut.escape(u.name));
-					textures.set(0, unit);
+					bindingMap.addTexture(binding, unit);
 				case TSampler2DArray:
 				case TSamplerCube:
 			}
 		}
 		for (u in (cast desc.fragmentShader : Shader).desc.module.uniforms) {
-			// trace(u);
+			trace(u);
+						var binding = switch u.kind {
+				case Uniform(binding): binding;
+				default: throw "expected uniform";
+			}
 			switch u.t {
 				case TMonomorph(r):
 				case TVoid, TBool, TInt, TFloat, TVec(_, _), TMat(_, _), TArray(_, _), TStruct(_):
 					final location = state.getConstantLocation(u.name);
 					final size = asl.Typer.sizeof(u.t);
 
-					uniforms.set(0, [
-						{
-							loc: location,
-							size: size,
-							use_int: u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
-						}]);
+					bindingMap.addUniform(binding, location,
+						size, u.t == TInt || u.t.match(TVec(TInt, _)) || u.t.match(TMat(TInt, _)) || u.t.match(TArray(TInt, _))
+					);
 				case TSampler2D:
 					final unit = state.getTextureUnit(GlslOut.escape(u.name));
-					textures.set(0, unit);
+					bindingMap.addTexture(binding, unit);
 				case TSampler2DArray:
 				case TSamplerCube:
 			}
@@ -466,31 +509,45 @@ private class RenderPipeline implements IRenderPipeline {
 		}
 	}
 
-	public final uniforms:Map<Int, Array<{
-		var loc:ConstantLocation;
-		var size:Int;
-		var use_int:Bool;
-	}>>;
-	public final textures:Map<Int, TextureUnit>;
+	// public final uniforms:Map<Int, Array<{
+	// 	var loc:ConstantLocation;
+	// 	var size:Int;
+	// 	var use_int:Bool;
+	// }>>;
+	// public final textures:Map<Int, TextureUnit>;
 
 	public function setBuffer(binding:Int, buffer:UniformBuffer) {
-		if (uniforms.exists(binding)) {
-			final l:Array<{
-				var loc:ConstantLocation;
-				var size:Int;
-				var use_int:Bool;
-			}> = cast uniforms.get(binding);
-			var buf_pos = 0;
-			for (s in l) {
-				if (buf_pos + s.size > @:privateAccess buffer.data.byteLength)
-					throw "Uniform Buffer too small.";
-				if (s.use_int)
-					@:privateAccess Graphics4.__setInts(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
-				else
-					@:privateAccess Graphics4.__setFloats(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
-				buf_pos += s.size;
-			}
+		switch bindingMap.get(binding) {
+			case BUniform(l):
+				var buf_pos = 0;
+				for (s in l) {
+					if (buf_pos + s.size > @:privateAccess buffer.data.byteLength)
+						throw "Uniform Buffer too small.";
+					if (s.use_int)
+						@:privateAccess Graphics4.__setInts(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
+					else
+						@:privateAccess Graphics4.__setFloats(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
+					buf_pos += s.size;
+				}
+			default:
 		}
+		// if (uniforms.exists(binding)) {
+		// 	final l:Array<{
+		// 		var loc:ConstantLocation;
+		// 		var size:Int;
+		// 		var use_int:Bool;
+		// 	}> = cast uniforms.get(binding);
+		// 	var buf_pos = 0;
+		// 	for (s in l) {
+		// 		if (buf_pos + s.size > @:privateAccess buffer.data.byteLength)
+		// 			throw "Uniform Buffer too small.";
+		// 		if (s.use_int)
+		// 			@:privateAccess Graphics4.__setInts(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
+		// 		else
+		// 			@:privateAccess Graphics4.__setFloats(s.loc, buffer.data.b.offset(buf_pos), s.size >> 2);
+		// 		buf_pos += s.size;
+		// 	}
+		// }
 	}
 
 	public static inline function convertAddressing(a:AddressMode):TextureAdressing {
@@ -516,8 +573,8 @@ private class RenderPipeline implements IRenderPipeline {
 	}
 
 	public function setTexture(binding:Int, texture:Texture, sampler:Sampler) {
-		if (textures.exists(binding)) {
-			final unit:TextureUnit = cast textures.get(binding);
+		switch bindingMap.get(binding) {
+			case BTexture(unit):
 			if (texture.desc.isRenderTarget) {
 				(cast texture.renderTarget).useColorAsTexture(unit);
 			} else {
@@ -533,6 +590,7 @@ private class RenderPipeline implements IRenderPipeline {
 			Graphics4.setTextureCompareMode(unit, sampler.desc.compare != null);
 
 			// todo implement compare func, lod and max anisotropy in kinc
+			default:
 		}
 	}
 
@@ -747,7 +805,7 @@ private class CommandBuffer implements ICommandBuffer {
 						Graphics4.setRenderTargets(targets);
 					}
 
-					Graphics4.clear(Color, 0xFF000000, 0, 0);
+					Graphics4.clear(Color | Depth, 0xFF000000, 1.0, 0);
 				case EndRenderPass:
 					in_render = false;
 				case SetVertexBuffers(buffers):
@@ -780,7 +838,7 @@ private class CommandBuffer implements ICommandBuffer {
 				case BeginComputePass(_):
 					if (in_render)
 						return Log.error("End the render pass before beginning a computer pass");
-					in_compute = false;
+					in_compute = true;
 				case SetComputePipeline(p):
 					computePipeline = p;
 					kinc.compute.Compute.setShader(p.shader);

@@ -19,7 +19,7 @@ class Assets {
 	/**
 	 * All the files present in the resource folder at the moment of compilation
 	 */
-	static var manifest:Array<String> = [];
+	static var manifest:Array<String> = arcane.internal.Macros.initManifest();
 
 	/**
 	 * Preload all assets for further use with Assets.getBytes.
@@ -28,13 +28,11 @@ class Assets {
 	 * @param onComplete called once all assets have been loaded
 	 */
 	public static function preload(onProgress:(f:Float) -> Void, handle_error:(error:AssetError) -> Void, onComplete:() -> Void):Void {
-		Assets.manifest = arcane.internal.Macros.initManifest();
 		var loaded_files:Int = 0;
 		var errored_files:Int = 0;
 		final file_count:Int = manifest.length;
 		for (x in manifest) {
 			loadBytesAsync(x, bytes -> {
-				bytes_cache.set(x, bytes);
 				loaded_files++;
 				onProgress(loaded_files / file_count);
 				if ((file_count + errored_files) == loaded_files) {

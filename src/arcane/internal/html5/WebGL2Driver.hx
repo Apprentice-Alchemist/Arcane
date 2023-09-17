@@ -853,6 +853,9 @@ private class CommandBuffer implements ICommandBuffer {
 							case Load:
 						}
 					}
+					enable(GL.DEPTH_TEST, true);
+					gl.depthMask(true);
+					gl.clearDepth(0.0);
 					gl.clear(GL.DEPTH);
 				case EndRenderPass:
 				case SetVertexBuffers(buffers):
