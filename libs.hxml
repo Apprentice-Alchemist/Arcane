@@ -1,0 +1,6 @@
+-lib hxcpp
+-lib utest
+-lib hxp
+-lib lime
+-lib openfl
+-lib flixel

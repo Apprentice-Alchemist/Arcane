@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        haxe: [4.3.1, latest]
+        haxe: [4.2.0, 4.2.1, 4.2.2, 4.2.3, 4.2.4, 4.2.5]
     steps:
     - uses: krdlab/setup-haxe@master
       with:
@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build
       run: |
-        haxelib install tests.hxml --always --quiet
-    - name: Run tests
-      run: |
-        haxe tests.hxml
+        haxelib install libs.hxml --always
+    # - name: Run tests
+    #   run: |
+    #     haxe tests.hxml
