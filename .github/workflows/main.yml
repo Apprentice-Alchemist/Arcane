@@ -11,7 +11,7 @@ jobs:
       matrix:
         haxe: [4.1.0, 4.1.5, 4.2.0,4.2.2,4.2.4, 4.2.5, 4.3.0, 4.3.2, 4.3.4, 4.3.6]
     steps:
-    - uses: krdlab/setup-haxe@master
+    - uses: Apprentice-Alchemist/setup-haxe@use-neko-2.3-for-old-haxe
       with:
           haxe-version: ${{ matrix.haxe }}
     - uses: actions/checkout@v2
